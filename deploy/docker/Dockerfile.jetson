@@ -177,27 +177,21 @@ CMD ["ros2", "launch", "zed_wrapper", "zed_camera.launch.py", "camera_model:=zed
 
 
 # -----------------------------------------------------------------------------
-# STAGE 3 · soccer-app-image — ROS 2 Jazzy + the soccer_ws application workspace
+# STAGE 3 · soccer-app-build — compile the soccer workspace (throwaway)
 # -----------------------------------------------------------------------------
-# App nodes (perception / localization / strategy / control / bridges). FROM the
-# shared CUDA base so the detector can later load an RF-DETR TensorRT engine; the
-# stack is CPU-only today and consumes the camera contract over DDS.
-FROM jetson-base AS soccer-app-image
+# Build-only stage. The compiled install/ is copied into soccer-app-image below;
+# source code, build tools, and intermediate artifacts are discarded.
+FROM jetson-base AS soccer-app-build
 
 WORKDIR /ws
 
-# Runtime + build dependencies for the workspace. rosdep fills any gaps from the
-# package.xml manifests; the common heavy deps are listed to warm the apt cache.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ros-jazzy-ros-base python3-colcon-common-extensions python3-rosdep python3-pip \
-        python3-scipy python3-opencv \
-        ros-jazzy-cv-bridge \
-        ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
-        ros-jazzy-behaviortree-cpp \
-        ros-jazzy-robot-state-publisher ros-jazzy-xacro \
-    && rm -rf /var/lib/apt/lists/*
+# Runtime + build dependencies — shared with Dockerfile.ci via soccer-app-deps.apt.
+# To add or remove a package, edit that file; both images stay in sync.
+COPY deploy/docker/soccer-app-deps.apt /tmp/deps.apt
+RUN apt-get update \
+    && grep -v '^\s*#' /tmp/deps.apt | tr -d '\r' | xargs apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
 
-# Build the workspace (merge-install -> lean runtime layout, like Dockerfile.runtime).
 COPY ros2_ws/src ./src
 RUN (rosdep init 2>/dev/null || true) && rosdep update \
     && . /opt/ros/jazzy/setup.sh \
@@ -206,13 +200,29 @@ RUN (rosdep init 2>/dev/null || true) && rosdep update \
     && MAKEFLAGS="-j4" colcon build --merge-install --parallel-workers 2 \
          --cmake-args -DCMAKE_BUILD_TYPE=Release
 
+
+# -----------------------------------------------------------------------------
+# STAGE 4 · soccer-app-image — lean runtime image (install-space only)
+# -----------------------------------------------------------------------------
+# App nodes (perception / localization / strategy / control / bridges). FROM the
+# shared CUDA base so the detector can later load an RF-DETR TensorRT engine.
+# Source code and build tools from soccer-app-build are not carried forward.
+FROM jetson-base AS soccer-app-image
+
+WORKDIR /ws
+
+COPY --from=soccer-app-build /ws/install ./install
+
 # CycloneDDS RMW — must be present in BOTH containers so the whole ROS graph can
 # run on the same middleware (all nodes must share an RMW to communicate). Late,
-# cheap layer so the workspace colcon build above stays cached. FastDDS stays as
-# the fallback; RMW_IMPLEMENTATION selects the active one at run time.
+# cheap layer after the copy so the build stage above stays cached. FastDDS stays
+# as the fallback; RMW_IMPLEMENTATION selects the active one at run time.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ros-jazzy-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 # Real robot: sim:=false (real MCU plugin) + camera:=zed (bridge the ZED contract).
 CMD ["ros2", "launch", "soccer_bringup", "robot.launch.py", "sim:=false", "camera:=zed"]
+
+
+

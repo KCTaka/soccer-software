@@ -69,7 +69,7 @@ struct JointState {
   uint16_t fault_flags;   // Robostride fault bits
   uint16_t last_cmd_seq;  // echoes the command seq → RTT / drop detection
 };
-static_assert(sizeof(JointState) == 16, "JointState must be 16 bytes");
+static_assert(sizeof(JointState) == 18, "JointState must be 18 bytes");
 
 // ── body sensors, appended once per telemetry frame (IMU on the Master MCU) ──
 struct BodyState {

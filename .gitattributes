@@ -16,3 +16,4 @@ hardware/**/*.kicad_pcb   filter=lfs diff=lfs merge=lfs -text
 *.c    text eol=lf
 *.h    text eol=lf
 *.sh   text eol=lf
+*.apt  text eol=lf

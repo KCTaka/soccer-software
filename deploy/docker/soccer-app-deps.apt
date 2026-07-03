@@ -1,0 +1,19 @@
+# Shared apt dependencies for the soccer application workspace.
+# Used by:
+#   - deploy/docker/Dockerfile.jetson  (soccer-app-image stage)
+#   - deploy/docker/Dockerfile.ci      (build stage)
+#
+# When adding or removing a ROS package, update this file only.
+# Both images rebuild automatically on the next CI run / on-device build.
+ros-jazzy-ros-base
+python3-colcon-common-extensions
+python3-rosdep
+python3-pip
+python3-scipy
+python3-opencv
+ros-jazzy-cv-bridge
+ros-jazzy-ros2-control
+ros-jazzy-ros2-controllers
+ros-jazzy-behaviortree-cpp
+ros-jazzy-robot-state-publisher
+ros-jazzy-xacro

@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# CI runtime image for the soccer workspace (no CUDA, no ZED SDK).
+# =============================================================================
+# Builds ros2_ws on ros:jazzy-ros-base so cloud CI can compile and push on x86
+# (or under QEMU arm64) without the ~6 GB NGC CUDA image required by
+# Dockerfile.jetson. Built by .github/workflows/ci.yml and pushed to GHCR as
+# soccerbot-runtime:<sha>.
+#
+# Targets:
+#   build   — installs deps + colcon build (throwaway; not pushed)
+#   runtime — lean final image (install/ space only; this is what gets pushed)
+#
+# Shared package list: deploy/docker/soccer-app-deps.apt
+# Keep that file in sync with the soccer-app-image stage in Dockerfile.jetson.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# STAGE 1 · build — compile the soccer workspace
+# -----------------------------------------------------------------------------
+FROM ros:jazzy-ros-base AS build
+SHELL ["/bin/bash", "-c"]
+WORKDIR /ws
+
+COPY deploy/docker/soccer-app-deps.apt /tmp/deps.apt
+RUN apt-get update \
+    && grep -v '^\s*#' /tmp/deps.apt | tr -d '\r' | xargs apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
+
+COPY ros2_ws/src ./src
+RUN (rosdep init 2>/dev/null || true) && rosdep update \
+    && . /opt/ros/jazzy/setup.bash \
+    && apt-get update && rosdep install --from-paths src --ignore-src -r -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && colcon build --merge-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# -----------------------------------------------------------------------------
+# STAGE 2 · runtime — lean final image (install-space only)
+# -----------------------------------------------------------------------------
+# Source code, build tools, and intermediate artifacts from the build stage are
+# discarded. Only the compiled install/ space is carried forward.
+FROM ros:jazzy-ros-base AS runtime
+WORKDIR /ws
+
+COPY --from=build /ws/install ./install
+COPY deploy/docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV ROS_DOMAIN_ID=42
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "launch", "soccer_bringup", "robot.launch.py", "sim:=false"]

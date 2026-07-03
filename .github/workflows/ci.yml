@@ -61,9 +61,12 @@ jobs:
 
   # ── 4. Build + push lean arm64 runtime image (only on main) ──
   #
-  # NOTE: this builds the CPU `Dockerfile.runtime` (ros:jazzy-ros-base) used for
-  # sim, CI and the no-GPU developer flow. The **Jetson GPU image**
-  # (`deploy/docker/Dockerfile.jetson`: CUDA 13.2 + ZED SDK 5.4 + TensorRT +
+  # Builds the `soccer-app-ci` target from deploy/docker/Dockerfile.jetson.
+  # That target uses ros:jazzy-ros-base (no CUDA) so it builds cleanly under
+  # QEMU arm64 in cloud CI. It mirrors the dependency set of soccer-app-image
+  # (the on-device Jetson target) so they stay in sync.
+  #
+  # The **Jetson GPU image** (CUDA 13.2 + ZED SDK 5.4 + TensorRT +
   # zed-ros2-wrapper, ~19 GB) is deliberately NOT built here — a licensed-SDK,
   # multi-GB arm64 image under QEMU emulation is impractical and slow in cloud CI.
   # It is built ON the Jetson (or a self-hosted arm64 runner) and deployed via
@@ -86,7 +89,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/docker/Dockerfile.runtime
+          file: deploy/docker/Dockerfile.ci
+          target: runtime
           platforms: linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository }}/soccerbot-runtime:${{ github.sha }}
