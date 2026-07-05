@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from soccer_msgs.msg import BoundingBox, BoundingBoxes
 
@@ -39,7 +40,11 @@ class DetectorNode(Node):
         self._detector = self._load_detector()
 
         self.pub = self.create_publisher(BoundingBoxes, "detections", 10)
-        self.sub = self.create_subscription(Image, image_topic, self._on_image, 5)
+        # Camera images are a high-rate sensor stream -> best-effort SensorData QoS
+        # (matches the ZED publisher; avoids RELIABLE retransmit stalls on big frames).
+        self.sub = self.create_subscription(
+            Image, image_topic, self._on_image, qos_profile_sensor_data
+        )
         self.get_logger().info(
             f"detector_node up ({'RF-DETR' if self._engine_path else 'HSV fallback'})."
         )

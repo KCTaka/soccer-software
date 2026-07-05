@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from soccer_msgs.msg import FieldFeature, FieldFeatureArray
 from std_msgs.msg import Header
 
@@ -49,7 +50,10 @@ class FieldlineNode(Node):
         self._bridge = CvBridge() if _HAVE_CV else None
 
         self.pub = self.create_publisher(FieldFeatureArray, "field_features", 10)
-        self.sub = self.create_subscription(Image, image_topic, self._on_image, 5)
+        # Camera images are a high-rate sensor stream -> best-effort SensorData QoS.
+        self.sub = self.create_subscription(
+            Image, image_topic, self._on_image, qos_profile_sensor_data
+        )
         self.get_logger().info("fieldline_node up.")
 
     def _on_image(self, msg) -> None:

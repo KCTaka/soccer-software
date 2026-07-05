@@ -1,0 +1,27 @@
+{
+  "names": {
+    "__default__": {
+      "cmake-args": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+      ]
+    },
+    "soccer_control": {
+      "cmake-args": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ]
+    },
+    "soccer_hardware": {
+      "cmake-args": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ]
+    },
+    "soccer_strategy": {
+      "cmake-args": [
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      ]
+    }
+  }
+}

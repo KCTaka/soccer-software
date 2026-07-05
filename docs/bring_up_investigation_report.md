@@ -7,6 +7,14 @@
 **Hardware:** NVIDIA Jetson Orin Nano 8GB, JetPack 7.2 (L4T R39.2), ZED Mini (USB3), STM32 motor controller via UART.  
 **Software stack:** ROS 2 Jazzy, ros2_control 4.x, ZED SDK 5.4, `soccer-zed:jazzy` + `soccer-app:jazzy` Docker images.
 
+> **⚠️ Architecture update (post-report).** This report documents the stack **as it
+> was** during the 2026-06-24 bring-up, when a `camera_bridge` rclpy relay mapped the
+> ZED's native topics onto the contract. That relay has since been **removed**: the
+> ZED is now loaded as a component whose topics are **remapped** straight onto the
+> contract, and the camera streams use **best-effort SensorData QoS** end-to-end.
+> The diagram and QoS discussion below reflect the older bridge design — see
+> [`zed_jetson_integration.md`](zed_jetson_integration.md) §5 for the current design.
+
 ---
 
 ## Table of Contents

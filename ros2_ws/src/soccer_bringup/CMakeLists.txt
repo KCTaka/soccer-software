@@ -12,7 +12,6 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   scripts/sim_camera_node
-  scripts/camera_bridge_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

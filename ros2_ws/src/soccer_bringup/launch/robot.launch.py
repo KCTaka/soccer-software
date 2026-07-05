@@ -23,6 +23,7 @@ from launch.substitutions import (
     EqualsSubstitution,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.parameter_descriptions import ParameterValue
@@ -36,6 +37,7 @@ def generate_launch_description() -> LaunchDescription:
     sim = LaunchConfiguration("sim")
     camera = LaunchConfiguration("camera")
     camera_model = LaunchConfiguration("camera_model")
+    launch_driver = LaunchConfiguration("launch_driver")
 
     description_share = FindPackageShare("soccer_description")
     xacro_file = PathJoinSubstitution([description_share, "urdf", "soccerbot.urdf.xacro"])
@@ -77,15 +79,11 @@ def generate_launch_description() -> LaunchDescription:
 
         # ── Camera source (decoupled from the sim/real hardware plugin) ──
         #   camera:=sim  → synthetic scene (no GPU; stands in for the Isaac sensor)
-        #   camera:=zed  → bridge a real ZED Mini onto the generic camera contract
-        #                  (the ZED wrapper itself runs in the zed-driver container)
+        #   camera:=zed  → a real ZED Mini publishes the contract topics DIRECTLY
+        #                  (the ZED component runs in its OWN zed-driver container;
+        #                  see camera.launch.py). Nothing camera-related runs here.
         Node(package="soccer_bringup", executable="sim_camera_node",
              condition=IfCondition(EqualsSubstitution(camera, "sim")), output="screen"),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([camera_launch]),
-            launch_arguments={"camera_model": camera_model}.items(),
-            condition=IfCondition(EqualsSubstitution(camera, "zed")),
-        ),
 
         # ── L3: perception ──
         Node(package="soccer_perception", executable="detector_node", output="screen"),
@@ -111,6 +109,19 @@ def generate_launch_description() -> LaunchDescription:
              output="screen"),
     ])
 
+    # Single-container dev ONLY: also start the ZED driver in-process. Requires an
+    # image carrying the ZED SDK + wrapper (the zed-driver-image); in the normal
+    # two-container deployment the ZED runs in its own container and this stays off.
+    # Included at TOP LEVEL (outside the namespace group) because camera.launch.py
+    # applies the robot_name namespace itself — avoids a doubled namespace.
+    zed_driver = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([camera_launch]),
+        launch_arguments={"robot_name": robot_name, "camera_model": camera_model}.items(),
+        condition=IfCondition(PythonExpression(
+            ["'", camera, "' == 'zed' and '", launch_driver, "' == 'true'"]
+        )),
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument("robot_name", default_value="robot_1"),
         DeclareLaunchArgument("player_id", default_value="1"),
@@ -118,8 +129,13 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument("sim", default_value="true",
                               description="true: sim hardware plugin; false: real MCU serial"),
         DeclareLaunchArgument("camera", default_value="sim",
-                              description="sim: synthetic camera; zed: bridge a real ZED Mini"),
+                              description="sim: synthetic camera; zed: consume a real ZED "
+                                          "Mini's contract topics (ZED runs in its own container)"),
         DeclareLaunchArgument("camera_model", default_value="zedm",
                               description="ZED model when camera:=zed (zedm = ZED Mini)"),
+        DeclareLaunchArgument("launch_driver", default_value="false",
+                              description="Single-container dev: also start the ZED driver "
+                                          "in-process (needs the ZED SDK image)."),
+        zed_driver,
         robot_group,
     ])

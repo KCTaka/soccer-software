@@ -65,9 +65,9 @@ ENTRYPOINT ["/entrypoint.sh"]
 # -----------------------------------------------------------------------------
 # STAGE 2 · zed-driver-image — ZED SDK 5.4 + TensorRT + the zed-ros2-wrapper
 # -----------------------------------------------------------------------------
-# This is the ONLY image coupled to the ZED SDK / CUDA / JetPack. It publishes
-# the native /zed/zed_node/... topics; the app container bridges them onto the
-# repo's generic camera contract (soccer_bringup camera_bridge).
+# This is the ONLY image coupled to the ZED SDK / CUDA / JetPack. It runs the ZED
+# component via camera.launch.py, which remaps the native /zed/zed_node/... topics
+# straight onto the repo's generic camera contract (docs/zed_jetson_integration.md §5).
 FROM jetson-base AS zed-driver-image
 
 # --- ZED SDK 5.4 (built for L4T 39.2 / JetPack 7.2) --------------------------
@@ -172,8 +172,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
-# Native ZED topics; the app container's camera_bridge maps them to the contract.
-CMD ["ros2", "launch", "zed_wrapper", "zed_camera.launch.py", "camera_model:=zedm"]
+# Option B: load the ZED as a component and remap its native topics directly onto
+# the generic camera contract (docs/zed_jetson_integration.md §5). camera.launch.py
+# only needs zed_wrapper + zed_components (both present here), so it is copied in
+# and run by path — no soccer_ws build in this image. Late COPY keeps the multi-GB
+# SDK/wrapper layers above Docker-cache-stable.
+COPY ros2_ws/src/soccer_bringup/launch/camera.launch.py /opt/soccer/camera.launch.py
+CMD ["ros2", "launch", "/opt/soccer/camera.launch.py", "robot_name:=robot_1", "camera_model:=zedm"]
 
 
 # -----------------------------------------------------------------------------
@@ -221,7 +226,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ros-jazzy-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 
-# Real robot: sim:=false (real MCU plugin) + camera:=zed (bridge the ZED contract).
+# Real robot: sim:=false (real MCU plugin) + camera:=zed (consume the ZED contract
+# published by the zed-driver container; the ZED component runs there, not here).
 CMD ["ros2", "launch", "soccer_bringup", "robot.launch.py", "sim:=false", "camera:=zed"]
 
 

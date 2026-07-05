@@ -58,20 +58,31 @@ soccer-bot/
 ## Quick start
 
 ```bash
-# 1. Build the ROS 2 workspace (ROS 2 Jazzy)
-cd ros2_ws
-colcon build --symlink-install
-source install/setup.bash
+# 1. Build the ROS 2 workspace
+make build
 
-# 2. Bring up ONE robot in simulation (sim hardware interface)
+# 2. Bring up ONE robot in simulation
+cd ros2_ws && source install/setup.bash
 ros2 launch soccer_bringup robot.launch.py robot_name:=robot_1 sim:=true
 
 # 3. Bring up a 2-robot scrimmage with the GameController bridge
 ros2 launch soccer_bringup team.launch.py num_robots:=2
 
 # Or use Docker for the whole multi-robot sim:
-cd deploy/compose && docker compose -f sim.compose.yaml up
+make sim
 ```
+
+### Build commands
+
+| Command | Description |
+|---|---|
+| `make build` | Full workspace build |
+| `make build-pkg pkg=<name>` | Rebuild one package (e.g. `make build-pkg pkg=soccer_bringup`) |
+| `make clean` | Remove build/install/log artifacts |
+| `make sim` | Start 2-robot sim via Docker Compose |
+| `make robot` | Start real robot stack via Docker Compose |
+
+See [Makefile](Makefile) for the full list.
 
 ## Documentation
 

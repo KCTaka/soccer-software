@@ -29,7 +29,7 @@ This change set adds exactly that layer — and nothing more invasive:
 | Outcome                                                   | How                                                                                                       |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | The ZED runs in a container on the proven stack           | New multi-target `Dockerfile.jetson` (CUDA 13.2 + ZED SDK 5.4 + TensorRT 10.16.2.10 + `zed-ros2-wrapper`) |
-| The ZED's native topics feed the existing graph unchanged | New `camera_bridge` node + `camera.launch.py`; `robot.launch.py camera:=zed`                              |
+| The ZED's native topics feed the existing graph unchanged | ZED **component** loaded by `camera.launch.py` with topic **remaps**; `robot.launch.py camera:=zed` consumes                              |
 | Real depth + real calibration are used                    | `projection_node` now reads `camera_info` and uses the depth path by default                              |
 | One command brings up camera + app on a robot             | New `deploy/compose/robot.compose.yaml`; updated `deploy/ansible/deploy.yml`                              |
 | The mandatory host fixes are reproducible per robot       | New `deploy/ansible/provision.yml`                                                                        |
@@ -85,17 +85,16 @@ flowchart TB
     HOST["HOST · JetPack 7.2 / L4T R39.2<br/>nvidia driver + container-toolkit<br/>(mode=cdi, enable-cuda-compat disabled)"]:::host
 
     subgraph CAM["camera container — zed-driver-image (ONLY GPU/SDK/JetPack-coupled piece)"]
-        ZN["zed_wrapper · zed_camera.launch.py<br/>ZED SDK 5.4 + TensorRT (NEURAL_LIGHT)"]:::drv
-    end
-
-    subgraph APPC["app container — soccer-app-image (portable Jazzy, CPU today)"]
-        BR["camera_bridge node<br/>(QoS-correcting relay)"]:::bridge
-        subgraph CONTRACT["generic camera contract"]
+        ZN["stereolabs::ZedCamera component · camera.launch.py<br/>ZED SDK 5.4 + TensorRT (NEURAL_LIGHT)<br/>use_intra_process_comms → zero-copy ready"]:::drv
+        subgraph CONTRACT["generic camera contract (published via topic remaps)"]
             T1["camera/image_raw"]:::contract
             T2["camera/depth"]:::contract
             T3["camera_info"]:::contract
             T4["imu/data"]:::contract
         end
+    end
+
+    subgraph APPC["app container — soccer-app-image (portable Jazzy, CPU today)"]
         DET["detector_node"]:::app
         FL["fieldline_node"]:::app
         PROJ["projection_node"]:::app
@@ -103,9 +102,9 @@ flowchart TB
     end
 
     HOST -. "--gpus all --privileged -v /dev:/dev" .-> ZN
-    ZN -->|"/zed/zed_node/... (DDS)"| BR
-    BR --> T1 & T2 & T3 & T4
-    T1 --> DET
+    ZN -->|"remap ~/rgb/color/rect/image → camera/image_raw"| T1
+    ZN --> T2 & T3 & T4
+    T1 -->|"best-effort SensorData (DDS)"| DET
     T1 --> FL
     T2 --> PROJ
     T3 --> PROJ
@@ -118,8 +117,9 @@ flowchart TB
 the app image is lean, CPU-only, and changes every commit. Splitting them means a
 code change rebuilds only the small image, the camera can restart independently of
 strategy/control, and a no-GPU laptop can run everything to the right of the
-contract from a rosbag. (Single-container mode is still available for spikes via
-`camera.launch.py launch_driver:=true`.)
+contract from a rosbag. (Single-container dev is still available via
+`robot.launch.py launch_driver:=true`, which starts the ZED component in-process —
+only in an image carrying the ZED SDK + wrapper.)
 
 ---
 
@@ -163,48 +163,77 @@ outputs_):
 
 ---
 
-## 5. The camera bridge — why a node, not a remap or a relay
+## 5. The camera source — direct component remapping (no bridge)
 
-The ZED wrapper publishes under `/zed/zed_node/...`, but our graph expects the
-generic contract. Two "obvious" approaches were **rejected**:
+The ZED wrapper publishes under `/zed/zed_node/...`; the graph expects the generic
+contract. The modern, lowest-overhead way to reconcile them is to make the ZED
+publish the contract topics **itself** — not to shuttle every frame through a
+relay. `camera.launch.py` loads the Stereolabs **`stereolabs::ZedCamera`
+component** directly (a `ComposableNode`) and passes `remappings=`, which
+`launch_ros` sends to the container as the component's `remap_rules`; the camera
+therefore advertises the contract names natively:
 
-1. **Launch-level remapping (`SetRemap`).** The ZED node runs as a _composable_
-   node inside a component container; launch remaps do not reliably retarget a
-   composable node's topics. ❌
-2. **`topic_tools relay`.** A relay republishes on a **fixed** QoS. The ZED
-   publishes sensor data (best-effort), while our consumers subscribe with the
-   default **reliable** QoS — a relay in the middle silently drops frames on the
-   mismatch. ❌
+| ZED SDK 5.x topic (private `~/…`) | contract topic     |
+| --------------------------------- | ------------------ |
+| `~/rgb/color/rect/image`          | `camera/image_raw` |
+| `~/rgb/color/rect/camera_info`    | `camera_info`      |
+| `~/depth/depth_registered`        | `camera/depth`     |
+| `~/imu/data`                      | `imu/data`         |
 
-The chosen solution is a tiny `camera_bridge` node that **corrects QoS** while
-forwarding the message object unchanged (no decode/copy, cheap at 30 fps):
+The component runs under the `robot_name` namespace, so the relative targets
+resolve to `/<robot_name>/camera/...` — exactly what the stack subscribes to.
 
 ```mermaid
 flowchart LR
     classDef z fill:#ffe2b3,stroke:#333,color:#000;
-    classDef b fill:#f9d5e5,stroke:#333,color:#000;
     classDef c fill:#d5f5d5,stroke:#333,color:#000;
-
-    Z1["/zed/zed_node/rgb/color/rect/image"]:::z -->|"BEST_EFFORT in"| B["camera_bridge"]:::b
-    Z2["/zed/zed_node/depth/depth_registered"]:::z --> B
-    Z3["/zed/zed_node/rgb/color/rect/camera_info"]:::z --> B
-    Z4["/zed/zed_node/imu/data"]:::z --> B
-    B -->|"RELIABLE out"| C1["camera/image_raw"]:::c
-    B --> C2["camera/depth"]:::c
-    B --> C3["camera_info"]:::c
-    B --> C4["imu/data"]:::c
+    Z["stereolabs::ZedCamera component<br/>camera.launch.py · use_intra_process_comms"]:::z
+    Z -->|"remap ~/rgb/color/rect/image"| C1["camera/image_raw"]:::c
+    Z -->|"remap ~/rgb/color/rect/camera_info"| C3["camera_info"]:::c
+    Z -->|"remap ~/depth/depth_registered"| C2["camera/depth"]:::c
+    Z -->|"remap ~/imu/data"| C4["imu/data"]:::c
 ```
 
-| Property           | Choice                                             | Why                                                                            |
-| ------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Subscriptions      | `qos_profile_sensor_data` (best-effort, KEEP_LAST) | Compatible whether the wrapper publishes best-effort **or** reliable           |
-| Publications       | RELIABLE, KEEP_LAST, depth 10                      | Matches what `detector`/`fieldline`/`projection`/`ekf` already subscribe with  |
-| Output topic names | **relative** (`camera/image_raw`, …)               | Inherit the per-robot namespace from `robot.launch.py` → `/robot_1/camera/...` |
-| Source topic names | parameters (defaults = verified ZED names)         | A different camera/model is a launch-arg change, not a code change             |
+**Why this replaced the earlier `camera_bridge` node.** A previous revision ran a
+tiny rclpy relay that subscribed to the native topics and re-published them on the
+contract. It worked, but it was not the most efficient shape — confirmed against
+the `rclpy` / `launch_ros` / `rclcpp` sources:
 
-Files: [`soccer_bringup/camera_bridge.py`](../ros2_ws/src/soccer_bringup/soccer_bringup/camera_bridge.py),
-the `camera_bridge_node` script wrapper, and
-[`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py).
+| Concern                                       | `camera_bridge` (rclpy relay)                                                                          | Direct component remap (now)                                                                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inter-process hops for full-res image + depth | **2** (ZED → bridge → consumers)                                                                       | **1** (ZED → consumers)                                                                                                                                   |
+| Per-frame work in the relay                   | Full **deserialize + re-serialize** of every multi-MB frame, under the Python **GIL**, single-threaded | **None** — the camera publishes the contract topic itself                                                                                                 |
+| Zero-copy to a future C++ perception node     | **Impossible** — rclpy has no intra-process comms, so a relay forecloses it                            | **Preserved** — loaded with `use_intra_process_comms`; a C++ node co-loaded into `zed_container` gets zero-copy (inter-process subscribers still use DDS) |
+| Renaming a *composable* node's topics         | The bridge existed partly because `SetRemap` was thought unreliable for composable nodes              | `ComposableNode(remappings=…)` is first-class → sent as `remap_rules` (verified in `launch_ros` tests)                                                    |
+
+So `camera_bridge.py` + its script wrapper were **deleted**, and `camera.launch.py`
+now owns the ZED component. Because it only references `zed_wrapper` +
+`zed_components`, the driver image runs it by file path
+(`/opt/soccer/camera.launch.py`) — no soccer_ws build in that image.
+
+### QoS — best-effort SensorData end-to-end
+
+The contract is now **best-effort SensorData QoS** on both ends — the idiomatic
+choice for high-rate sensor streams (REP-2003), and the correction of the old
+relay's backwards reconciliation (it forced camera data up to RELIABLE):
+
+| Where                                                                | Setting                                                                                                                 | Why                                                                                           |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| ZED publishers                                                       | `qos_overrides` in `zed_params_override.yaml` → `reliability: best_effort` (keyed by the resolved contract topic names) | The wrapper enables rclcpp `QosOverridingOptions` on every publisher — QoS in config, no code |
+| Consumers (`detector`/`fieldline`/`projection`/`ekf`) + `sim_camera` | `qos_profile_sensor_data`                                                                                                | Match the source; drop the odd frame rather than stall                                        |
+
+**Why best-effort matters at the DDS layer.** An HD image / float32 depth sample is
+far larger than a datagram, so RTPS fragments it into hundreds–thousands of pieces.
+Under RELIABLE, one lost fragment triggers NACK-driven retransmissions that compete
+with fresh frames on a busy link (head-of-line blocking, latency spikes), and the
+writer holds every sample in history. Best-effort drops the incomplete frame and
+takes the next — invisible at 30 fps. On today's single-host SHM transport loss is
+~nil, but best-effort is correct and future-proofs any hop that crosses WiFi (a
+remote Foxglove/RViz viewer, multi-robot team comm).
+
+Files: [`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py),
+[`zed_params_override.yaml`](../deploy/compose/zed_params_override.yaml), and the
+best-effort subscriptions in the perception / localization nodes.
 
 ---
 
@@ -340,6 +369,9 @@ documented inline in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ## 10. Files changed
 
+_Original ZED-integration change set. The later **Option B** follow-up (bridge
+removal → direct component remap) is captured in §10b below._
+
 | File                                                                 | Change                                                                                                         | Justification                                                                                  |
 | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `deploy/docker/Dockerfile.jetson`                                    | **New.** Multi-stage, two targets (`zed-driver-image`, `soccer-app-image`).                                    | Encodes the proven CUDA 13.2 + ZED SDK 5.4 + TensorRT + wrapper recipe; isolates GPU coupling. |
@@ -357,6 +389,26 @@ documented inline in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 | `deploy/ansible/README.md`                                           | Document `provision.yml` + the two deploy models.                                                              | Operator guidance.                                                                             |
 | `docs/jetson_zed_workflow.md`                                        | Status banner + corrected facts (R39.2, CUDA base, topic names, `--gpus`, bridge).                             | Remove now-disproven assumptions; point to this report.                                        |
 | `.github/workflows/ci.yml`                                           | Comment: Jetson image builds on-device, not cloud CI.                                                          | Sets the build-location expectation.                                                           |
+
+---
+
+## 10b. Follow-up — bridge removed, direct component remap (Option B)
+
+A later change replaced the `camera_bridge` rclpy relay with **direct ZED-component
+remapping** (see the rewritten §5). It removes a full-res inter-process hop and the
+per-frame Python (de)serialization, adopts best-effort SensorData QoS end-to-end,
+and keeps the pipeline zero-copy-ready. File changes on top of the table above:
+
+| File                                                                                              | Change                                                                                       | Justification                                                              |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `soccer_bringup/soccer_bringup/camera_bridge.py` + `scripts/camera_bridge_node`                   | **Deleted.**                                                                                 | The relay is gone; the ZED component publishes the contract itself.       |
+| `soccer_bringup/launch/camera.launch.py`                                                          | Loads `stereolabs::ZedCamera` as a component with the four topic remaps + `use_intra_process_comms`. | One process, one hop, zero-copy-ready.                                     |
+| `soccer_bringup/CMakeLists.txt`                                                                    | Drop the `camera_bridge_node` install.                                                       | The bridge executable no longer exists.                                   |
+| `soccer_bringup/launch/robot.launch.py`                                                            | `camera:=zed` consumes the external contract; `launch_driver:=true` starts the ZED in-process. | The ZED runs in its own container; app container only consumes.           |
+| `detector_node` / `fieldline_node` / `projection_node` / `ekf_node` / `sim_camera`                | Camera + IMU subs/pub → `qos_profile_sensor_data`.                                            | Best-effort SensorData QoS end-to-end (REP-2003).                         |
+| `deploy/compose/zed_params_override.yaml`                                                          | Add `qos_overrides` → `best_effort` on the four contract topics.                              | Best-effort at the source; the wrapper honours rclcpp QoS overrides.      |
+| `deploy/docker/Dockerfile.jetson`                                                                  | `COPY` `camera.launch.py` into the driver image; CMD runs it by path.                        | The component launch (not the stock wrapper launch) drives the camera.    |
+| `deploy/compose/robot.compose.yaml`                                                                | `camera` service runs `camera.launch.py`; app `robot` service only consumes the contract.    | Two-container split preserved; no relay in the app container.             |
 
 ---
 
@@ -394,9 +446,9 @@ ros2 topic hz  /robot_1/camera/depth          # depth_mode NEURAL_LIGHT (needs T
 ```
 
 > **One item to confirm with depth enabled:** the exact depth topic name. The
-> bridge defaults to `/zed/zed_node/depth/depth_registered`; if your wrapper
-> config differs, set `ros2 launch … ` param `depth_in:=<name>` (or the
-> `camera_bridge` parameter) — no code change needed.
+> remap in `camera.launch.py` assumes `~/depth/depth_registered`
+> (`/zed/zed_node/depth/depth_registered`); if your wrapper config differs, adjust
+> that one remap entry — no code change elsewhere.
 
 ---
 

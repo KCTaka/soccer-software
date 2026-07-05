@@ -14,11 +14,15 @@ This directory configures VSCode to develop inside a container with the full ROS
 Then in the integrated terminal:
 
 ```bash
-cd ros2_ws
-colcon build --symlink-install
-source install/setup.bash
+# Build the workspace
+make build
+
+# Source and launch
+cd ros2_ws && source install/setup.bash
 ros2 launch soccer_bringup robot.launch.py sim:=true
 ```
+
+See [Makefile](../Makefile) for all available build targets.
 
 **Benefits:**
 
@@ -30,15 +34,15 @@ ros2 launch soccer_bringup robot.launch.py sim:=true
 ### Option 2: Compose CLI (Lightweight)
 
 ```bash
-# Start an interactive dev shell
+# Start the sim stack
+make sim
+
+# Or start an interactive dev shell
 docker compose -f deploy/compose/sim.compose.yaml run dev bash
 
 # Inside the container:
-cd ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-
-# Run tests, launch nodes, etc.
+make build
+cd ros2_ws && source install/setup.bash
 ros2 launch soccer_bringup robot.launch.py sim:=true
 ```
 
@@ -62,7 +66,7 @@ Linux container (/ws)
 
 ## Persistent Build Cache
 
-The `.devcontainer/devcontainer.json` runs `colcon build --symlink-install` on container creation. Subsequent edits trigger incremental builds — not full rebuilds.
+The `.devcontainer/devcontainer.json` runs `make build` (`colcon build --symlink-install`) on container creation. Subsequent edits to Python/launch/yaml files take effect immediately without rebuilding. C++ changes require `make build-pkg pkg=<name>`.
 
 ## Requirements
 

@@ -23,7 +23,7 @@
 > Mini + `zed-ros2-wrapper` was brought up live on the Orin Nano (JetPack 7.2 /
 > **L4T R39.2**, CUDA 13.2) in Docker, and the repo now ships the real plumbing:
 > [`deploy/docker/Dockerfile.jetson`](../deploy/docker/Dockerfile.jetson), the
-> `camera_bridge` node + [`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py),
+> [`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py) (ZED component + topic remaps),
 > [`deploy/compose/robot.compose.yaml`](../deploy/compose/robot.compose.yaml) and
 > [`deploy/ansible/provision.yml`](../deploy/ansible/provision.yml). The
 > authoritative, as-built record — exact versions, the **verified** ZED topic
@@ -336,11 +336,11 @@ ros2 topic hz  /zed/zed_node/depth/depth_registered     # depth_mode defaults to
 ros2 topic echo /zed/zed_node/imu/data --once           # verified ~99 Hz
 ```
 
-**Step 3 — wire it to our contract** with the `camera_bridge` node (in
-`soccer_bringup`, started by `camera.launch.py`). The ZED node is a _composable_
-node, which launch-level `SetRemap` cannot reliably retarget — so a tiny relay
-node re-publishes its native topics onto our contract with corrected QoS
-(best-effort in, reliable out). It maps:
+**Step 3 — wire it to our contract** by loading the ZED as a **component** and
+**remapping** its topics (in `camera.launch.py`). A `ComposableNode` accepts
+`remappings=` directly, so the camera publishes our contract names itself — no
+relay node, one fewer inter-process hop, and best-effort SensorData QoS end-to-end.
+It maps:
 
 | ZED topic (verified live)                  | Our contract topic           |
 | ------------------------------------------ | ---------------------------- |
@@ -630,7 +630,7 @@ flowchart LR
         G5["ROS-free unit tests (MCL, projection, GC, firmware)"]:::ok
     end
     subgraph GAPS["Originally missing — now implemented (see status banner)"]
-        N1["✓ camera.launch.py + camera_bridge node"]:::ok
+        N1["✓ camera.launch.py (ZED component + topic remaps)"]:::ok
         N2["✓ Jetson GPU image (Dockerfile.jetson, CUDA 13.2)<br/>CPU ros:jazzy-ros-base kept for sim/CI"]:::ok
         N3["✓ compose: --gpus all (CDI) + /dev + zed_resources"]:::ok
         N4["✓ projection_node reads camera_info"]:::ok
@@ -641,7 +641,7 @@ flowchart LR
 
 | Area            | Before                                   | Now (shipped — see `docs/zed_jetson_integration.md`)                                                                                             |
 | --------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ZED launch      | none                                     | `soccer_bringup/launch/camera.launch.py` + the `camera_bridge` node map the ZED topics onto the contract (QoS-corrected)                         |
+| ZED launch      | none                                     | `soccer_bringup/launch/camera.launch.py` loads the ZED as a component and remaps its topics onto the contract (best-effort QoS)                  |
 | Dev / GPU image | `ros:jazzy-ros-base` (x86, CPU)          | `deploy/docker/Dockerfile.jetson` (CUDA 13.2 + ZED SDK 5.4 + TensorRT + wrapper), arm64, built on-device; the x86 CPU image stays for no-GPU sim |
 | Runtime image   | `ros:jazzy-ros-base`                     | `soccer-app-image` target on the CUDA base (CPU-only today, GPU-ready for the RF-DETR `.engine`)                                                 |
 | Compose         | no GPU wiring                            | `deploy/compose/robot.compose.yaml`: `--gpus`/CDI, `network_mode: host`, `/dev` passthrough, `zed_resources` volume                              |
@@ -776,7 +776,7 @@ Ordered, each item small and independently verifiable:
 2. ✅ **DONE:** GPU container path enabled via the two mandatory CDI host fixes
    (disable `enable-cuda-compat`; `mode = "cdi"`), codified in
    `deploy/ansible/provision.yml`.
-3. ✅ **DONE:** `camera.launch.py` + the `camera_bridge` node map the ZED topics
+3. ✅ **DONE:** `camera.launch.py` loads the ZED as a component and remaps its topics
    onto `camera/image_raw` / `camera/depth` / `camera_info` / `imu/data`.
 4. ✅ **DONE:** `projection_node` now reads `camera_info` for real intrinsics and
    uses the depth path by default (auto flat-ground fallback when depth is silent).

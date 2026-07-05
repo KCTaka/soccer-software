@@ -3,11 +3,12 @@
 #   docker compose -f robot.compose.yaml up --build
 #
 # Two containers, both from deploy/docker/Dockerfile.jetson (multi-target):
-#   * camera  (zed-driver-image)  — ZED SDK 5.4 + zed-ros2-wrapper; publishes the
-#                                   native /zed/zed_node/... topics.
+#   * camera  (zed-driver-image)  — ZED SDK 5.4 + zed-ros2-wrapper; runs the ZED
+#                                   component (camera.launch.py) that publishes the
+#                                   generic camera contract DIRECTLY via topic
+#                                   remaps (camera/image_raw, camera/depth, …).
 #   * robot   (soccer-app-image)  — the soccer_ws stack; robot.launch.py with
-#                                   camera:=zed bridges the ZED topics onto the
-#                                   generic camera contract (camera/image_raw, …).
+#                                   camera:=zed simply CONSUMES those contract topics.
 #
 # This is the proven run contract from the live bring-up (docs/zed_jetson_integration.md):
 #   --gpus all  --privileged  --network host  -v /dev:/dev
@@ -63,10 +64,10 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command: ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedm ros_params_override_path:=/config/zed_params_override.yaml
+    command: ros2 launch /opt/soccer/camera.launch.py robot_name:=robot_1 camera_model:=zedm ros_params_override_path:=/config/zed_params_override.yaml
     restart: unless-stopped
 
-  # ── Application: perception / localization / strategy / control + camera bridge ──
+  # ── Application: perception / localization / strategy / control (consumes the ZED contract) ──
   robot:
     build:
       context: ../..

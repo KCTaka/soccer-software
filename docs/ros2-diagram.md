@@ -36,8 +36,7 @@ classDef planned fill:#f7f7f7,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 
 
         subgraph PERCEP ["1. Perception Pipeline (camera:=zed)"]
             direction TB
-            ZEDW["zed_wrapper<br/>(Stereolabs driver · own container)"]:::jetsonNode
-            CAMBR["camera_bridge<br/>(ZED topics → camera contract)"]:::jetsonNode
+            ZEDW["ZedCamera component<br/>(camera.launch.py · own container · remaps + IPC)"]:::jetsonNode
             T_IMG["/robot_x/camera/image_raw"]:::rosTopic
             T_DEPTH["/robot_x/camera/depth"]:::rosTopic
             T_CAMINFO["/robot_x/camera_info"]:::rosTopic
@@ -97,11 +96,10 @@ classDef planned fill:#f7f7f7,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 
 
     %% Camera source (real robot, camera:=zed)
     CAM -->|"USB 3.0"| ZEDW
-    ZEDW -->|"/zed/zed_node/*"| CAMBR
-    CAMBR --> T_IMG
-    CAMBR --> T_DEPTH
-    CAMBR --> T_CAMINFO
-    CAMBR --> T_IMU
+    ZEDW -->|"remap ~/... → contract"| T_IMG
+    ZEDW --> T_DEPTH
+    ZEDW --> T_CAMINFO
+    ZEDW --> T_IMU
 
     %% Perception pipeline
     T_IMG --> DET & SEG
@@ -176,7 +174,7 @@ classDef planned fill:#f7f7f7,stroke:#9e9e9e,stroke-width:1px,stroke-dasharray: 
 
 | Node (package)                            | Subscribes                                    | Publishes                                                              |
 | ----------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------- |
-| `camera_bridge` (soccer_bringup, real)    | `/zed/zed_node/{rgb,depth,camera_info,imu}`   | `camera/image_raw`, `camera/depth`, `camera_info`, `imu/data`          |
+| `zed_node` (ZedCamera component, real)    | ZED SDK (USB stereo, remapped onto the contract) | `camera/image_raw`, `camera/depth`, `camera_info`, `imu/data`          |
 | `sim_camera` (soccer_bringup, sim)        | `joint_states`                                | `camera/image_raw`                                                     |
 | `detector_node` (soccer_perception)       | `camera/image_raw`                            | `detections` (`BoundingBoxes`)                                         |
 | `fieldline_node` (soccer_perception)      | `camera/image_raw`                            | `field_features` (`FieldFeatureArray`)                                 |
@@ -203,7 +201,7 @@ the same COBS/CRC16 frame. Contract: [jetson_master_protocol.md](architecture/je
 | Launch arg             | real (`sim:=false` / `camera:=zed`)                                                                                                                             | simulation (`sim:=true` / `camera:=sim`)                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | hardware plugin (`SH`) | `SoccerbotSerialHardware` -- streams full MIT commands to the Master over USB-CDC (COBS + CRC16), parses per-joint state + IMU, 100 ms host-side watchdog fault | `SoccerbotSimHardware` -- integrates each joint with the same MIT impedance law, synthesises a static-base IMU |
-| camera source          | `zed_wrapper` (own container) + `camera_bridge` onto the contract topics                                                                                        | `sim_camera` renders an orange ball from `joint_states` at 30 Hz (no GPU)                                      |
+| camera source          | `ZedCamera` component (own container, `camera.launch.py`) remaps its topics onto the contract (best-effort QoS)                                                                                        | `sim_camera` renders an orange ball from `joint_states` at 30 Hz (no GPU)                                      |
 
 Everything between the camera contract topics and the `ros2_control` interfaces is
 identical in both modes -- that is the entire point of the boundary.
@@ -213,7 +211,7 @@ identical in both modes -- that is the entire point of the boundary.
 1. **`object_features` has no subscriber yet.** `projection_node` already
    publishes goalpost landmarks, but `mcl_node` currently fuses only the
    `field_features` line cloud. The dashed edge marks the intended hook-up.
-2. **`imu/data` has two publishers on real HW.** `camera_bridge` forwards the
+2. **`imu/data` has two publishers on real HW.** the ZED component publishes the
    **ZED's** IMU (~99 Hz) while `imu_sensor_broadcaster` publishes the **body
    IMU** carried in the Master telemetry frame (decision D2 in the protocol doc),
    parsed by `SoccerbotSerialHardware`. Until the firmware populates that field it

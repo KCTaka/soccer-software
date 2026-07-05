@@ -17,6 +17,7 @@ import rclpy
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Imu
 from tf2_ros import TransformBroadcaster
 
@@ -37,7 +38,8 @@ class EkfNode(Node):
 
         self._tf = TransformBroadcaster(self)
         self._odom_pub = self.create_publisher(Odometry, "odom", 20)
-        self.create_subscription(Imu, "imu/data", self._on_imu, 50)
+        # IMU is a high-rate sensor stream -> best-effort SensorData QoS.
+        self.create_subscription(Imu, "imu/data", self._on_imu, qos_profile_sensor_data)
         self.create_timer(0.005, self._predict_and_publish)  # 200 Hz (L2 band)
         self.get_logger().info("ekf_node up (200 Hz odometry).")
 

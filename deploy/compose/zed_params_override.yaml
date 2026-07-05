@@ -1,7 +1,8 @@
-# ZED wrapper parameter overrides for the soccer robot bring-up.
+# ZED wrapper parameter overrides for the soccer robot bring-up. Sets two things:
+# the grab resolution (bandwidth) and best-effort QoS on the contract topics.
 #
 # Loaded via `ros_params_override_path:=` on the camera service command in
-# robot.compose.yaml. The launch file appends this file AFTER both
+# robot.compose.yaml. camera.launch.py appends this file AFTER both
 # common_stereo.yaml and the model file (zedm.yaml), so values here win over both.
 #
 # WHY (grab_resolution: HD720): on the 8 GB Orin Nano the ZED Mini's default
@@ -25,3 +26,35 @@
     ros__parameters:
         general:
             grab_resolution: 'HD720'
+        # ── Best-effort SensorData QoS on the contract topics (Option B) ────────
+        # The ZED wrapper enables rclcpp QoS overrides on every publisher, so we
+        # force the four contract streams to best-effort here — the idiomatic QoS
+        # for high-rate sensor data (REP-2003) and a match for the consumers, which
+        # now subscribe with qos_profile_sensor_data. Best-effort drops the odd
+        # frame instead of triggering RELIABLE fragment retransmissions that stall
+        # large HD image / float32 depth samples on a busy link.
+        #
+        # KEYS ARE THE *RESOLVED* (post-remap) TOPIC NAMES: camera.launch.py runs
+        # the ZED node under namespace robot_1 and remaps onto the contract, so the
+        # resolved names are /robot_1/camera/... — update these if robot_name changes.
+        qos_overrides:
+            /robot_1/camera/image_raw:
+                publisher:
+                    reliability: best_effort
+                    history: keep_last
+                    depth: 5
+            /robot_1/camera/depth:
+                publisher:
+                    reliability: best_effort
+                    history: keep_last
+                    depth: 5
+            /robot_1/camera_info:
+                publisher:
+                    reliability: best_effort
+                    history: keep_last
+                    depth: 5
+            /robot_1/imu/data:
+                publisher:
+                    reliability: best_effort
+                    history: keep_last
+                    depth: 5

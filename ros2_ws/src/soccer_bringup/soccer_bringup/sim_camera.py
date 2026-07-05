@@ -16,6 +16,7 @@ import math
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image, JointState
 
 try:
@@ -43,7 +44,8 @@ class SimCamera(Node):
         self._bridge = CvBridge() if _HAVE_CV else None
 
         self.create_subscription(JointState, "joint_states", self._on_js, 10)
-        self._pub = self.create_publisher(Image, "camera/image_raw", 5)
+        # Match the real camera contract: images are best-effort SensorData QoS.
+        self._pub = self.create_publisher(Image, "camera/image_raw", qos_profile_sensor_data)
         self.create_timer(1.0 / 30.0, self._render)  # 30 Hz
         self.get_logger().info("sim_camera up (30 Hz synthetic scene).")
 

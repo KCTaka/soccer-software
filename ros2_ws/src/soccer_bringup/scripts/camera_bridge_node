@@ -1,6 +1,0 @@
-#!/usr/bin/env python3
-"""Executable wrapper so the ZED→contract bridge can be launched as a ROS node."""
-from soccer_bringup.camera_bridge import main
-
-if __name__ == "__main__":
-    main()

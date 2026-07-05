@@ -16,6 +16,7 @@ from __future__ import annotations
 import rclpy
 from geometry_msgs.msg import Point, PointStamped
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CameraInfo
 from soccer_msgs.msg import BoundingBoxes, FieldFeature, FieldFeatureArray
 from std_msgs.msg import Header
@@ -54,17 +55,20 @@ class ProjectionNode(Node):
 
         self.ball_pub = self.create_publisher(PointStamped, "ball/point", 10)
         self.feat_pub = self.create_publisher(FieldFeatureArray, "object_features", 10)
+        # detections is an internal, low-rate topic -> keep the default reliable QoS.
         self.det_sub = self.create_subscription(
             BoundingBoxes, "detections", self._on_detections, 10
         )
-        # Adopt the camera's real intrinsics when available (ZED publishes a
-        # calibrated camera_info); until then the constructor defaults are used.
+        # camera_info + depth are camera sensor streams -> best-effort SensorData QoS
+        # (matches the ZED publishers). Adopt the camera's real intrinsics when
+        # available (ZED publishes a calibrated camera_info); until then the
+        # constructor defaults are used.
         self.caminfo_sub = self.create_subscription(
-            CameraInfo, "camera_info", self._on_camera_info, 10
+            CameraInfo, "camera_info", self._on_camera_info, qos_profile_sensor_data
         )
         if self._use_depth:
             self.depth_sub = self.create_subscription(
-                Image, "camera/depth", self._on_depth, 5
+                Image, "camera/depth", self._on_depth, qos_profile_sensor_data
             )
         self.get_logger().info(
             f"projection_node up (depth={'on' if self._use_depth else 'off'})."
