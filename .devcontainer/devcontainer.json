@@ -25,6 +25,15 @@
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.analysis.extraPaths": [
+          "/opt/ros/jazzy/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/soccer_msgs/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/soccer_perception/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/soccer_strategy/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/soccer_localization/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/soccer_teamcomm/lib/python3.12/site-packages",
+          "/ws/ros2_ws/install/game_controller_bridge/lib/python3.12/site-packages"
+        ],
         "cmake.cmakePath": "/usr/bin/cmake",
         "[python]": {
           "editor.formatOnSave": true,
