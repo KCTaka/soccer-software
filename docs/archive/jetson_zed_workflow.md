@@ -22,10 +22,10 @@
 > **▶ STATUS (2026-06): this plan is now IMPLEMENTED & PROVEN ON HARDWARE.** A ZED
 > Mini + `zed-ros2-wrapper` was brought up live on the Orin Nano (JetPack 7.2 /
 > **L4T R39.2**, CUDA 13.2) in Docker, and the repo now ships the real plumbing:
-> [`deploy/docker/Dockerfile.jetson`](../deploy/docker/Dockerfile.jetson), the
-> [`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py) (ZED component + topic remaps),
-> [`deploy/compose/robot.compose.yaml`](../deploy/compose/robot.compose.yaml) and
-> [`deploy/ansible/provision.yml`](../deploy/ansible/provision.yml). The
+> [`deploy/docker/Dockerfile.jetson`](../../deploy/docker/Dockerfile.jetson), the
+> [`camera.launch.py`](../../ros2_ws/src/soccer_bringup/launch/camera.launch.py) (ZED component + topic remaps),
+> [`deploy/compose/robot.compose.yaml`](../../deploy/compose/robot.compose.yaml) and
+> [`deploy/ansible/provision.yml`](../../deploy/ansible/provision.yml). The
 > authoritative, as-built record — exact versions, the **verified** ZED topic
 > names, and the mandatory host fixes — is
 > **[`docs/zed_jetson_integration.md`](zed_jetson_integration.md)**; where this

@@ -1,9 +1,12 @@
 # soccer-bot — RoboCup humanoid software stack
 
 A **complete, layered** reference implementation of the RoboCup Humanoid software
-architecture described in `docs/architecture/`. Every layer of the real system is
-present and wired through the **same** package boundaries, `ros2_control`
-abstraction, and DevOps flow used on the full robot.
+architecture. Every layer of the real system is present and wired through the
+**same** package boundaries, `ros2_control` abstraction, and DevOps flow used on the
+full robot.
+
+> **[→ Full documentation](docs/README.md)** — architecture, every design decision,
+> interfaces, operations, and an honest status ledger.
 
 > The robot model is currently a **minimal placeholder** — one `neck_pan` joint ·
 > one monocular camera · one IMU — deliberately the smallest thing that still
@@ -14,18 +17,20 @@ and policies, **not** re-architecting. Actuation is provided by **Robostride**
 quasi-direct-drive actuators that close the impedance loop **onboard** (MIT mode):
 the Jetson streams full MIT setpoints (`q*, qd*, kp, kd, τ_ff`) to an **STM32
 Master** (safety + aggregation) over USB-CDC, which bridges to the actuators over
-CAN. See [docs/architecture/jetson_master_protocol.md](docs/architecture/jetson_master_protocol.md).
+CAN. See [docs/09-firmware-and-actuators.md](docs/09-firmware-and-actuators.md).
 
 ## The layered architecture (frequency domains)
 
-| Layer                  | Rate               | Package(s)                                                         | Runs on          |
-| ---------------------- | ------------------ | ------------------------------------------------------------------ | ---------------- |
-| L5 Mission             | ~2 Hz              | `game_controller_bridge`                                           | Jetson           |
-| L4 Strategy            | 5–20 Hz            | `soccer_strategy`, `soccer_teamcomm`                               | Jetson           |
-| L3 Perception          | 30–60 Hz           | `soccer_perception`                                                | Jetson           |
-| L3/L2 Localization     | 30–60 / 100–400 Hz | `soccer_localization` (MCL + EKF)                                  | Jetson           |
-| L1 Whole-body control  | 50–100 Hz          | `soccer_control` (MPC + residual RL)                               | Jetson           |
-| L0 Real-time actuation | actuator onboard   | `soccer-firmware/` submodule (STM32 Master/Slave → Robostride CAN) | STM32 + actuator |
+| Layer                  | Rate                          | Package(s)                                                         | Runs on          |
+| ---------------------- | ----------------------------- | ------------------------------------------------------------------ | ---------------- |
+| L5 Mission             | ~2 Hz                         | `game_controller_bridge`                                           | Jetson           |
+| L4 Strategy            | 10 Hz tick / 4 Hz comms       | `soccer_strategy`, `soccer_teamcomm`                               | Jetson           |
+| L3 Perception          | camera rate (~20 Hz)          | `soccer_perception`                                                | Jetson           |
+| L3/L2 Localization     | 10 Hz MCL / 200 Hz EKF        | `soccer_localization`                                              | Jetson           |
+| L1 Whole-body control  | 50 Hz MPC / 100 Hz controller | `soccer_control` (MPC + residual RL)                               | Jetson           |
+| L0 Real-time actuation | actuator onboard              | `soccer-firmware/` submodule (STM32 Master/Slave → Robostride CAN) | STM32 + actuator |
+
+Detail: [docs/01-system-overview.md](docs/01-system-overview.md).
 
 The **cardinal rule**: slow cognition (vision, strategy) must never block the fast balance
 loop. Each layer degrades gracefully — a crash in perception can't stall the actuator's
@@ -36,7 +41,7 @@ onboard control loop.
 ```text
 soccer-bot/
 ├── .github/workflows/        # CI: build, lint, test, multi-arch image
-├── docs/                     # architecture blueprints + IMPLEMENTATION.md
+├── docs/                     # official documentation (start at docs/README.md)
 ├── ros2_ws/src/              # ROS 2 workspace (deployed to robots)
 │   ├── soccer_msgs/          # custom interfaces (IDL)
 │   ├── soccer_description/   # URDF/xacro + ros2_control tags
@@ -74,27 +79,40 @@ make sim
 
 ### Build commands
 
-| Command | Description |
-|---|---|
-| `make build` | Full workspace build |
+| Command                     | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| `make build`                | Full workspace build                                           |
 | `make build-pkg pkg=<name>` | Rebuild one package (e.g. `make build-pkg pkg=soccer_bringup`) |
-| `make clean` | Remove build/install/log artifacts |
-| `make sim` | Start 2-robot sim via Docker Compose |
-| `make robot` | Start real robot stack via Docker Compose |
+| `make clean`                | Remove build/install/log artifacts                             |
+| `make sim`                  | Start 2-robot sim via Docker Compose                           |
+| `make robot`                | Start real robot stack via Docker Compose                      |
 
 See [Makefile](Makefile) for the full list.
 
 ## Documentation
 
-- [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — full walkthrough of what was built and why (with diagrams).
-- [docs/architecture/new_architecture_blueprint.md](docs/architecture/new_architecture_blueprint.md) — the source blueprint.
-- [docs/architecture/localization_strategy_report.md](docs/architecture/localization_strategy_report.md) — localization strategy.
+**[docs/README.md](docs/README.md)** is the index. Most-used entry points:
+
+| I want to…                             | Read                                                             |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| Understand the system in 10 minutes    | [01 — System Overview](docs/01-system-overview.md)               |
+| Know _why_ something is built this way | [02 — Design Decisions](docs/02-design-decisions.md) (D-01…D-44) |
+| Publish to or subscribe from the graph | [03 — ROS 2 Interfaces](docs/03-ros-2-interfaces.md)             |
+| Build, test or deploy                  | [12 — Build, Test & Deploy](docs/12-build-test-deploy.md)        |
+| Bring up a robot or debug a failure    | [13 — Operations Runbook](docs/13-operations-runbook.md)         |
+| Know what does **not** work yet        | [14 — Status & Roadmap](docs/14-status-and-roadmap.md)           |
+
+The original working documents are preserved in [docs/archive/](docs/archive/README.md).
 
 ## Target platform
 
-- **ROS 2 Jazzy Jalisco** (LTS → 2029) · Ubuntu 24.04
-- **Jetson Orin NX / Thor** onboard · **RTX** training workstation
+- **ROS 2 Jazzy Jalisco** (LTS → May 2029) · Ubuntu 24.04
+- **Jetson Orin Nano Super 8 GB** validated (JetPack 7.2 / L4T R39.2 / CUDA 13.2) ·
+  **Orin NX 16 GB** is the production target · **RTX** training workstation
+- **ZED Mini** stereo camera (ZED SDK 5.4)
 - **STM32 Master/Slave** bridge → **Robostride CAN** actuators (onboard MIT impedance)
+
+Detail: [docs/11-compute-platform.md](docs/11-compute-platform.md).
 
 ## License
 

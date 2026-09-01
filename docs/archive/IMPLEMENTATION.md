@@ -185,7 +185,7 @@ flowchart LR
 - Both plugins live in `soccer_hardware` and export the **same** interfaces:
   `neck_pan` (`position`/`velocity`/`kp`/`kd`/`effort` command — the full MIT
   tuple; `position`/`velocity`/`effort` state) and a 10-channel `imu_sensor`. See
-  [soccerbot.ros2_control.xacro](../ros2_ws/src/soccer_description/urdf/soccerbot.ros2_control.xacro).
+  [soccerbot.ros2_control.xacro](../../ros2_ws/src/soccer_description/urdf/soccerbot.ros2_control.xacro).
 - The real plugin speaks the **same COBS/CRC16-framed protocol** as the
   `soccer-firmware` Master, so the Jetson↔Master contract is faithful.
 - **`effort` is a first-class state interface** because the residual-RL
@@ -225,8 +225,8 @@ flowchart TB
 
 | Loop              | Frequency   | Where                   | File                                                                                       |
 | ----------------- | ----------- | ----------------------- | ------------------------------------------------------------------------------------------ |
-| MPC reference     | 50 Hz       | Jetson (C++)            | [mpc_node.cpp](../ros2_ws/src/soccer_control/src/mpc_node.cpp)                             |
-| Residual policy   | 100 Hz      | Jetson (C++ plugin)     | [residual_rl_controller.cpp](../ros2_ws/src/soccer_control/src/residual_rl_controller.cpp) |
+| MPC reference     | 50 Hz       | Jetson (C++)            | [mpc_node.cpp](../../ros2_ws/src/soccer_control/src/mpc_node.cpp)                             |
+| Residual policy   | 100 Hz      | Jetson (C++ plugin)     | [residual_rl_controller.cpp](../../ros2_ws/src/soccer_control/src/residual_rl_controller.cpp) |
 | **MIT impedance** | **onboard** | **Robostride actuator** | `soccer-firmware` Master bridge (CAN-FD)                                                   |
 
 **Why bounded residual, not end-to-end:** the residual is **hard-clamped to
@@ -277,7 +277,7 @@ flowchart TB
 - **`projection_node`** prefers **ZED depth** (accurate 3D) and falls back to the
   monocular **flat-ground homography** — replacing the legacy pipeline's biggest
   error source. Math is unit-tested in
-  [test_projection.py](../ros2_ws/src/soccer_perception/test/test_projection.py).
+  [test_projection.py](../../ros2_ws/src/soccer_perception/test/test_projection.py).
 
 ---
 
@@ -325,14 +325,14 @@ flowchart LR
 ```
 
 - The **likelihood field** is a distance-transform image of the field lines baked
-  once in [field_model.py](../ros2_ws/src/soccer_localization/soccer_localization/field_model.py)
+  once in [field_model.py](../../ros2_ws/src/soccer_localization/soccer_localization/field_model.py)
   — the efficient form of Chamfer matching. Weighting an observed point is an O(1)
   lookup.
 - **Explorer particles** re-seed a fraction each resample → automatic
   kidnapped-robot / penalty-return recovery (the thing a single-hypothesis filter
   cannot do).
 - The filter is ROS-free and **unit-tested**: convergence near truth + explorer
-  re-seeding in [test_mcl.py](../ros2_ws/src/soccer_localization/test/test_mcl.py).
+  re-seeding in [test_mcl.py](../../ros2_ws/src/soccer_localization/test/test_mcl.py).
 
 ---
 
@@ -367,7 +367,7 @@ flowchart TB
   computation over all bids on the global `/team_data` topic and reaches the same
   result with **no master**. Dropouts trigger automatic re-assignment. This logic
   is **unit-tested** (gtest) in
-  [test_role_auction.cpp](../ros2_ws/src/soccer_strategy/test/test_role_auction.cpp).
+  [test_role_auction.cpp](../../ros2_ws/src/soccer_strategy/test/test_role_auction.cpp).
 
 ---
 
@@ -392,7 +392,7 @@ sequenceDiagram
 sends the mandatory 3939 return so the GC does not flag the robot. The wire
 format is shared with the **mock GameController** test tool, and the round-trip
 (including per-player penalties) is **unit-tested** in
-[test_gc_protocol.py](../ros2_ws/src/game_controller_bridge/test/test_gc_protocol.py).
+[test_gc_protocol.py](../../ros2_ws/src/game_controller_bridge/test/test_gc_protocol.py).
 
 ---
 
@@ -488,14 +488,14 @@ flowchart LR
     ANS -->|SSH| B2["robot_2: pull + restart"]:::bot
 ```
 
-- CI ([ci.yml](../.github/workflows/ci.yml)) builds + tests the colcon workspace,
+- CI ([ci.yml](../../.github/workflows/ci.yml)) builds + tests the colcon workspace,
   lints Python, runs the **firmware host tests**, and (on `main`) pushes a **lean
   arm64 runtime image** containing only the built `install/` space — no source, no
   CAD, no sim assets.
-- **Ansible** ([deploy.yml](../deploy/ansible/deploy.yml)) pulls a pinned image
+- **Ansible** ([deploy.yml](../../deploy/ansible/deploy.yml)) pulls a pinned image
   tag onto every robot and restarts the container in one command. Secrets stay in
   CI/vault, never committed.
-- **Git LFS** ([.gitattributes](../.gitattributes)) tracks USD/CAD/ONNX so the
+- **Git LFS** ([.gitattributes](../../.gitattributes)) tracks USD/CAD/ONNX so the
   runtime clone stays lean.
 
 ---

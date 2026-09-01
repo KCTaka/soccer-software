@@ -231,8 +231,8 @@ takes the next — invisible at 30 fps. On today's single-host SHM transport los
 ~nil, but best-effort is correct and future-proofs any hop that crosses WiFi (a
 remote Foxglove/RViz viewer, multi-robot team comm).
 
-Files: [`camera.launch.py`](../ros2_ws/src/soccer_bringup/launch/camera.launch.py),
-[`zed_params_override.yaml`](../deploy/compose/zed_params_override.yaml), and the
+Files: [`camera.launch.py`](../../ros2_ws/src/soccer_bringup/launch/camera.launch.py),
+[`zed_params_override.yaml`](../../deploy/compose/zed_params_override.yaml), and the
 best-effort subscriptions in the perception / localization nodes.
 
 ---
@@ -260,7 +260,7 @@ sequenceDiagram
 ```
 
 Two mandatory host changes (idempotently applied by
-[`deploy/ansible/provision.yml`](../deploy/ansible/provision.yml)):
+[`deploy/ansible/provision.yml`](../../deploy/ansible/provision.yml)):
 
 1. `/etc/nvidia-container-toolkit/nvidia-cdi-refresh.env` →
    `NVIDIA_CTK_CDI_GENERATE_DISABLED_HOOKS=enable-cuda-compat`, then restart
@@ -363,7 +363,7 @@ licensed ZED SDK and compiles the wrapper, built for arm64 under QEMU emulation,
 is impractical and slow in hosted CI. CI keeps building the lean **CPU**
 `Dockerfile.runtime` for sim and the no-GPU developer flow; the **GPU** image is
 built on-device (or a self-hosted arm64 runner) and shipped via Ansible. This is
-documented inline in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+documented inline in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 ---
 
