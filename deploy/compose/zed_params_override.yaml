@@ -27,12 +27,23 @@
         general:
             grab_resolution: 'HD720'
         # ── Best-effort SensorData QoS on the contract topics (Option B) ────────
-        # The ZED wrapper enables rclcpp QoS overrides on every publisher, so we
-        # force the four contract streams to best-effort here — the idiomatic QoS
-        # for high-rate sensor data (REP-2003) and a match for the consumers, which
-        # now subscribe with qos_profile_sensor_data. Best-effort drops the odd
-        # frame instead of triggering RELIABLE fragment retransmissions that stall
-        # large HD image / float32 depth samples on a busy link.
+        # PARTIALLY EFFECTIVE — verified on hardware 2026-09-02. The ZED wrapper
+        # enables rclcpp QosOverridingOptions on SOME publishers but NOT on the
+        # image/depth ones, so only the imu/data override below actually applies.
+        # Querying the others returns "Parameter not set" and the node logs
+        #   [rclcpp]: Failed to get parameters:
+        #   qos_overrides./robot_1/camera/image_raw.publisher.reliability
+        # image_raw and depth therefore publish RELIABLE. This is benign (a
+        # RELIABLE publisher and a best-effort subscriber are compatible) and the
+        # measured frame loss is CPU-bound, not DDS-bound. Left in place so the
+        # intent is recorded and the entries start working if the wrapper adds
+        # the option upstream. See docs/TROUBLESHOOTING.md §8.1.
+        #
+        # The intent: best-effort is the idiomatic QoS for high-rate sensor data
+        # (REP-2003) and matches the consumers, which subscribe with
+        # qos_profile_sensor_data. Best-effort drops the odd frame instead of
+        # triggering RELIABLE fragment retransmissions that stall large HD image /
+        # float32 depth samples on a busy link.
         #
         # KEYS ARE THE *RESOLVED* (post-remap) TOPIC NAMES: camera.launch.py runs
         # the ZED node under namespace robot_1 and remaps onto the contract, so the

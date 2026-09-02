@@ -15,6 +15,15 @@
 > The diagram and QoS discussion below reflect the older bridge design — see
 > [`zed_jetson_integration.md`](zed_jetson_integration.md) §5 for the current design.
 
+> **⚠️ Update (2026-09-02) — two conclusions here no longer hold.**
+> (a) The "best-effort end-to-end" claim above is false for `camera/image_raw`
+> and `camera/depth`; those publishers ignore the `qos_overrides` and remain
+> RELIABLE. (b) §4 attributed the frame-rate ceiling to **GPU** saturation and
+> fixed it by dropping to HD720. Re-measured on the current stack, the GPU idles
+> at **0–20 %** and the limit is **CPU** saturation — `zed_node`, `detector_node`
+> and `fieldline_node` together consume most of the six cores. Full analysis and
+> current measurements in [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §5, §8.1.
+
 ---
 
 ## Table of Contents

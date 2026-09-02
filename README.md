@@ -87,6 +87,8 @@ See [Makefile](Makefile) for the full list.
 ## Documentation
 
 - [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — full walkthrough of what was built and why (with diagrams).
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — silent failure modes, measured performance profile, and the detector roadmap. **Read this before deploying to hardware.**
+- [docs/zed_jetson_integration.md](docs/zed_jetson_integration.md) — as-built ZED Mini + Jetson Docker integration.
 - [docs/architecture/new_architecture_blueprint.md](docs/architecture/new_architecture_blueprint.md) — the source blueprint.
 - [docs/architecture/localization_strategy_report.md](docs/architecture/localization_strategy_report.md) — localization strategy.
 

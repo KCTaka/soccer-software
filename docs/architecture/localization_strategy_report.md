@@ -199,6 +199,17 @@ flowchart TB
 
 **Honest caveats (must validate before committing):**
 
+> **Update (2026-09-02) — the latency caveat below has now been resolved on
+> hardware.** RF-DETR was exported and benchmarked on the Jetson Orin Nano Super
+> (TensorRT 10.16.2, FP16, batch 1, MAXN_SUPER): **Nano 5.84 ms @ 384²**, Small
+> 10.85 ms @ 512², Medium 14.15 ms @ 576². That is 2.5–3.2× the published T4
+> figures, confirming the warning — but Nano still fits comfortably in a 33 ms
+> frame budget and holds 30 Hz while the ZED streams concurrently. **Nano is the
+> recommended starting variant.** The remaining caveats (distant-ball recall,
+> line segmentation, vendor claims) are unaffected and still require a
+> RoboCup-data bake-off. Measurements and the migration rationale:
+> [`docs/TROUBLESHOOTING.md`](../TROUBLESHOOTING.md) §6.
+
 - **Published latencies are NVIDIA T4, not Jetson.** All RF-DETR latency figures (e.g., nano ~2.3 ms) are **T4 GPU, TensorRT FP16, batch 1** — a datacenter card. On **Jetson Orin NX**, attention-heavy transformers are typically **slower relative to well-optimized YOLO CNNs**. **Benchmark the chosen variant on the actual Orin/Thor** before deciding.
 - **Small / distant ball.** DETRs historically trail CNNs on **very small** objects; the ball at range is a few pixels. RF-DETR's multi-resolution training + DINOv2 mitigate this, but **input resolution drives both recall and latency** (Nano 384², Small 512², Medium 576², Large 704²). Expect to move up a size to keep the distant ball — validate recall at competition distances.
 - **Field lines are _semantic_, not _instance_, segmentation.** RF-DETR-Seg outputs **instance** masks for objects; continuous lines are not "instances." So RF-DETR does **not** replace the line point-cloud path — keep a dedicated semantic-seg (or the existing classical extractor) for the MCL line cloud.

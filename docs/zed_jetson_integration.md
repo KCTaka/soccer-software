@@ -13,6 +13,12 @@
 > **Where any document disagrees with the hardware, the hardware wins** — and the
 > facts below are taken from the hardware.
 
+> **Update (2026-09-02).** A later diagnostic session on the same board found
+> four defects that this report either did not cover or recorded as working.
+> Corrections are marked inline in §4, §5, §6 and §12; the full analysis lives in
+> [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md). Read that document alongside
+> this one before deploying.
+
 ---
 
 ## 1. Executive summary
@@ -125,6 +131,14 @@ only in an image carrying the ZED SDK + wrapper.)
 
 ## 4. The image lineage — one multi-stage Dockerfile, two targets
 
+> **Update (2026-09-02) — this lineage shipped a broken app image.** The
+> `soccer-app-image` stage is `FROM jetson-base`, which supplies only the ROS
+> **apt repository**, not ROS itself. Every runtime dependency was installed in
+> the throwaway build stage, so the delivered image had no `ros2`, no `rclpy` and
+> no `ros2_control` — it could not execute its own `CMD`. Fixed by applying
+> `soccer-app-deps.apt` in the runtime stage as well. See
+> [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §3.
+
 `deploy/docker/Dockerfile.jetson` is a single multi-stage file with a shared base
 and two independently-selectable targets.
 
@@ -213,6 +227,16 @@ now owns the ZED component. Because it only references `zed_wrapper` +
 
 ### QoS — best-effort SensorData end-to-end
 
+> **Update (2026-09-02) — "end-to-end" is false for the image and depth
+> topics.** Measured on hardware: `qos_overrides./robot_1/camera/image_raw.publisher.reliability`
+> reports **"Parameter not set"**, and both `camera/image_raw` and `camera/depth`
+> publish **RELIABLE**. The wrapper enables `QosOverridingOptions` on *some*
+> publishers (`imu/data` does honour the override) but not the image ones, so
+> those YAML entries are inert. The **subscriber** half of the table below is
+> accurate. This is benign — RELIABLE publisher to BEST_EFFORT subscriber is
+> compatible — but the claim should not be relied on. See
+> [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §8.1.
+
 The contract is now **best-effort SensorData QoS** on both ends — the idiomatic
 choice for high-rate sensor streams (REP-2003), and the correction of the old
 relay's backwards reconciliation (it forced camera data up to RELIABLE):
@@ -238,6 +262,17 @@ best-effort subscriptions in the perception / localization nodes.
 ---
 
 ## 6. Host prerequisites — the real unblock (CDI)
+
+> **Update (2026-09-02) — there is a second, independent CDI failure.** The hook
+> panic below is real, but fixing it is not sufficient. `nvidia-cdi-refresh.service`
+> writes the spec to `/var/run/cdi/` (**tmpfs**, destroyed every boot) and runs
+> *before* the NVIDIA kernel module loads, so regeneration fails with `failed to
+> initialize NVML: Driver Not Loaded` and no spec is written. The symptom is
+> `unresolvable CDI devices nvidia.com/gpu=all` on **every** container, GPU or
+> not. A third host change is required —
+> `NVIDIA_CTK_CDI_OUTPUT_FILE_PATH=/etc/cdi/nvidia.yaml` in the same env file —
+> now applied as Fix 0 in `provision.yml`. See
+> [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §1.
 
 This is the part that has nothing to do with our code and everything to do with
 whether a GPU container starts at all. The `nvidia-container-toolkit 1.19.1`
@@ -454,13 +489,21 @@ ros2 topic hz  /robot_1/camera/depth          # depth_mode NEURAL_LIGHT (needs T
 
 ## 12. Risks, limits, and follow-ups
 
+> **Update (2026-09-02).** Two rows below were wrong. The "app image apt dep
+> names" entry was not a risk but a live defect (see the §4 update). The RF-DETR
+> entry's premise is inverted: the GPU idles at 0–20 % while the CPU saturates,
+> so its reservation is not a cost to defer but capacity the stack already needs.
+> RF-DETR is now benchmarked on this board —
+> [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §5–§6.
+
 | Item                                  | Status / mitigation                                                                                                                                             |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ZED Mini is rolling-shutter           | Fine for PoC; if line blur hurts MCL, a global-shutter ZED X is a `camera_model` arg, not a code change.                                                        |
-| App image apt dep names               | The soccer-app stage lists common deps explicitly **and** runs `rosdep`; if a name drifts on a future Jazzy sync, rosdep still resolves it.                     |
-| RF-DETR detector (GPU)                | Not enabled yet; when it lands, uncomment the GPU reservation on the `robot` service and build the `.engine` **on the target** (engines are per-GPU + per-TRT). |
+| App image apt dep names               | ~~Lists common deps explicitly **and** runs `rosdep`.~~ **Superseded:** the deps were never installed in the *runtime* stage, so the delivered image had no ROS. Fixed; both stages now apply `soccer-app-deps.apt`. |
+| RF-DETR detector (GPU)                | Benchmarked on-device: Nano is 5.84 ms at 384² FP16 and coexists with the ZED at 30 Hz. Uncommenting the GPU reservation is now **recommended**, not deferred. Build the `.engine` **on the target** (engines are per-GPU + per-TRT). |
 | Single camera/Jetson                  | Record rosbags of the contract topics so no-GPU devs work without hardware (workflow doc §6, §8).                                                               |
 | Cloud CI does not build the GPU image | By design; build on-device / self-hosted arm64 runner.                                                                                                          |
+| Camera drops to 20 Hz under load      | **Open.** CPU saturation, not DDS or GPU. See [`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md) §5.                                                                |
 
 ---
 
