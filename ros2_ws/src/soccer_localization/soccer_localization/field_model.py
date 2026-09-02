@@ -1,11 +1,18 @@
 """Field model + likelihood-field map (localization report §3.1, §6).
 
 Holds the exact field geometry (lines + centre circle + goalposts) and bakes a
-**likelihood-field map**: a grid whose value at each cell is a Gaussian of the
+**distance-transform map**: a grid whose value at each cell is the metric
 distance to the nearest field line. Weighting an observed line point is then an
 O(1) lookup — the efficient form of Chamfer matching the top RoboCup teams use
 (Bit-Bots ``lines.png``). ``SoccerbotField`` is the single source of field truth,
 reused by both the MCL and any visualization.
+
+The grid stores **distance in metres**, not a pre-baked Gaussian. That is a
+deliberate change: the ground-projection uncertainty of an observed line point
+grows with the square of its range (see
+:class:`soccer_localization.sensor_model.GroundProjectionNoise`), so the Gaussian
+falloff has to be evaluated per observation instead of being frozen into the map
+at one fixed ``line_sigma``.
 """
 from __future__ import annotations
 
@@ -28,8 +35,9 @@ class SoccerbotField:
     length: float = 6.0          # x extent (touchline to touchline)
     width: float = 4.0           # y extent
     centre_circle_r: float = 0.75
-    resolution: float = 0.05     # likelihood-field grid cell size (m)
-    line_sigma: float = 0.15     # Gaussian falloff of the likelihood field (m)
+    resolution: float = 0.05     # distance-field grid cell size (m)
+    line_sigma: float = 0.15     # default falloff when no per-point sigma is given
+    off_grid_distance: float = 2.0   # distance reported for points off the map (m)
     goalposts: list = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -40,7 +48,7 @@ class SoccerbotField:
             (hl, -1.0), (hl, 1.0),    # opponent goal
         ]
         self._segments = self._build_segments()
-        self._grid, self._origin = self._bake_likelihood_field()
+        self._dist, self._origin = self._bake_distance_field()
 
     # ── Geometry ──
     def _build_segments(self) -> list[tuple[float, float, float, float]]:
@@ -61,8 +69,8 @@ class SoccerbotField:
             ))
         return segs
 
-    # ── Likelihood field ──
-    def _bake_likelihood_field(self):
+    # ── Distance field ──
+    def _bake_distance_field(self):
         margin = 0.5
         hl, hw = self.length / 2.0 + margin, self.width / 2.0 + margin
         nx = int(2 * hl / self.resolution)
@@ -83,24 +91,47 @@ class SoccerbotField:
 
         if _HAVE_SCIPY:
             dist = distance_transform_edt(occ) * self.resolution
-        else:  # coarse fallback: 0 on lines, large elsewhere
-            dist = np.where(occ == 0, 0.0, 1.0)
-        likelihood = np.exp(-0.5 * (dist / self.line_sigma) ** 2)
-        return likelihood.astype(np.float32), origin
+        else:  # coarse fallback: 0 on lines, "far" elsewhere
+            dist = np.where(occ == 0, 0.0, self.off_grid_distance)
+        return dist.astype(np.float32), origin
 
-    def line_likelihood(self, pts_xy: np.ndarray) -> np.ndarray:
-        """Likelihood in [0,1] for world-frame points (N,2) via O(1) grid lookup."""
-        ny, nx = self._grid.shape
-        cx = ((pts_xy[:, 0] - self._origin[0]) / self.resolution).astype(int)
-        cy = ((pts_xy[:, 1] - self._origin[1]) / self.resolution).astype(int)
+    # ── Lookups ──
+    def line_distance(self, pts_xy: np.ndarray) -> np.ndarray:
+        """Metres to the nearest field line, for world-frame points.
+
+        Accepts any array shaped ``(..., 2)`` and returns the matching ``(...)``
+        distances, so an entire particle set can be scored in a single call.
+        Points outside the baked map report :attr:`off_grid_distance`.
+        """
+        pts = np.asarray(pts_xy, dtype=np.float64)
+        ny, nx = self._dist.shape
+        cx = ((pts[..., 0] - self._origin[0]) / self.resolution).astype(np.intp)
+        cy = ((pts[..., 1] - self._origin[1]) / self.resolution).astype(np.intp)
         inside = (cx >= 0) & (cx < nx) & (cy >= 0) & (cy < ny)
-        out = np.full(len(pts_xy), 1e-3, dtype=np.float32)
-        out[inside] = self._grid[cy[inside], cx[inside]]
+        np.clip(cx, 0, nx - 1, out=cx)
+        np.clip(cy, 0, ny - 1, out=cy)
+        return np.where(inside, self._dist[cy, cx], self.off_grid_distance)
+
+    def line_likelihood(self, pts_xy: np.ndarray, sigma=None) -> np.ndarray:
+        """Gaussian likelihood in (0,1] for world-frame points shaped ``(..., 2)``.
+
+        ``sigma`` may be a scalar or an array broadcastable against the point
+        axis — that is how the MCL applies a per-observation, range-dependent
+        uncertainty to a single shared map.
+        """
+        s = self.line_sigma if sigma is None else np.asarray(sigma, dtype=np.float64)
+        return np.exp(-0.5 * (self.line_distance(pts_xy) / s) ** 2)
+
+    # ── Sampling ──
+    def random_poses(self, rng: np.random.Generator, n: int) -> np.ndarray:
+        """``n`` uniformly random on-field poses ``[x, y, theta]``, shape (n, 3)."""
+        hl, hw = self.length / 2.0, self.width / 2.0
+        out = np.empty((n, 3))
+        out[:, 0] = rng.uniform(-hl, hl, n)
+        out[:, 1] = rng.uniform(-hw, hw, n)
+        out[:, 2] = rng.uniform(-np.pi, np.pi, n)
         return out
 
     def random_pose(self, rng: np.random.Generator) -> np.ndarray:
         """A uniformly random on-field pose [x, y, theta] (for explorer particles)."""
-        hl, hw = self.length / 2.0, self.width / 2.0
-        return np.array([
-            rng.uniform(-hl, hl), rng.uniform(-hw, hw), rng.uniform(-np.pi, np.pi)
-        ])
+        return self.random_poses(rng, 1)[0]
