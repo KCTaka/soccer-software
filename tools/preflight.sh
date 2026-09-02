@@ -294,6 +294,41 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 7. TensorRT engines for the GPU perception components
+# ─────────────────────────────────────────────────────────────────────────────
+# Engines are bind-mounted, not baked into the image (they are version- and
+# device-locked to the TensorRT that built them). A missing or stale engine does
+# not crash anything: detector_node degrades to publishing EMPTY detections, so
+# the robot simply never sees the ball. Catch it here instead.
+# See docs/architecture/perception_gpu_migration.md §9.
+section "7. TensorRT engines"
+
+MODELS_DIR="${SOCCER_MODELS_DIR:-$HOME/rfdetr-bench-models}"
+DETECTOR_ENGINE="${MODELS_DIR}/rfdetr_nano_fp16.engine"
+
+if [[ ! -d "$MODELS_DIR" ]]; then
+    fail "engine directory $MODELS_DIR does not exist"
+    note "compose bind-mounts it at /models; detector_node will see nothing."
+elif [[ ! -s "$DETECTOR_ENGINE" ]]; then
+    fail "$DETECTOR_ENGINE missing or empty"
+    note "detector_node will publish EMPTY detections and log a throttled warning."
+else
+    pass "detector engine present ($(stat -c %s "$DETECTOR_ENGINE") bytes)"
+
+    # An engine is locked to the TensorRT version that serialized it. TensorRT
+    # writes its version into the plan header, so compare it against the runtime
+    # in the camera image rather than trusting the filename.
+    img_ver="$(docker run --rm --entrypoint sh soccer-zed:jazzy -c \
+        'dpkg-query -W -f="\${Version}" libnvinfer10 2>/dev/null' 2>/dev/null \
+        | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || true)"
+    if [[ -n "$img_ver" ]]; then
+        pass "camera image TensorRT runtime: $img_ver"
+    else
+        warn "could not read the TensorRT version from soccer-zed:jazzy"
+    fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────────────────────────────────────
 printf '\n%s────────────────────────────────────────%s\n' "$B" "$N"

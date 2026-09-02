@@ -66,6 +66,14 @@ services:
       # throttle the grab to ~11 Hz and choke the image transport). Positional
       # tracking (VIO) is left at wrapper defaults. See zed_params_override.yaml.
       - ./zed_params_override.yaml:/config/zed_params_override.yaml:ro
+      # TensorRT engines for the GPU perception components. NOT baked into the
+      # image: an engine is version- and device-locked to the runtime that built
+      # it, so it must be rebuildable without a docker build. Read-only — the
+      # container has no business writing engines.
+      # Use ${HOME}, not ~ : compose does NOT expand a tilde in a bind path and
+      # would silently create a directory literally named "~".
+      # See docs/architecture/perception_gpu_migration.md.
+      - ${SOCCER_MODELS_DIR:-${HOME}/rfdetr-bench-models}:/models:ro
     # GPU injection via the NVIDIA Container Toolkit (CDI) — the compose
     # equivalent of `--gpus all`. Requires the host CDI fixes above.
     deploy:
@@ -103,15 +111,10 @@ services:
       - ./cyclonedds_profile.xml:/config/cyclonedds_profile.xml:ro # large-message tuning (CycloneDDS)
       - ./fastdds_profile.xml:/config/fastdds_profile.xml:ro # large-message SHM transport (FastDDS)
       - ./zenoh_session_config.json5:/config/zenoh_session_config.json5:ro # Zenoh evaluation config
-    # The app is CPU-only today (HSV detector). Uncomment to give it the GPU once
-    # the RF-DETR TensorRT detector lands (report §3.2 of the localization doc):
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    # The app is CPU-only: the GPU perception components live in the camera
+    # container, composed into the ZED process for zero-copy frames
+    # (docs/architecture/perception_gpu_migration.md §3). Do NOT move them here —
+    # crossing the container boundary is precisely the cost being removed.
     depends_on:
       - camera
     command: >

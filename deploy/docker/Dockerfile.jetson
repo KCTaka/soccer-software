@@ -171,6 +171,48 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ros-jazzy-rmw-cyclonedds-cpp \
     && rm -rf /var/lib/apt/lists/*
 
+# --- GPU perception components (soccer_perception_gpu) -----------------------
+# The C++ TensorRT detector + fieldline segmenter live HERE, not in the app
+# image, because this is the only container with a GPU, TensorRT, and — via
+# component composition into the ZED container — zero-copy access to the frames.
+# Full rationale: docs/architecture/perception_gpu_migration.md.
+#
+# TensorRT header pin. libnvinfer10 installed above is 10.16.2.10 and TensorRT
+# engines are version-locked to the runtime that built them, so the headers MUST
+# match the runtime exactly. The Ubuntu/CUDA sbsa repo only carries 10.16.1.11
+# (and would happily "upgrade" to 11.x, which cannot load our engines); the
+# Jetson r39.2 repo carries the exact 10.16.2.10. Re-add that repo just for this
+# package, pinned, then strip it again so nothing else drifts onto it.
+# libnvinfer-headers-dev is headers-only (~2 MB); the link-time libnvinfer.so
+# symlink already exists from the layer above.
+RUN wget -qO /etc/apt/trusted.gpg.d/jetson-ota-public-trt.asc \
+        https://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
+    && echo "deb https://repo.download.nvidia.com/jetson/common r39.2 main" \
+        > /etc/apt/sources.list.d/nvidia-l4t-trt-headers.list \
+    && printf 'Package: libnvinfer-headers-dev\nPin: origin repo.download.nvidia.com\nPin-Priority: 700\n' \
+        > /etc/apt/preferences.d/l4t-tensorrt-headers \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        libnvinfer-headers-dev=10.16.2.10-1+cuda13.2 \
+        ros-jazzy-cv-bridge ros-jazzy-image-transport ros-jazzy-rclcpp-components \
+        ros-jazzy-ament-cmake-gtest ros-jazzy-ament-lint-auto ros-jazzy-ament-lint-common \
+    && rm -rf /var/lib/apt/lists/* \
+        /etc/apt/sources.list.d/nvidia-l4t-trt-headers.list \
+        /etc/apt/preferences.d/l4t-tensorrt-headers \
+        /etc/apt/trusted.gpg.d/jetson-ota-public-trt.asc
+
+# soccer_msgs supplies BoundingBoxes/FieldFeatures; soccer_perception_gpu is the
+# detector + fieldline components. Copied LAST so edits to them never invalidate
+# the multi-GB SDK/TensorRT/wrapper layers above. Built into the SAME /ros2_ws
+# overlay as the ZED wrapper so camera.launch.py can load both sets of plugins
+# into one container.
+COPY ros2_ws/src/soccer_msgs           /ros2_ws/src/soccer_msgs
+COPY ros2_ws/src/soccer_perception_gpu /ros2_ws/src/soccer_perception_gpu
+RUN cd /ros2_ws && . /opt/ros/jazzy/setup.sh \
+    && MAKEFLAGS="-j4" colcon build --symlink-install \
+         --packages-select soccer_msgs soccer_perception_gpu \
+         --parallel-workers 1 \
+         --cmake-args=-DCMAKE_BUILD_TYPE=Release
+
 WORKDIR /ros2_ws
 # Option B: load the ZED as a component and remap its native topics directly onto
 # the generic camera contract (docs/zed_jetson_integration.md §5). camera.launch.py
@@ -198,11 +240,20 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
 
 COPY ros2_ws/src ./src
+# soccer_perception_gpu is deliberately NOT built here. It needs TensorRT + CUDA,
+# which only the zed-driver-image has, and it is built there (see stage 2). It is
+# also skipped for rosdep, whose --ignore-src cannot satisfy its GPU headers.
+# Keeping it out of this image is the point: the GPU perception components run
+# composed into the camera container for zero-copy frames, never here.
+# See docs/architecture/perception_gpu_migration.md §3.
 RUN (rosdep init 2>/dev/null || true) && rosdep update \
     && . /opt/ros/jazzy/setup.sh \
-    && apt-get update && rosdep install --from-paths src --ignore-src -r -y \
+    && apt-get update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+         --skip-keys "tensorrt cuda-toolkit" \
     && rm -rf /var/lib/apt/lists/* \
     && MAKEFLAGS="-j4" colcon build --merge-install --parallel-workers 2 \
+         --packages-skip soccer_perception_gpu \
          --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 

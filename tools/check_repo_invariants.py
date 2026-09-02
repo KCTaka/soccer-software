@@ -228,12 +228,137 @@ def check_markdown_links() -> None:
         ok(f"all relative links in {len(docs)} markdown files resolve")
 
 
+# ---------------------------------------------------------------------------
+# 6. Perception must not hardcode camera intrinsics.
+# ---------------------------------------------------------------------------
+# fieldline_node and projection_node both built their ground-projection model
+# from fx=550, cx=320, cy=240 -- a 640x480 camera. The ZED Mini is 1280x720 with
+# fx=732.9. Ground projections were wrong by 2.5-8.5 m, and pixels ABOVE THE
+# HORIZON were turned into confident ground points. projection_node made it
+# worse by subscribing to "camera_info" while the camera published on
+# "camera/camera_info", so its placeholders were never overwritten.
+#
+# Invariant: no source under ros2_ws/src assigns a numeric literal to an
+# intrinsic. They come from camera_info or they do not exist.
+
+INTRINSIC_RE = re.compile(r"\b(fx|fy|cx|cy)\s*(?::\s*\w+\s*)?=\s*[0-9]")
+
+
+def check_no_hardcoded_intrinsics() -> None:
+    srcs = [
+        p for p in (REPO / "ros2_ws" / "src").rglob("*")
+        if p.suffix in {".py", ".cpp", ".hpp"}
+        and "/build/" not in str(p) and "/install/" not in str(p)
+        # Tests assert ON these values (that a VGA guess misprojects by metres),
+        # so they are the one place the constants legitimately appear.
+        and "/test/" not in str(p) and not p.name.startswith("test_")
+    ]
+    hits = 0
+    for src in sorted(srcs):
+        for n, line in enumerate(src.read_text().splitlines(), 1):
+            if line.lstrip().startswith(("#", "//", "*")):
+                continue
+            if INTRINSIC_RE.search(line):
+                # Zeroed placeholders are the sanctioned "not yet known" state.
+                if re.search(r"\b(fx|fy|cx|cy)\s*=\s*0(\.0)?\b", line):
+                    continue
+                bad(
+                    "hardcoded-intrinsics",
+                    f"{src.relative_to(REPO)}:{n} assigns a camera intrinsic from a "
+                    f"literal: {line.strip()}",
+                    "take fx/fy/cx/cy from the camera_info topic and refuse to "
+                    "project until it arrives.",
+                )
+                hits += 1
+    if hits == 0:
+        ok(f"no hardcoded camera intrinsics in {len(srcs)} perception sources")
+
+
+# ---------------------------------------------------------------------------
+# 7. camera_info consumers and publishers must agree on the topic name.
+# ---------------------------------------------------------------------------
+# ROS convention puts camera_info NEXT TO the image. Subscribing to bare
+# "camera_info" silently connects to nothing.
+
+CAMINFO_RE = re.compile(r"""["'](/?[\w/~]*camera_info)["']""")
+REMAP_RE = re.compile(r"""\(\s*["'][^"']+["']\s*,\s*["']([^"']+)["']\s*\)""")
+
+
+def check_camera_info_topic_agrees() -> None:
+    srcs = [
+        p for p in (REPO / "ros2_ws" / "src").rglob("*")
+        if p.suffix in {".py", ".cpp", ".hpp", ".yaml"}
+        and "/build/" not in str(p) and "/install/" not in str(p)
+    ]
+    srcs += [REPO / "deploy" / "compose" / "zed_params_override.yaml"]
+    wrong = 0
+    for src in sorted(srcs):
+        if not src.exists():
+            continue
+        for n, line in enumerate(src.read_text().splitlines(), 1):
+            if line.lstrip().startswith(("#", "//", "*")):
+                continue
+            # In a remap tuple only the TARGET must follow our contract; the
+            # source is the driver's own native topic name.
+            remap = REMAP_RE.search(line)
+            topics = [remap.group(1)] if remap else CAMINFO_RE.findall(line)
+            for topic in topics:
+                if "camera_info" not in topic:
+                    continue
+                if topic.rstrip("/").split("/")[-2:-1] == ["camera"]:
+                    continue  # .../camera/camera_info -- correct
+                bad(
+                    "camera-info-topic",
+                    f"{src.relative_to(REPO)}:{n} refers to camera_info as "
+                    f"'{topic}', but it is published at 'camera/camera_info'.",
+                    "use 'camera/camera_info'; a bare 'camera_info' subscribes "
+                    "to a topic with no publishers and never reports an error.",
+                )
+                wrong += 1
+    if wrong == 0:
+        ok("all camera_info references use the 'camera/camera_info' contract")
+
+
+# ---------------------------------------------------------------------------
+# 8. The TensorRT headers must be pinned to the installed runtime version.
+# ---------------------------------------------------------------------------
+# Engines are version-locked to the runtime that built them. The default apt
+# candidate for libnvinfer-headers-dev is 11.x, which cannot load our 10.16.2
+# engines, so the version must be pinned explicitly and must match libnvinfer10.
+
+RUNTIME_RE = re.compile(r"libnvinfer10[=\s]")
+HEADERS_PIN_RE = re.compile(r"libnvinfer-headers-dev=([\d.]+)-")
+
+
+def check_tensorrt_headers_pinned() -> None:
+    dockerfile = REPO / "deploy" / "docker" / "Dockerfile.jetson"
+    if not dockerfile.exists():
+        return
+    text = dockerfile.read_text()
+    if "libnvinfer-headers-dev" not in text:
+        return
+    pins = HEADERS_PIN_RE.findall(text)
+    if not pins:
+        bad(
+            "tensorrt-header-pin",
+            "Dockerfile.jetson installs libnvinfer-headers-dev without a version.",
+            "pin it (libnvinfer-headers-dev=<ver>) to the same version as "
+            "libnvinfer10; the default apt candidate is a major version ahead "
+            "and cannot load our engines.",
+        )
+        return
+    ok(f"Dockerfile.jetson pins libnvinfer-headers-dev to {pins[0]}")
+
+
 def main() -> int:
     check_dockerfile_runtime_deps()
     check_camera_launch_has_rsp()
     check_provision_pins_cdi_path()
     check_compose_targets_exist()
     check_markdown_links()
+    check_no_hardcoded_intrinsics()
+    check_camera_info_topic_agrees()
+    check_tensorrt_headers_pinned()
 
     for msg in passes:
         print(f"  ok   {msg}")

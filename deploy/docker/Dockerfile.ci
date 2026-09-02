@@ -28,11 +28,18 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
 
 COPY ros2_ws/src ./src
+# soccer_perception_gpu needs TensorRT + CUDA and is built only in the Jetson
+# zed-driver-image. This is a CPU-only x86 CI image, so skip it explicitly
+# rather than letting its CMakeLists FATAL_ERROR the whole build.
+# See docs/architecture/perception_gpu_migration.md §3.
 RUN (rosdep init 2>/dev/null || true) && rosdep update \
     && . /opt/ros/jazzy/setup.bash \
-    && apt-get update && rosdep install --from-paths src --ignore-src -r -y \
+    && apt-get update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+         --skip-keys "tensorrt cuda-toolkit" \
     && rm -rf /var/lib/apt/lists/* \
-    && colcon build --merge-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+    && colcon build --merge-install --packages-skip soccer_perception_gpu \
+         --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # -----------------------------------------------------------------------------
 # STAGE 2 · runtime — lean final image (install-space only)

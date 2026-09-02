@@ -26,6 +26,19 @@
     ros__parameters:
         general:
             grab_resolution: 'HD720'
+        # ── Dead streams, switched off ─────────────────────────────────────────
+        # point_cloud/cloud_registered has no consumer: projection_node uses
+        # camera/depth and nothing else wants 3D points. The wrapper only
+        # *publishes* the cloud while something is subscribed, so the idle cost is
+        # already ~0 — but leaving it advertised is a footgun: any casual
+        # `ros2 topic echo/hz` silently costs the grab loop 1.84 MB per sample
+        # (18.3 MB/s, measured while probing on 2026-09-02). Un-advertise it.
+        # Re-enable if a 3D obstacle / costmap consumer is ever added.
+        #
+        # Do NOT try to do this with `point_cloud_freq: 0.0` — in this wrapper 0
+        # means "no limit (= grab_frame_rate)", i.e. it would publish FASTER.
+        depth:
+            publish_point_cloud: false
         # ── Best-effort SensorData QoS on the contract topics (Option B) ────────
         # PARTIALLY EFFECTIVE — verified on hardware 2026-09-02. The ZED wrapper
         # enables rclcpp QosOverridingOptions on SOME publishers but NOT on the
@@ -59,7 +72,7 @@
                     reliability: best_effort
                     history: keep_last
                     depth: 5
-            /robot_1/camera_info:
+            /robot_1/camera/camera_info:
                 publisher:
                     reliability: best_effort
                     history: keep_last

@@ -1,5 +1,12 @@
 WS := ros2_ws
 
+# soccer_perception_gpu needs TensorRT + CUDA headers, which only exist in the
+# Jetson zed-driver-image (where it is built). Everywhere else its CMakeLists
+# fails loudly by design, so skip it here. Build it with:
+#   docker compose -f deploy/compose/robot.compose.yaml build camera
+# See docs/architecture/perception_gpu_migration.md §3.
+SKIP_GPU_PKG := --packages-skip soccer_perception_gpu
+
 .PHONY: build build-pkg check preflight clean sim robot help
 
 ## Run the static repository invariant checks (no ROS, GPU or Docker needed)
@@ -18,7 +25,7 @@ build:
 	  echo "    ./tools/dev_shell.sh      # dev container with colcon + ROS"; \
 	  echo "    make robot                # or let compose build the images"; \
 	  exit 1; }
-	cd $(WS) && colcon build --symlink-install
+	cd $(WS) && colcon build --symlink-install $(SKIP_GPU_PKG)
 
 ## Build a single package.  Usage: make build-pkg pkg=soccer_bringup
 build-pkg:

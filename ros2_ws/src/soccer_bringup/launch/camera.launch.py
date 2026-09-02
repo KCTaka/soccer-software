@@ -33,12 +33,17 @@ The node sits in the ``robot_name`` namespace, so the RELATIVE remap targets
 resolve to ``/<robot_name>/camera/…`` — exactly what the graph subscribes to.
 
 Runs in the ``zed-driver-image`` (the only image carrying the ZED SDK + wrapper /
-``zed_components``). It only references ``zed_wrapper`` + ``zed_components``, so it
-runs there by file path without a soccer_ws build.
+``zed_components``, and the only container with a GPU). It also co-loads the
+``soccer_perception_gpu`` components into the same container so they get frames by
+pointer; if that package is absent the launch degrades to a plain camera driver
+(``perception:=false`` forces that too).
 """
 import os
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import (
+    PackageNotFoundError,
+    get_package_share_directory,
+)
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import Command, LaunchConfiguration
@@ -50,10 +55,60 @@ from launch_ros.descriptions import ComposableNode
 # ``robot_name`` namespace (→ /<robot_name>/camera/image_raw, …).
 _REMAPPINGS = [
     ("~/rgb/color/rect/image", "camera/image_raw"),
-    ("~/rgb/color/rect/camera_info", "camera_info"),
+    # camera_info rides ALONGSIDE the image, not at the namespace root. The ZED
+    # wrapper publishes it as the image topic's companion, so remapping the image
+    # to camera/image_raw already puts it on camera/camera_info; this entry only
+    # covers the wrapper's own explicit publisher and must point at the SAME
+    # place, or consumers end up subscribed to a topic nobody publishes.
+    # That exact mismatch ("camera_info" vs "camera/camera_info") left
+    # projection_node running on placeholder intrinsics for the whole bring-up.
+    # See docs/architecture/perception_gpu_migration.md §2.
+    ("~/rgb/color/rect/camera_info", "camera/camera_info"),
     ("~/depth/depth_registered", "camera/depth"),
     ("~/imu/data", "imu/data"),
 ]
+
+
+def _perception_nodes(context, robot_name: str) -> list:
+    """The GPU perception components, co-loaded for zero-copy frames.
+
+    ``detector_node`` (RF-DETR / TensorRT) and ``fieldline_node`` live in the ZED
+    container rather than the app container for one reason: composed into the same
+    process with ``use_intra_process_comms``, they receive ``image_raw`` as a
+    shared_ptr instead of a 3.69 MB DDS message. At 18 Hz that is ~66 MB/s of
+    serialize → transport → deserialize work deleted twice over (once per
+    subscriber). See docs/architecture/perception_gpu_migration.md §3.
+
+    Returns [] when ``soccer_perception_gpu`` is not in the image, so this launch
+    file still works standalone as a plain camera driver.
+    """
+    if LaunchConfiguration("perception").perform(context).lower() in ("false", "0", "no"):
+        return []
+    try:
+        params = os.path.join(
+            get_package_share_directory("soccer_perception_gpu"),
+            "config", "perception_gpu.yaml",
+        )
+    except PackageNotFoundError:
+        print("[camera.launch.py] soccer_perception_gpu not installed - "
+              "running camera-only (no GPU perception).")
+        return []
+
+    common = dict(
+        package="soccer_perception_gpu",
+        namespace=robot_name,
+        parameters=[params],
+        # The whole point: shared_ptr hand-off from the ZED component above.
+        extra_arguments=[{"use_intra_process_comms": True}],
+    )
+    return [
+        ComposableNode(
+            plugin="soccer_perception_gpu::DetectorComponent",
+            name="detector_node", **common),
+        ComposableNode(
+            plugin="soccer_perception_gpu::FieldlineComponent",
+            name="fieldline_node", **common),
+    ]
 
 
 def _launch_setup(context, *args, **kwargs):
@@ -95,7 +150,7 @@ def _launch_setup(context, *args, **kwargs):
         namespace=robot_name,
         package="rclcpp_components",
         executable="component_container_isolated",
-        composable_node_descriptions=[zed_node],
+        composable_node_descriptions=[zed_node] + _perception_nodes(context, robot_name),
         arguments=["--use_multi_threaded_executor"],
         output="screen",
     )
@@ -148,5 +203,10 @@ def generate_launch_description() -> LaunchDescription:
             "ros_params_override_path", default_value="",
             description="Optional extra ZED params YAML (wins over the wrapper "
                         "defaults); e.g. grab_resolution + best-effort qos_overrides."),
+        DeclareLaunchArgument(
+            "perception", default_value="true",
+            description="Co-load the GPU perception components (detector_node, "
+                        "fieldline_node) into this container for zero-copy frames. "
+                        "Set false to run a bare camera driver."),
         OpaqueFunction(function=_launch_setup),
     ])

@@ -19,6 +19,7 @@ from soccer_msgs.msg import FieldFeature, FieldFeatureArray
 from std_msgs.msg import Header
 
 from soccer_perception.camera_model import PinholeCamera, project_flat_ground
+from sensor_msgs.msg import CameraInfo
 
 try:
     import cv2
@@ -42,11 +43,18 @@ class FieldlineNode(Node):
         image_topic = self.get_parameter("image_topic").value
         self._max_points = int(self.get_parameter("max_points").value)
 
-        # Fixed intrinsics for the soccerbot monocular camera (640x480, ~60° HFOV).
+        # Intrinsics come from camera_info; nothing is projected until they do.
+        # These were hardcoded to 640x480/fx=550, which is right for sim_camera and
+        # badly wrong for the ZED (1280x720/fx=732.9): 2.5-8.5 m ground-projection
+        # errors, plus above-horizon pixels fabricated into confident ground
+        # points. See docs/architecture/perception_gpu_migration.md §2.
+        # On real hardware this node is replaced by the C++ TensorRT component;
+        # it still runs for camera:=sim, and must be correct there too.
         self._cam = PinholeCamera(
-            fx=550.0, fy=550.0, cx=320.0, cy=240.0, width=640, height=480,
+            fx=0.0, fy=0.0, cx=0.0, cy=0.0, width=0, height=0,
             mount_height=0.30, tilt=0.35,
         )
+        self._have_intrinsics = False
         self._bridge = CvBridge() if _HAVE_CV else None
 
         self.pub = self.create_publisher(FieldFeatureArray, "field_features", 10)
@@ -54,9 +62,36 @@ class FieldlineNode(Node):
         self.sub = self.create_subscription(
             Image, image_topic, self._on_image, qos_profile_sensor_data
         )
-        self.get_logger().info("fieldline_node up.")
+        # Published next to the image by both the ZED wrapper and sim_camera.
+        self.caminfo_sub = self.create_subscription(
+            CameraInfo, "camera/camera_info", self._on_camera_info, qos_profile_sensor_data
+        )
+        self.get_logger().info("fieldline_node up (waiting for camera_info).")
+
+    def _on_camera_info(self, msg: CameraInfo) -> None:
+        k = msg.k
+        if not (k[0] > 0.0 and k[4] > 0.0):
+            return
+        self._cam.fx, self._cam.fy = float(k[0]), float(k[4])
+        self._cam.cx, self._cam.cy = float(k[2]), float(k[5])
+        if msg.width and msg.height:
+            self._cam.width, self._cam.height = int(msg.width), int(msg.height)
+        if not self._have_intrinsics:
+            self._have_intrinsics = True
+            self.get_logger().info(
+                f"intrinsics from camera_info: {self._cam.width}x{self._cam.height} "
+                f"fx={self._cam.fx:.1f} cx={self._cam.cx:.1f} cy={self._cam.cy:.1f}"
+            )
 
     def _on_image(self, msg) -> None:
+        if not self._have_intrinsics:
+            # Wrong geometry is worse than no geometry: the MCL cannot tell the
+            # difference, so publish nothing rather than guess.
+            self.get_logger().warn(
+                "no camera_info yet -- not publishing field features.",
+                throttle_duration_sec=10.0,
+            )
+            return
         out = FieldFeatureArray()
         out.header = Header(stamp=msg.header.stamp, frame_id="base_link")
         if _HAVE_CV:

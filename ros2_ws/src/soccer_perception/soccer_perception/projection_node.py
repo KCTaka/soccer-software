@@ -46,10 +46,17 @@ class ProjectionNode(Node):
         self.declare_parameter("use_depth", True)
         self._use_depth = bool(self.get_parameter("use_depth").value) and _HAVE_CV
 
+        # Intrinsics are NOT set here. They arrive on camera_info and nothing is
+        # projected until they do -- see _on_camera_info. Hardcoding them caused
+        # 2.5-8.5 m errors on the real robot (the ZED is 1280x720 / fx=732.9, not
+        # 640x480 / fx=550) AND, worse, this node was subscribing to a topic
+        # nobody published, so the placeholders were never overwritten.
+        # See docs/architecture/perception_gpu_migration.md §2.
         self._cam = PinholeCamera(
-            fx=550.0, fy=550.0, cx=320.0, cy=240.0, width=640, height=480,
+            fx=0.0, fy=0.0, cx=0.0, cy=0.0, width=0, height=0,
             mount_height=0.30, tilt=0.35,
         )
+        self._have_intrinsics = False
         self._depth = None
         self._bridge = CvBridge() if _HAVE_CV else None
 
@@ -60,11 +67,14 @@ class ProjectionNode(Node):
             BoundingBoxes, "detections", self._on_detections, 10
         )
         # camera_info + depth are camera sensor streams -> best-effort SensorData QoS
-        # (matches the ZED publishers). Adopt the camera's real intrinsics when
-        # available (ZED publishes a calibrated camera_info); until then the
-        # constructor defaults are used.
+        # (matches the ZED publishers).
+        #
+        # The topic is "camera/camera_info", NOT "camera_info". Both the ZED
+        # wrapper and sim_camera publish camera_info NEXT TO the image, per ROS
+        # convention. This node previously subscribed to "camera_info", which had
+        # zero publishers, so it silently ran on placeholder intrinsics forever.
         self.caminfo_sub = self.create_subscription(
-            CameraInfo, "camera_info", self._on_camera_info, qos_profile_sensor_data
+            CameraInfo, "camera/camera_info", self._on_camera_info, qos_profile_sensor_data
         )
         if self._use_depth:
             self.depth_sub = self.create_subscription(
@@ -76,11 +86,18 @@ class ProjectionNode(Node):
 
     def _on_camera_info(self, msg: CameraInfo) -> None:
         k = msg.k  # row-major 3x3 intrinsics
-        if k[0] > 0.0 and k[4] > 0.0:
-            self._cam.fx, self._cam.fy = float(k[0]), float(k[4])
-            self._cam.cx, self._cam.cy = float(k[2]), float(k[5])
+        if not (k[0] > 0.0 and k[4] > 0.0):
+            return  # degenerate calibration -- keep waiting for a good one
+        self._cam.fx, self._cam.fy = float(k[0]), float(k[4])
+        self._cam.cx, self._cam.cy = float(k[2]), float(k[5])
         if msg.width and msg.height:
             self._cam.width, self._cam.height = int(msg.width), int(msg.height)
+        if not self._have_intrinsics:
+            self._have_intrinsics = True
+            self.get_logger().info(
+                f"intrinsics from camera_info: {self._cam.width}x{self._cam.height} "
+                f"fx={self._cam.fx:.1f} cx={self._cam.cx:.1f} cy={self._cam.cy:.1f}"
+            )
 
     def _on_depth(self, msg) -> None:
         self._depth = self._bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
@@ -96,6 +113,13 @@ class ProjectionNode(Node):
         return project_flat_ground(self._cam, float(u), float(v))
 
     def _on_detections(self, msg: BoundingBoxes) -> None:
+        if not self._have_intrinsics:
+            # Publishing here would mean inventing geometry. Stay quiet and loud.
+            self.get_logger().warn(
+                "no camera_info yet -- not projecting. Expecting camera/camera_info.",
+                throttle_duration_sec=10.0,
+            )
+            return
         feats = FieldFeatureArray()
         feats.header = Header(stamp=msg.header.stamp, frame_id="base_link")
         for b in msg.bounding_boxes:

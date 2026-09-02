@@ -86,8 +86,16 @@ def generate_launch_description() -> LaunchDescription:
              condition=IfCondition(EqualsSubstitution(camera, "sim")), output="screen"),
 
         # ── L3: perception ──
-        Node(package="soccer_perception", executable="detector_node", output="screen"),
-        Node(package="soccer_perception", executable="fieldline_node", output="screen"),
+        # The Python HSV detector/fieldline nodes run ONLY for camera:=sim. With a
+        # real ZED their C++ TensorRT replacements are composed into the camera
+        # container instead (camera.launch.py), where frames arrive by pointer
+        # rather than as 3.69 MB DDS messages. Running both would double-publish
+        # detections and field_features.
+        # See docs/architecture/perception_gpu_migration.md.
+        Node(package="soccer_perception", executable="detector_node",
+             condition=IfCondition(EqualsSubstitution(camera, "sim")), output="screen"),
+        Node(package="soccer_perception", executable="fieldline_node",
+             condition=IfCondition(EqualsSubstitution(camera, "sim")), output="screen"),
         # projection_node prefers ZED depth when camera/depth is flowing and
         # otherwise falls back to the flat-ground homography automatically
         # (use_depth defaults to True; harmless in sim where no depth is published).
