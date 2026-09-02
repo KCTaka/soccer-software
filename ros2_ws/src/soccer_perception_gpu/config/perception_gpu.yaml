@@ -31,8 +31,15 @@
     line_class: 1
     mask_threshold: 0.5
     max_points: 200
-    max_range_m: 6.0
+    # 4 m, not 6. Ground projection error grows as r^2/h: 0.07 m at 1 m, 0.51 m
+    # at 4 m, 1.12 m at 6 m for this 0.30 m mount. Points past 4 m cost the
+    # particle filter more than they pay for. See
+    # docs/architecture/localization_tuning.md §3.
+    max_range_m: 4.0
     confidence: 0.8
+    # Ceiling on mask pixels projected per frame, so an overexposed frame or a
+    # white wall in a green scene cannot turn into six figures of work.
+    max_mask_pixels: 20000
     # 2 => 640x360. Measured 29.0% of a core at full res, 9.3% at half.
     fallback_downscale: 2
     image_topic: "camera/image_raw"
