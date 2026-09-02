@@ -62,7 +62,24 @@ import numpy as np
 
 @dataclass
 class GroundProjectionNoise:
-    """Range-dependent standard deviation of a ground-projected image point."""
+    """Range-dependent standard deviation of a ground-projected image point.
+
+    ``focal_px`` is the one camera intrinsic in this repository that is not read
+    from ``camera_info``, which deserves an explanation given that hardcoding
+    intrinsics is exactly what caused the bug this module exists to answer.
+
+    It is tolerable here, and only here, because of where it enters. In the
+    projection itself the focal length scales the *position* of every point, so
+    a wrong value moved points by metres. Here it scales one term of an
+    uncertainty, and not the dominant one: at 4 m the pixel term contributes
+    0.146 m of a 0.509 m total, so a 10 % error in the focal length moves the
+    reported sigma by about 1.5 %. Subscribing to ``camera_info`` purely to
+    obtain it would cost roughly 3 % of a CPU core in executor wakeups for a
+    value that never changes.
+
+    It is still a ROS parameter, and ``tools/check_repo_invariants.py`` checks
+    that the mounting geometry agrees across the field-line node and this one.
+    """
 
     focal_px: float = 732.9          # ZED Mini HD720 fy
     mount_height_m: float = 0.30     # optical centre above the ground

@@ -31,6 +31,7 @@
 | §3 | App container exits instantly, `ros2: not found`   | Dockerfile stage 4 inherited a base with no ROS runtime       | Fixed   |
 | §4 | `colcon build` warns on every controller cycle     | `ros2_control` Jazzy deprecated the `get_value` / `set_value` API | Fixed |
 | §5 | Camera drops 30 Hz → 20 Hz when the stack runs     | CPU saturation, **not** DDS loss or GPU load                  | Open    |
+| §11 | Localizer reports a pose, confidently, that is meaningless | Filters published all-zero covariance for states nothing observes | Fixed |
 
 The three "Fixed" platform bugs (§1–§3) shared one property: **nothing logged an
 error**. The CDI failure surfaced as a Docker message that named the wrong
@@ -849,6 +850,7 @@ guard.
 | Renamed Docker stage | `check_repo_invariants.py` cross-checks every compose `target:` against the Dockerfile's stages | CI, `make check` | At commit |
 | §1.6 ZED on a USB 2.0 link | `preflight.sh` check 6 requires the `2b03:f682` video interface and `/dev/video*` | Before bring-up | At boot |
 | Host tuning lost | `preflight.sh` check 5 (socket buffers, power mode, swap) | Before bring-up | At boot |
+| §11 projection geometry drifting apart between the field-line node and the particle filter | `check_repo_invariants.py` cross-checks `max_range_m` and `mount_height_m` across all three files that declare them | CI, `make check` | At commit |
 
 ### 10.2 The three entry points
 
@@ -881,4 +883,81 @@ Recorded rather than papered over.
 | The launch-contract check is structural, not semantic | It asserts a `robot_state_publisher` Node exists in `camera.launch.py`. It cannot prove the URDF it publishes is the right one |
 | No check that the running stack still meets its rate targets | Would need a running robot. `ros2 topic hz` in §9 step 5 remains manual |
 | `preflight.sh` cannot detect a *marginal* power supply | It only sees the consequences (§1.6). A real diagnosis needs a meter on the supply rail |
+| Nothing proves the field-line thresholds work on real grass | The robot is indoors. The HSV values have never seen a pitch (§11.4) |
+
+---
+
+## 11. Localization publishes a confident pose that means nothing
+
+### 11.1 Symptom
+
+There is no symptom. That is the entry.
+
+`/robot_1/odom` publishes at its nominal rate, with a well-formed pose and a
+valid quaternion. `/robot_1/mcl_pose` publishes at 10 Hz with a pose and a
+covariance. Nothing logs a warning, no topic is silent, and `ros2 topic hz` is
+happy. Every automated check passes.
+
+### 11.2 Root cause
+
+Two separate instances of the same failure, found while profiling the filters:
+
+**The EKF does not observe translation.** Its state is
+$[p_x, p_y, \theta, v, \omega]$, but the only measurement wired to it is the IMU,
+which supplies $\theta$ and $\omega$. There is no wheel encoder, no leg odometry
+and no VIO. So $v$ stays at its initial zero and $p_x, p_y$ never move:
+
+```console
+$ # 1200 consecutive /odom samples
+px range [0.000000, 0.000000]
+py range [0.000000, 0.000000]
+v  range [0.000000, 0.000000]
+```
+
+It published this with an **all-zero covariance**, which in ROS means "I am
+perfectly certain". A consumer fusing that would trust it absolutely.
+
+**The MCL also published an all-zero covariance**, regardless of how spread out
+its particle cloud actually was. Indoors, with no field lines, the cloud is
+spread across the entire pitch; the message said the opposite.
+
+This is the same class of defect as the hardcoded intrinsics in
+[architecture/perception_gpu_migration.md §2](architecture/perception_gpu_migration.md):
+a node emitting plausible, well-formed, confidently-typed output that is not
+connected to reality. Silence is not the dangerous failure mode here — fluency
+is.
+
+### 11.3 Fix
+
+Both filters now publish the covariance they actually have.
+
+- `mcl_node` computes the weighted covariance of its particle cloud. Indoors it
+  now reports $\sigma_x = 1.79$ m, $\sigma_y = 1.10$ m, which is correct: it has
+  no idea where it is.
+- `ekf_node` publishes `1e6` variance for `x`, `y` and `vx`, and warns on
+  startup that no translation source is wired in.
+
+### 11.4 Verify
+
+```bash
+# Position variance must be huge while nothing observes translation.
+ros2 topic echo /robot_1/odom --once | grep -A2 'pose:' -A20 | grep -m1 1000000
+
+# MCL covariance must be non-zero and must shrink once the robot sees lines.
+ros2 topic echo /robot_1/mcl_pose --once | grep -A2 covariance
+```
+
+A third instance of the same class is **still open** and cannot be closed
+indoors: `field_features` currently carries **zero** line points on every
+message, because there is no grass for the HSV fallback to key on. That is
+correct behaviour in a room, but it means the measurement path has never run on
+real data, and any CPU measurement of `mcl_node` taken indoors excludes it.
+
+```bash
+# On a pitch this should be in the tens. Indoors it is 0.
+ros2 topic echo /robot_1/field_features --once | grep -c 'type:'
+```
+
+Full analysis, including the noise models and what the filters cannot do, is in
+[architecture/localization_tuning.md](architecture/localization_tuning.md).
 

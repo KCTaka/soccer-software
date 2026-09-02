@@ -96,6 +96,7 @@ See [Makefile](Makefile) for the full list.
 | [docs/architecture/localization_strategy_report.md](docs/architecture/localization_strategy_report.md) | Localization strategy and filter choice |
 | [docs/architecture/jetson_master_protocol.md](docs/architecture/jetson_master_protocol.md) | The canonical Jetson ↔ STM32 wire contract |
 | [docs/architecture/perception_gpu_migration.md](docs/architecture/perception_gpu_migration.md) | Moving perception to C++/TensorRT in the camera container: measured CPU budget, RL headroom, and the camera-intrinsics bug it uncovered |
+| [docs/architecture/localization_tuning.md](docs/architecture/localization_tuning.md) | Profiling and recalibrating the EKF and MCL after the intrinsics fix: where the CPU actually went, noise models derived from the projection geometry, and what the filters cannot do |
 | [docs/architecture/middleware_evaluation.md](docs/architecture/middleware_evaluation.md) | Zenoh vs CycloneDDS decision record |
 
 ### Before running on hardware

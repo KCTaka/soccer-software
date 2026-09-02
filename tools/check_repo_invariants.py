@@ -244,6 +244,43 @@ def check_markdown_links() -> None:
 INTRINSIC_RE = re.compile(r"\b(fx|fy|cx|cy)\s*(?::\s*\w+\s*)?=\s*[0-9]")
 
 
+def _code_lines(path: Path):
+    """Yield (lineno, line) for lines that are actually code.
+
+    Skips line comments, C-style block comments and Python docstrings. Prose
+    describing a bug is not an instance of the bug, and documenting the defect
+    is exactly what we want people to do.
+    """
+    in_block = False          # /* ... */
+    fence = None              # ''' or \"\"\"
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        stripped = line.strip()
+
+        if fence is not None:
+            if fence in stripped:
+                fence = None
+            continue
+        if in_block:
+            if "*/" in stripped:
+                in_block = False
+            continue
+        if stripped.startswith(("#", "//", "*")):
+            continue
+        if path.suffix == ".py":
+            for quote in ('"""', "'''"):
+                first = stripped.find(quote)
+                if first != -1 and stripped.count(quote) % 2 == 1:
+                    fence = quote
+                    break
+            if fence is not None:
+                continue
+        elif "/*" in stripped and "*/" not in stripped:
+            in_block = True
+            continue
+
+        yield n, line
+
+
 def check_no_hardcoded_intrinsics() -> None:
     srcs = [
         p for p in (REPO / "ros2_ws" / "src").rglob("*")
@@ -255,9 +292,7 @@ def check_no_hardcoded_intrinsics() -> None:
     ]
     hits = 0
     for src in sorted(srcs):
-        for n, line in enumerate(src.read_text().splitlines(), 1):
-            if line.lstrip().startswith(("#", "//", "*")):
-                continue
+        for n, line in _code_lines(src):
             if INTRINSIC_RE.search(line):
                 # Zeroed placeholders are the sanctioned "not yet known" state.
                 if re.search(r"\b(fx|fy|cx|cy)\s*=\s*0(\.0)?\b", line):
@@ -350,6 +385,64 @@ def check_tensorrt_headers_pinned() -> None:
     ok(f"Dockerfile.jetson pins libnvinfer-headers-dev to {pins[0]}")
 
 
+# ---------------------------------------------------------------------------
+# 9. The projection geometry must agree between producer and consumer.
+# ---------------------------------------------------------------------------
+# The field-line node projects pixels to the ground and gates them by range; the
+# particle filter then assumes a specific measurement uncertainty for those same
+# points. Both are functions of the same mounting geometry, and they are declared
+# in three separate files. If they drift apart nothing errors: the filter simply
+# weights points using a sigma that does not describe them, which is a quieter
+# version of the intrinsics bug in check 6.
+#
+# See docs/architecture/localization_tuning.md §3.
+
+SHARED_GEOMETRY = ("max_range_m", "mount_height_m")
+GEOMETRY_FILES = (
+    "ros2_ws/src/soccer_perception_gpu/config/perception_gpu.yaml",
+    "ros2_ws/src/soccer_perception_gpu/src/fieldline_component.cpp",
+    "ros2_ws/src/soccer_localization/soccer_localization/mcl_node.py",
+)
+
+
+def check_projection_geometry_agrees() -> None:
+    for key in SHARED_GEOMETRY:
+        # "key: 4.0" in YAML, or declare_parameter(..."key", 4.0) in C++/Python.
+        pattern = re.compile(
+            rf'(?:["\']{key}["\']\s*,\s*|\b{key}\s*:\s*)(-?\d+(?:\.\d+)?)')
+        found: dict[str, str] = {}
+        for rel in GEOMETRY_FILES:
+            path = REPO / rel
+            if not path.exists():
+                continue
+            for line in path.read_text().splitlines():
+                if line.lstrip().startswith(("#", "//", "*")):
+                    continue
+                m = pattern.search(line)
+                if m:
+                    found[rel] = m.group(1)
+                    break
+        values = {float(v) for v in found.values()}
+        if len(found) < 2:
+            bad(
+                "projection-geometry",
+                f"could not find '{key}' in at least two of {list(GEOMETRY_FILES)}.",
+                "the field-line node and the particle filter must both declare "
+                "it; see docs/architecture/localization_tuning.md §3.",
+            )
+        elif len(values) > 1:
+            detail = ", ".join(f"{k}={v}" for k, v in sorted(found.items()))
+            bad(
+                "projection-geometry",
+                f"'{key}' disagrees across the stack: {detail}.",
+                "the particle filter derives its observation sigma from the "
+                "same geometry the field-line node projects with; a mismatch "
+                "silently mis-weights every line point.",
+            )
+        else:
+            ok(f"'{key}' agrees across {len(found)} files ({values.pop()})")
+
+
 def main() -> int:
     check_dockerfile_runtime_deps()
     check_camera_launch_has_rsp()
@@ -359,6 +452,7 @@ def main() -> int:
     check_no_hardcoded_intrinsics()
     check_camera_info_topic_agrees()
     check_tensorrt_headers_pinned()
+    check_projection_geometry_agrees()
 
     for msg in passes:
         print(f"  ok   {msg}")

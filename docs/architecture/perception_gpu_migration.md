@@ -430,6 +430,14 @@ receiving correct geometry for the first time.
 
 Memory is not a concern: 3677 MB of 7485 MB used, zero swap.
 
+> **Update.** This has since been done. See
+> [localization_tuning.md](localization_tuning.md): the pair now costs 46.0 % of
+> a core instead of 79.8 %, and the noise models have been rederived from the
+> corrected geometry. The headline finding is that almost none of the EKF's cost
+> was arithmetic — it was waking up 200 times a second. The field-line range gate
+> has also moved from 6 m to 4 m, because ground projection error grows as
+> $r^2/h$ and reaches 1.12 m at 6 m.
+
 ---
 
 ## 8. Upgrade paths, in priority order
@@ -445,7 +453,8 @@ Memory is not a concern: 3677 MB of 7485 MB used, zero swap.
    kernel writing straight into the input binding would cut this to roughly 1 %.
    Note `INTER_LINEAR` is used deliberately: `INTER_AREA` measured 10.41 ms
    against 2.21 ms for the same resize.
-4. **Revisit `mcl_node` / `ekf_node`** (§7.4).
+4. **Revisit `mcl_node` / `ekf_node`** (§7.4). Done — see
+   [localization_tuning.md](localization_tuning.md).
 
 ---
 
