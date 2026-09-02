@@ -224,20 +224,21 @@ not an independent improvement.
 
 ### 5.1 CPU, end to end on the robot
 
-`top` steady-state, percent of one core:
+`top` steady-state, percent of one core, measured from the rebuilt images rather
+than a patched container:
 
 | Node | Before | After | Saved |
 | --- | --- | --- | --- |
-| `ekf_node` | 43.2 % | **27.4 %** | 15.8 pts (−37 %) |
-| `mcl_node` | 36.6 % | **18.6 %** | 18.0 pts (−49 %) |
-| **Combined** | **79.8 %** | **46.0 %** | **33.8 pts (−42 %)** |
+| `ekf_node` | 43.2 % | **27.9 %** | 15.3 pts (−35 %) |
+| `mcl_node` | 36.6 % | **19.1 %** | 17.5 pts (−48 %) |
+| **Combined** | **79.8 %** | **47.0 %** | **32.8 pts (−41 %)** |
 
 The MCL's saving here comes from the odometry rate drop, not the vectorised
 update — the update is still returning early indoors (§2.3). **On a pitch the
 vectorised update adds ~3 % of a core; the loop it replaced would have added
 ~64 %.** So the on-pitch comparison is roughly 100 % → 22 %.
 
-`ekf_node` at 27.4 % is above the 9.3 % the timer alone would suggest, because
+`ekf_node` at 27.9 % is above the 9.3 % the timer alone would suggest, because
 the ~99 Hz IMU subscription still costs about 10 % in bare wakeups plus
 deserialisation and the update itself. That is inherent to the sensor rate.
 

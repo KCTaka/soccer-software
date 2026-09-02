@@ -431,7 +431,7 @@ receiving correct geometry for the first time.
 Memory is not a concern: 3677 MB of 7485 MB used, zero swap.
 
 > **Update.** This has since been done. See
-> [localization_tuning.md](localization_tuning.md): the pair now costs 46.0 % of
+> [localization_tuning.md](localization_tuning.md): the pair now costs 47.0 % of
 > a core instead of 79.8 %, and the noise models have been rederived from the
 > corrected geometry. The headline finding is that almost none of the EKF's cost
 > was arithmetic — it was waking up 200 times a second. The field-line range gate
