@@ -1,0 +1,48 @@
+# RF-DETR benchmark image — answers "would RF-DETR run on THIS Jetson, and how fast?"
+#
+# The localization report (docs/architecture/localization_strategy_report.md §3.2)
+# flags that every published RF-DETR latency figure is an NVIDIA T4 number and MUST
+# be re-measured on the real Orin before the detector is committed to. This image is
+# that measurement rig — it is a bench tool, not part of the robot runtime.
+#
+# It derives from the ZED driver image on purpose: that image already carries the
+# exact TensorRT 10.16.2.10 build the deployed detector will link against, so the
+# engines benchmarked here are the engines the robot would actually run.
+#
+# Prerequisite (builds the base tag):
+#   docker compose -f deploy/compose/robot.compose.yaml build camera
+# Build:
+#   docker build -f deploy/docker/Dockerfile.rfdetr-bench -t soccer-rfdetr-bench:jazzy .
+# Run:
+#   docker run --rm --runtime nvidia -v rfdetr_models:/models \
+#     soccer-rfdetr-bench:jazzy python3 /opt/soccer/rfdetr_bench.py --sizes nano small medium
+FROM soccer-zed:jazzy
+
+# trtexec + TensorRT Python bindings, pinned to the SAME 10.16.2.10 the base image
+# carries. Without the pin the NGC sbsa repo wins with a newer 11.x, which would
+# build engines the ZED image's runtime cannot deserialize.
+RUN wget -qO /etc/apt/trusted.gpg.d/jetson-ota-public.asc \
+        https://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
+    && echo "deb https://repo.download.nvidia.com/jetson/common r39.2 main" \
+        > /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
+    && printf 'Package: libnvinfer* libnvonnxparsers* python3-libnvinfer*\nPin: origin repo.download.nvidia.com\nPin-Priority: 700\n' \
+        > /etc/apt/preferences.d/l4t-tensorrt-bin \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        libnvinfer-bin python3-libnvinfer python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+        /etc/apt/sources.list.d/nvidia-l4t-apt-source.list \
+        /etc/apt/preferences.d/l4t-tensorrt-bin
+
+ENV PATH=/usr/src/tensorrt/bin:$PATH
+
+# The ONNX export runs on CPU, so pull CPU-only torch — the CUDA-enabled aarch64
+# wheels would drag in several GB of CUDA runtime already present in the base.
+# --system-site-packages keeps the apt-installed `tensorrt` bindings importable.
+RUN python3 -m venv --system-site-packages /opt/rfdetr-venv \
+    && /opt/rfdetr-venv/bin/pip install --no-cache-dir -U pip \
+    && /opt/rfdetr-venv/bin/pip install --no-cache-dir \
+        --index-url https://download.pytorch.org/whl/cpu torch torchvision \
+    && /opt/rfdetr-venv/bin/pip install --no-cache-dir 'rfdetr[onnx]'
+
+COPY tools/rfdetr_bench.py /opt/soccer/rfdetr_bench.py
+WORKDIR /opt/soccer

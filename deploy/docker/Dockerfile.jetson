@@ -207,14 +207,26 @@ RUN (rosdep init 2>/dev/null || true) && rosdep update \
 
 
 # -----------------------------------------------------------------------------
-# STAGE 4 · soccer-app-image — lean runtime image (install-space only)
+# STAGE 4 · soccer-app-image — runtime image (install-space + runtime deps)
 # -----------------------------------------------------------------------------
 # App nodes (perception / localization / strategy / control / bridges). FROM the
 # shared CUDA base so the detector can later load an RF-DETR TensorRT engine.
-# Source code and build tools from soccer-app-build are not carried forward.
+# Source code and intermediate build artifacts from soccer-app-build are not
+# carried forward — but the apt runtime dependencies MUST be, because jetson-base
+# only adds the ROS *apt repository*, not ROS itself. Without this the image has
+# no `ros2` CLI, no rclpy and no ros2_control, so the CMD below cannot start and
+# install/lib/libresidual_rl_controller.so has no controller_interface to link.
 FROM jetson-base AS soccer-app-image
 
 WORKDIR /ws
+
+# Same package set the workspace was compiled against (single source of truth).
+# Kept BEFORE the install/ copy so this multi-GB layer stays Docker-cache-stable
+# when only the soccer sources change.
+COPY deploy/docker/soccer-app-deps.apt /tmp/deps.apt
+RUN apt-get update \
+    && grep -v '^\s*#' /tmp/deps.apt | tr -d '\r' | xargs apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
 
 COPY --from=soccer-app-build /ws/install ./install
 

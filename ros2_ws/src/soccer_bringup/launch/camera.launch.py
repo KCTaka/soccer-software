@@ -17,12 +17,17 @@ ZED SDK 5.x topic (private ``~/…``)          contract topic
 Why a component + remaps and NOT a bridge node (``docs/zed_jetson_integration.md``
 §5): a ``launch_ros`` ``ComposableNode`` accepts ``remappings`` directly (they are
 sent to the container as ``remap_rules``), so the camera publishes the contract
-topics *itself* — no extra process, no per-frame (de)serialization, and one fewer
-inter-process hop for the full-res image + depth streams. The component is loaded
-with ``use_intra_process_comms`` so a future C++ perception component co-loaded
-into this container gets **zero-copy** frames (inter-process subscribers — the app
-container — still receive normal DDS). QoS is best-effort SensorData (set in the
-ZED params override), matching what the consumers now subscribe with.
+topics *itself* — no per-frame relay process, no per-frame (de)serialization, and
+one fewer inter-process hop for the full-res image + depth streams. The component
+is loaded with ``use_intra_process_comms`` so a future C++ perception component
+co-loaded into this container gets **zero-copy** frames (inter-process subscribers
+— the app container — still receive normal DDS). QoS is best-effort SensorData (set
+in the ZED params override), matching what the consumers now subscribe with.
+
+Alongside the component this launches a ``robot_state_publisher`` for the ZED's own
+URDF. That is NOT optional: the ZED component blocks its grab loop until the camera
+static TF chain exists, so without it the node starts, advertises every topic, and
+then publishes nothing at all.
 
 The node sits in the ``robot_name`` namespace, so the RELATIVE remap targets
 resolve to ``/<robot_name>/camera/…`` — exactly what the graph subscribes to.
@@ -36,8 +41,8 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import ComposableNodeContainer
+from launch.substitutions import Command, LaunchConfiguration
+from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
 
 # ZED SDK 5.x native topics (verified live — docs/zed_jetson_integration.md §2)
@@ -94,7 +99,33 @@ def _launch_setup(context, *args, **kwargs):
         arguments=["--use_multi_threaded_executor"],
         output="screen",
     )
-    return [container]
+
+    # The ZED component blocks in "Waiting for valid static transformations..."
+    # until the camera's own TF chain (<camera_name>_camera_link -> ..._left_camera
+    # _frame) exists, so the grab loop never starts and NO images are published
+    # without this. The stock zed_camera.launch.py ships the same node; it must be
+    # carried over here. `robot_description` is remapped to <camera_name>_description
+    # so it cannot collide with the robot's own description from robot.launch.py.
+    zed_descr = os.path.join(
+        get_package_share_directory("zed_description"), "urdf", "zed_descr.urdf.xacro"
+    )
+    rsp_node = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="zed_state_publisher",
+        namespace=robot_name,
+        output="screen",
+        parameters=[{
+            "robot_description": Command(
+                ["xacro ", zed_descr,
+                 " camera_name:=", camera_name,
+                 " camera_model:=", camera_model]
+            ),
+        }],
+        remappings=[("robot_description", f"{camera_name}_description")],
+    )
+
+    return [rsp_node, container]
 
 
 def generate_launch_description() -> LaunchDescription:

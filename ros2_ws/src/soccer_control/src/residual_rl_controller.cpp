@@ -88,10 +88,21 @@ controller_interface::CallbackReturn ResidualRLController::on_deactivate(
 controller_interface::return_type ResidualRLController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  // 1. Measured state.
-  const double q = state_interfaces_[0].get_value();
-  const double qd = state_interfaces_[1].get_value();
-  // state_interfaces_[2] is measured effort (τ); part of the obs vector.
+  // 1. Measured state. state_interfaces_[2] is measured effort (τ), part of the
+  //    obs vector. A nullopt means the handle stayed contended for all retries.
+  const auto q_opt = state_interfaces_[0].get_optional();
+  const auto qd_opt = state_interfaces_[1].get_optional();
+  const auto tau_opt = state_interfaces_[2].get_optional();
+  if (!q_opt || !qd_opt || !tau_opt) {
+    // Holding the previous command beats commanding on a NaN reading.
+    RCLCPP_WARN_THROTTLE(
+      get_node()->get_logger(), *get_node()->get_clock(), 1000,
+      "Joint '%s': state interface unreadable this cycle; holding last command.",
+      joint_.c_str());
+    return controller_interface::return_type::OK;
+  }
+  const double q = *q_opt;
+  const double qd = *qd_opt;
 
   // 2. Latest MPC reference (q*, qd*).
   const auto ref = *mpc_ref_.readFromRT();
@@ -102,7 +113,7 @@ controller_interface::return_type ResidualRLController::update(
   const std::vector<float> obs = {
     static_cast<float>(q), static_cast<float>(qd),
     static_cast<float>(q_ref), static_cast<float>(qd_ref),
-    static_cast<float>(state_interfaces_[2].get_value()), 0.0f};
+    static_cast<float>(*tau_opt), 0.0f};
   double delta = policy_.residual(obs);
   delta = std::clamp(delta, -residual_limit_, residual_limit_);  // safety clamp
 
@@ -111,8 +122,14 @@ controller_interface::return_type ResidualRLController::update(
   //    torque term), but the interface is claimed so a future gravity/feed-forward
   //    term can be added without a graph change.
   const double q_target = q_ref + delta;
-  command_interfaces_[0].set_value(q_target);  // position
-  command_interfaces_[1].set_value(0.0);        // effort feed-forward (reserved)
+  const bool position_written = command_interfaces_[0].set_value(q_target);
+  const bool effort_written = command_interfaces_[1].set_value(0.0);
+  if (!position_written || !effort_written) {
+    RCLCPP_WARN_THROTTLE(
+      get_node()->get_logger(), *get_node()->get_clock(), 1000,
+      "Joint '%s': command interface write failed (position=%d, effort=%d).",
+      joint_.c_str(), position_written, effort_written);
+  }
   return controller_interface::return_type::OK;
 }
 

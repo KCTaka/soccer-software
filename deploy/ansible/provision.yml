@@ -45,6 +45,42 @@
       listen: reload sysctl
 
   tasks:
+    # ── Fix 0: write the CDI spec somewhere that survives a reboot ────────────
+    # The vendor unit defaults to
+    #   Environment=NVIDIA_CTK_CDI_OUTPUT_FILE_PATH=/var/run/cdi/nvidia.yaml
+    # but /var/run is tmpfs, AND nvidia-cdi-refresh.service runs at boot BEFORE
+    # the nvidia kernel module is loaded (its ExecCondition only greps
+    # modules.dep, which passes even when the module is not yet in memory). So
+    # `nvidia-ctk cdi generate` dies with "failed to initialize NVML: Driver Not
+    # Loaded" and NO spec is written. Every subsequent `docker run` then fails:
+    #   failed to inject CDI devices: unresolvable CDI devices nvidia.com/gpu=all
+    # — because daemon.json sets default-runtime=nvidia and our images carry
+    # NVIDIA_VISIBLE_DEVICES=all, so *every* container requests the GPU.
+    #
+    # Pointing the output at /etc/cdi makes the last good spec persist across
+    # reboots, so a failed regeneration is harmless instead of fatal. It also
+    # makes the file match {{ cdi_spec }}, which the verification task below
+    # already assumed. The EnvironmentFile is read after Environment=, so this
+    # overrides the vendor default without editing the unit.
+    - name: Persist the CDI spec outside tmpfs
+      ansible.builtin.lineinfile:
+        path: "{{ cdi_refresh_env }}"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+        regexp: "^NVIDIA_CTK_CDI_OUTPUT_FILE_PATH="
+        line: "NVIDIA_CTK_CDI_OUTPUT_FILE_PATH={{ cdi_spec }}"
+      notify: refresh cdi
+
+    # Two specs of the same kind (nvidia.com/gpu) in the two configured
+    # spec-dirs would be a duplicate-device conflict, so drop the tmpfs copy.
+    - name: Remove the stale tmpfs CDI spec
+      ansible.builtin.file:
+        path: /var/run/cdi/nvidia.yaml
+        state: absent
+      notify: refresh cdi
+
     # ── Fix 1: disable the buggy enable-cuda-compat CDI hook ──────────────────
     - name: Disable the broken enable-cuda-compat CDI hook
       ansible.builtin.lineinfile:

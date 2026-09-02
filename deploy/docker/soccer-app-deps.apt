@@ -1,7 +1,11 @@
 # Shared apt dependencies for the soccer application workspace.
 # Used by:
-#   - deploy/docker/Dockerfile.jetson  (soccer-app-image stage)
+#   - deploy/docker/Dockerfile.jetson  (soccer-app-build AND soccer-app-image stages)
 #   - deploy/docker/Dockerfile.ci      (build stage)
+#
+# Both the build stage and the final runtime image install this exact set: the
+# runtime image is FROM jetson-base, which provides only the ROS apt repository,
+# so anything omitted here is simply absent at run time.
 #
 # When adding or removing a ROS package, update this file only.
 # Both images rebuild automatically on the next CI run / on-device build.
