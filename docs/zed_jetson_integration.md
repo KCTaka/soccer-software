@@ -7,9 +7,9 @@
 > every file changed, and the on-device verification procedure.
 >
 > **Provenance.** The recipe encoded here was validated end-to-end on real
-> hardware; the blow-by-blow debugging log lives in the journey doc
-> (`ZED_JETPACK72_DOCKER_JOURNEY.md`). The forward-looking strategy / workflow
-> rationale lives in [`docs/jetson_zed_workflow.md`](jetson_zed_workflow.md).
+> hardware; the forward-looking strategy and workflow rationale now lives in
+> [`IMPLEMENTATION.md`](IMPLEMENTATION.md) §14 and
+> [`architecture/new_architecture_blueprint.md`](architecture/new_architecture_blueprint.md).
 > **Where any document disagrees with the hardware, the hardware wins** — and the
 > facts below are taken from the hardware.
 
@@ -39,7 +39,6 @@ This change set adds exactly that layer — and nothing more invasive:
 | Real depth + real calibration are used                    | `projection_node` now reads `camera_info` and uses the depth path by default                              |
 | One command brings up camera + app on a robot             | New `deploy/compose/robot.compose.yaml`; updated `deploy/ansible/deploy.yml`                              |
 | The mandatory host fixes are reproducible per robot       | New `deploy/ansible/provision.yml`                                                                        |
-| The docs state the real facts                             | Corrected `jetson_zed_workflow.md`; CI note added                                                         |
 
 **No application logic was rewritten.** The sim flow is untouched (`camera:=sim`
 remains the default), so laptops and CI keep working with zero GPU.
@@ -422,7 +421,6 @@ removal → direct component remap) is captured in §10b below._
 | `deploy/ansible/provision.yml`                                       | **New.** CDI hook fix + `mode=cdi` + swap (+ verify).                                                          | Makes the mandatory host fixes reproducible per robot.                                         |
 | `deploy/ansible/deploy.yml`                                          | Two-container GPU stack; registry **or** on-device images.                                                     | Deploys the new camera + app images, not the old single runtime.                               |
 | `deploy/ansible/README.md`                                           | Document `provision.yml` + the two deploy models.                                                              | Operator guidance.                                                                             |
-| `docs/jetson_zed_workflow.md`                                        | Status banner + corrected facts (R39.2, CUDA base, topic names, `--gpus`, bridge).                             | Remove now-disproven assumptions; point to this report.                                        |
 | `.github/workflows/ci.yml`                                           | Comment: Jetson image builds on-device, not cloud CI.                                                          | Sets the build-location expectation.                                                           |
 
 ---

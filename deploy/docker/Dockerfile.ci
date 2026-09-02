@@ -39,8 +39,19 @@ RUN (rosdep init 2>/dev/null || true) && rosdep update \
 # -----------------------------------------------------------------------------
 # Source code, build tools, and intermediate artifacts from the build stage are
 # discarded. Only the compiled install/ space is carried forward.
+#
+# The apt dependencies MUST be reinstalled here. ros:jazzy-ros-base supplies
+# ros-base only, so ros2_control, cv_bridge, behaviortree_cpp, xacro and
+# robot_state_publisher would otherwise be absent and the CMD below could not
+# start. Same defect that shipped in Dockerfile.jetson's runtime stage; enforced
+# by tools/check_repo_invariants.py.
 FROM ros:jazzy-ros-base AS runtime
 WORKDIR /ws
+
+COPY deploy/docker/soccer-app-deps.apt /tmp/deps.apt
+RUN apt-get update \
+    && grep -v '^\s*#' /tmp/deps.apt | tr -d '\r' | xargs apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/deps.apt
 
 COPY --from=build /ws/install ./install
 COPY deploy/docker/entrypoint.sh /entrypoint.sh

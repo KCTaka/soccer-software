@@ -17,8 +17,7 @@
 > only its _location_ moved from a custom MCU to the actuator. Wherever this doc
 > says "1 kHz PD on the MCU," read "onboard MIT impedance on the Robostride; Master
 > = safety + aggregation." Details:
-> [jetson_master_protocol.md](jetson_master_protocol.md) ·
-> [soccer_hardware_rewrite.md](soccer_hardware_rewrite.md).
+> [jetson_master_protocol.md](jetson_master_protocol.md).
 
 ---
 
@@ -380,6 +379,33 @@ flowchart TB
 - Robots share only a **lightweight world model + role bids** over DDS. Each is **independently autonomous** — losing one degrades the team gracefully.
 - **Domain ID / discovery** isolation per team to avoid cross-talk with opponents.
 
+### 8.1 Network setup
+
+Use a **dedicated LAN** for robots and dev machines. ROS 2 discovery relies on
+multicast and is happiest on one subnet.
+
+```bash
+export ROS_DOMAIN_ID=42                      # same value = same graph
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp # robust default for multi-machine
+```
+
+| Situation | Setting |
+| --------- | ------- |
+| Laptop and Jetson must see each other | Same subnet, same `ROS_DOMAIN_ID` |
+| Two developers sharing one Jetson | Different `ROS_DOMAIN_ID` per developer |
+| Discovery flaky over Wi-Fi | Pin CycloneDDS to the right NIC, or set peers explicitly |
+| Working from a different network | **Tailscale**, then either bind DDS to the Tailscale interface or bridge with `zenoh-bridge-ros2dds` |
+
+> **Note.** `zenoh-bridge-ros2dds` (a DDS↔Zenoh *bridge*) is a different thing
+> from `rmw_zenoh_cpp` (a *replacement* RMW), and they cannot interoperate. The
+> bridge is a reasonable WAN tool; the RMW replacement is evaluated and rejected
+> in [middleware_evaluation.md](middleware_evaluation.md).
+
+When image topics cross a physical NIC rather than loopback, raise
+`net.core.rmem_max` beyond the 16 MB set by
+[provision.yml](../../deploy/ansible/provision.yml) and consider a 9000-byte MTU
+on the switch and NICs.
+
 ---
 
 ## 9. Hardware ↔ Firmware Bridge & the RL State Vector
@@ -612,6 +638,29 @@ Two viable allocations depending on the §3.2 decision. **Verify live prices bef
 | **Total**                                     |     | **≈ $8,750** (≈ $1,250 reserve for motors/PCB iteration) |
 
 > Motors, frame, and the custom PCB are typically separate (firmware/mechanical) budgets. If they must come from this $10k, lead with the **all-Orin** allocation to preserve reserve.
+
+### 13.1 Which Jetson for which job
+
+The dominant constraint is **RAM, not TOPS**. ZED neural depth plus a
+transformer detector plus the full ROS graph will starve 8 GB — which is exactly
+what the current Orin Nano does
+([TROUBLESHOOTING.md §5](../TROUBLESHOOTING.md)).
+
+| Role | Board | RAM | Compute | Approx. price | Why |
+| ---- | ----- | --- | ------- | ------------- | --- |
+| Bench / lead brain | **AGX Thor Dev Kit** | 128 GB | Blackwell, ~2 PFLOPS FP4 | ~$3,499 | Same JetPack 7 / Jazzy family as the Orin Nano, so it is a drop-in upgrade, with headroom for whole-body MPC + multiple nets + VSLAM |
+| Production on-robot | **Orin NX 16 GB** (module + carrier) | 16 GB | ~100 TOPS | ~$600 + ~$200–400 carrier | Fits a KidSize robot's power and weight budget (10–25 W); 16 GB runs the real stack. One per robot |
+| Shared dev box | **AGX Orin 64 GB Dev Kit** | 64 GB | ~275 TOPS | ~$2,000 | Enough RAM to run the full graph *and* experiment alongside it |
+| Current / spare | **Orin Nano Super 8 GB** | 8 GB | ~67 TOPS | owned | Adequate for single-camera perception PoC. **8 GB is the ceiling** |
+
+**Recommendation:** buy Orin NX 16 GB modules for the robots, one bench-class
+board (Thor if budget allows, AGX Orin otherwise), and keep the Nano as a CI and
+perception PoC machine. Thor is too heavy and power-hungry to bolt onto a
+KidSize humanoid.
+
+Because every board in this table shares the JetPack 7 / Jazzy base, code
+developed on the bench deploys down to an Orin NX unchanged. That property is
+what makes "PoC now, better Jetson later" work — see §12.
 
 ---
 

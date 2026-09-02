@@ -1,0 +1,88 @@
+// Zenoh session configuration for the soccer-bot stack.
+//
+// NOT THE DEFAULT. CycloneDDS is the shipped middleware. This file exists so
+// that a Zenoh A/B test is a one-line change instead of a research project.
+// Read docs/architecture/middleware_evaluation.md before using it — the
+// measured evidence says Zenoh is currently a regression for this workload.
+//
+// Loaded via ZENOH_SESSION_CONFIG_URI when RMW_IMPLEMENTATION=rmw_zenoh_cpp
+// (see deploy/compose/robot.compose.yaml). The path must be ABSOLUTE inside the
+// container. Any ZENOH_CONFIG_OVERRIDE entries are applied AFTER this file.
+//
+// This is JSON5, not JSON: comments and trailing commas are legal. It is a
+// partial override — anything omitted falls back to rmw_zenoh_cpp's shipped
+// DEFAULT_RMW_ZENOH_SESSION_CONFIG.json5.
+//
+// PREREQUISITES that are NOT handled by this file:
+//   1. ros-jazzy-rmw-zenoh-cpp must be installed in both images. It is not,
+//      today. Add it to deploy/docker/soccer-app-deps.apt first.
+//   2. Both containers must share /dev/shm for the shared-memory transport to
+//      do anything. robot.compose.yaml sets `ipc: host` on both services.
+//   3. Switching RMW at runtime needs a clean slate:
+//        pkill -9 -f ros && ros2 daemon stop
+{
+  // ── Peer-to-peer on a single host, no router ─────────────────────────────
+  // rmw_zenoh normally requires a `rmw_zenohd` router process because multicast
+  // scouting is disabled by default and discovery goes through gossip. Both of
+  // our containers run with network_mode: host on one machine, so we enable
+  // multicast scouting and skip the router entirely — one fewer process on a
+  // CPU-bound robot, and one fewer thing to supervise.
+  //
+  // If a second machine joins (team comm, external base station), delete the
+  // scouting block below and run the router instead:
+  //     ros2 run rmw_zenoh_cpp rmw_zenohd
+  mode: "peer",
+  scouting: {
+    multicast: {
+      enabled: true,
+      // Must match across every participant; analogous to ROS_DOMAIN_ID.
+      address: "224.0.0.224:7446",
+      interface: "lo",
+    },
+    gossip: {
+      enabled: true,
+    },
+  },
+
+  transport: {
+    // ── Shared memory ────────────────────────────────────────────────────
+    // Off by default upstream ("disabled by default until fully tested").
+    // Enabled here because it is the ONLY reason to evaluate Zenoh for this
+    // robot: 3.69 MB BGRA frames at 30 Hz over loopback.
+    //
+    // Zenoh still serialises to CDR, but serialises directly INTO the shared
+    // buffer, saving one copy versus a network transport. No external daemon
+    // is required (unlike Iceoryx/iox-roudi) and no loaned-message API changes
+    // are needed in node code.
+    //
+    // WARNING: rmw_zenoh issue #978 (open) reports that under high CPU load,
+    // service calls and TRANSIENT_LOCAL historical publications can be
+    // SILENTLY DROPPED. This robot runs at load average ~7 on 6 cores, which is
+    // exactly that regime. Treat any A/B result as provisional and watch for
+    // missing latched topics (/tf_static, /robot_description, map metadata).
+    shared_memory: {
+      enabled: true,
+      mode: "lazy",
+      transport_optimization: {
+        enabled: true,
+        // 48 MiB per session (upstream default). Every participating process
+        // allocates its own pool, so N processes need N x 48 MiB of /dev/shm.
+        // Docker's default /dev/shm is 64 MB — far too small. robot.compose.yaml
+        // sets `ipc: host` so the host's /dev/shm (half of RAM, ~3.6 GB here) is
+        // used instead. With mode "lazy" an undersized /dev/shm does not error:
+        // the first large message silently falls back to the network transport.
+        pool_size: 50331648,
+        // Messages below this size are not worth the SHM round trip.
+        message_size_threshold: 512,
+      },
+    },
+
+    link: {
+      tx: {
+        // Zenoh's default transport is TCP, including on loopback. UDP
+        // fragmentation tuning (net.ipv4.ipfrag_*) therefore does not apply.
+        batch_size: 65535,
+      },
+    },
+  },
+}

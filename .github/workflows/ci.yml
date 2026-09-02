@@ -15,8 +15,25 @@ permissions:
   packages: write
 
 jobs:
+  # ── 0. Static repository invariants (seconds, gates everything else) ──
+  #
+  # Cheap structural checks for failure modes that are invisible at build time
+  # and expensive at runtime: runtime images with no ROS in them, a camera
+  # launch file missing its robot_state_publisher, CDI persistence dropped out
+  # of the playbook, compose targets pointing at nonexistent stages.
+  # See docs/TROUBLESHOOTING.md for the incident behind each check.
+  repo-invariants:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 tools/check_repo_invariants.py
+
   # ── 1. Build + test the ROS 2 workspace ──
   ros2-build-test:
+    needs: [repo-invariants]
     runs-on: ubuntu-24.04
     container: ros:jazzy-ros-base
     steps:
@@ -44,6 +61,7 @@ jobs:
 
   # ── 2. Python lint (perception / localization / tooling) ──
   python-lint:
+    needs: [repo-invariants]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -53,18 +71,80 @@ jobs:
       - run: pip install ruff
       - run: ruff check ros2_ws/src sim tools
 
-  # ── 3. Firmware ──
+  # ── 3. Runtime image smoke test ──
+  #
+  # Builds Dockerfile.ci natively for amd64 (fast — no QEMU) purely to prove the
+  # runtime stage can execute its own CMD. The arm64 image that actually ships
+  # is the same Dockerfile, so a missing dependency fails here first.
+  #
+  # This exists because soccer-app:jazzy once shipped to the robot containing
+  # zero ROS packages: the final stage inherited a base that only had the ROS
+  # apt repository configured, and every dependency had been installed in a
+  # discarded build stage. `docker build` succeeded. Nothing caught it until the
+  # robot failed to start. See docs/TROUBLESHOOTING.md §3.
+  docker-runtime-smoke:
+    needs: [repo-invariants]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build runtime image (native arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.ci
+          target: runtime
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: soccerbot-runtime:smoke
+
+      - name: Image can run its own CMD
+        run: |
+          docker run --rm --entrypoint bash soccerbot-runtime:smoke -c '
+            set -e
+            source /opt/ros/jazzy/setup.bash
+            source /ws/install/setup.bash
+            command -v ros2 >/dev/null || { echo "::error::no ros2 CLI in the runtime image"; exit 1; }
+
+            # Every dependency the launch files resolve at runtime.
+            for p in ros2_control ros2_controllers cv_bridge behaviortree_cpp \
+                     robot_state_publisher xacro; do
+              ros2 pkg prefix "$p" >/dev/null 2>&1 \
+                || { echo "::error::runtime image is missing ROS package: $p"; exit 1; }
+            done
+
+            # Our own packages must be present and importable.
+            for p in soccer_bringup soccer_msgs soccer_control; do
+              ros2 pkg prefix "$p" >/dev/null 2>&1 \
+                || { echo "::error::workspace package not installed: $p"; exit 1; }
+            done
+
+            # Compiled plugins must have every shared library they link against.
+            fail=0
+            while read -r so; do
+              if ldd "$so" 2>/dev/null | grep -q "not found"; then
+                echo "::error::unresolved shared library in $so"
+                ldd "$so" | grep "not found"
+                fail=1
+              fi
+            done < <(find /ws/install -name "*.so" 2>/dev/null)
+            exit "$fail"
+          '
+
+  # ── 4. Firmware ──
   # Firmware lives in the `soccer-firmware/` submodule (STM32CubeIDE projects for
   # the Master/Slave + Robostride CAN actuators). It has no host-testable CMake
   # target yet, so it is not built in cloud CI. Add a job here once the firmware
   # team migrates to a CMake build (see soccer-firmware).
 
-  # ── 4. Build + push lean arm64 runtime image (only on main) ──
+  # ── 5. Build + push lean arm64 runtime image (only on main) ──
   #
-  # Builds the `soccer-app-ci` target from deploy/docker/Dockerfile.jetson.
-  # That target uses ros:jazzy-ros-base (no CUDA) so it builds cleanly under
-  # QEMU arm64 in cloud CI. It mirrors the dependency set of soccer-app-image
-  # (the on-device Jetson target) so they stay in sync.
+  # Builds the `runtime` target from deploy/docker/Dockerfile.ci. That target
+  # uses ros:jazzy-ros-base (no CUDA) so it builds cleanly under QEMU arm64 in
+  # cloud CI. It applies the same deploy/docker/soccer-app-deps.apt manifest as
+  # soccer-app-image (the on-device Jetson target) so the two stay in sync;
+  # tools/check_repo_invariants.py enforces that.
   #
   # The **Jetson GPU image** (CUDA 13.2 + ZED SDK 5.4 + TensorRT +
   # zed-ros2-wrapper, ~19 GB) is deliberately NOT built here — a licensed-SDK,
@@ -72,7 +152,7 @@ jobs:
   # It is built ON the Jetson (or a self-hosted arm64 runner) and deployed via
   # `deploy/ansible/` — see docs/zed_jetson_integration.md.
   docker-image:
-    needs: [ros2-build-test, python-lint]
+    needs: [ros2-build-test, python-lint, docker-runtime-smoke]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     steps:

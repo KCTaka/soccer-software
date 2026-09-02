@@ -3,7 +3,7 @@
 This is the real-hardware counterpart to the sim-only ``sim_camera_node``. Rather
 than run a Python relay, it loads the Stereolabs ``ZedCamera`` **component**
 directly and **remaps** its native topics onto the driver-agnostic contract the
-perception / localization stack consumes (``docs/jetson_zed_workflow.md`` §3, §6):
+perception / localization stack consumes (``docs/zed_jetson_integration.md``):
 
 ===========================================  ==================
 ZED SDK 5.x topic (private ``~/…``)          contract topic

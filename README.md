@@ -86,11 +86,23 @@ See [Makefile](Makefile) for the full list.
 
 ## Documentation
 
-- [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — full walkthrough of what was built and why (with diagrams).
-- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — silent failure modes, measured performance profile, and the detector roadmap. **Read this before deploying to hardware.**
-- [docs/zed_jetson_integration.md](docs/zed_jetson_integration.md) — as-built ZED Mini + Jetson Docker integration.
-- [docs/architecture/new_architecture_blueprint.md](docs/architecture/new_architecture_blueprint.md) — the source blueprint.
-- [docs/architecture/localization_strategy_report.md](docs/architecture/localization_strategy_report.md) — localization strategy.
+| Document | What it is |
+| -------- | ---------- |
+| [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) | Full walkthrough of what was built and why, with diagrams. §14 covers who can run what and how to test at each scale |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Silent failure modes, the measured performance profile, the detector roadmap, and the checks that now catch each bug automatically. **Read this before deploying to hardware** |
+| [docs/zed_jetson_integration.md](docs/zed_jetson_integration.md) | As-built ZED Mini + Jetson Docker integration |
+| [docs/ros2-diagram.md](docs/ros2-diagram.md) | The runtime node and topic graph |
+| [docs/architecture/new_architecture_blueprint.md](docs/architecture/new_architecture_blueprint.md) | The source blueprint — layers, stack decisions, budget, roadmap |
+| [docs/architecture/localization_strategy_report.md](docs/architecture/localization_strategy_report.md) | Localization strategy and filter choice |
+| [docs/architecture/jetson_master_protocol.md](docs/architecture/jetson_master_protocol.md) | The canonical Jetson ↔ STM32 wire contract |
+| [docs/architecture/middleware_evaluation.md](docs/architecture/middleware_evaluation.md) | Zenoh vs CycloneDDS decision record |
+
+### Before running on hardware
+
+```bash
+make check       # static repository invariants — no ROS, GPU or Docker needed
+make preflight   # on-device health check; `make robot` runs it automatically
+```
 
 ## Target platform
 

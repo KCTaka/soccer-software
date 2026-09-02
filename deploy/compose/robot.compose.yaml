@@ -31,25 +31,36 @@ services:
     container_name: soccer-camera
     privileged: true # USB ZED Mini device access
     network_mode: host # ROS 2 DDS discovery on the host network
+    ipc: host # shared /dev/shm — required by the Zenoh SHM transport
     environment:
       - ROS_DOMAIN_ID=42
       - NVIDIA_DRIVER_CAPABILITIES=all
-      # ── DDS middleware selection (toggleable) ──────────────────────────────
+      # ── Middleware selection (toggleable) ─────────────────────────────────
       # CycloneDDS is Stereolabs' recommended/most-tested RMW for the ZED wrapper
       # and the reliable choice for Nav2 + multi-machine team comm, so it is the
-      # DEFAULT. To fall back to the proven FastDDS 16 MB shared-memory transport,
-      # override the variable (placed AFTER sudo so it survives env stripping):
+      # DEFAULT. Override the variable to switch (place it AFTER sudo so it
+      # survives env stripping), for BOTH services together:
+      #
+      #   rmw_fastrtps_cpp  — proven 16 MB shared-memory transport fallback
+      #   rmw_zenoh_cpp     — evaluation only; NOT installed in the images yet,
+      #                       and measured slower than CycloneDDS for this
+      #                       workload. Read docs/architecture/middleware_evaluation.md
+      #                       before enabling.
+      #
       #   sudo RMW_IMPLEMENTATION=rmw_fastrtps_cpp docker compose -f deploy/compose/robot.compose.yaml up -d
-      # Both RMWs are installed in the image and both config files are mounted
-      # below; each RMW reads only its own variable, so setting both is harmless.
+      #
+      # Each RMW reads only its own variables, so setting all three is harmless.
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///config/cyclonedds_profile.xml      # large-msg tuning (CycloneDDS)
       - FASTRTPS_DEFAULT_PROFILES_FILE=/config/fastdds_profile.xml # 16 MB SHM segment (FastDDS fallback)
+      - ZENOH_SESSION_CONFIG_URI=/config/zenoh_session_config.json5 # SHM + routerless peer (Zenoh)
+      - ZENOH_ROUTER_CHECK_ATTEMPTS=-1                              # single host: never wait for rmw_zenohd
     volumes:
       - /dev:/dev # USB camera
       - zed_resources:/usr/local/zed/resources # persist optimized neural-depth engines
       - ./cyclonedds_profile.xml:/config/cyclonedds_profile.xml:ro # large-message tuning (CycloneDDS)
       - ./fastdds_profile.xml:/config/fastdds_profile.xml:ro # large-message SHM transport (FastDDS)
+      - ./zenoh_session_config.json5:/config/zenoh_session_config.json5:ro # Zenoh evaluation config
       # Override the ZED grab resolution to HD720 (default HD1080 starves the
       # perception stack on the 8 GB Orin Nano: 6 MB frames + 1080p NEURAL depth
       # throttle the grab to ~11 Hz and choke the image transport). Positional
@@ -77,18 +88,21 @@ services:
     container_name: soccer-app
     privileged: true # /dev/ttyMCU (STM32 master, CRC16 serial)
     network_mode: host
+    ipc: host # shared /dev/shm — required by the Zenoh SHM transport
     environment:
       - ROS_DOMAIN_ID=42
-      # DDS middleware MUST match the camera container (all nodes share one RMW).
-      # CycloneDDS is the default; fall back to FastDDS by overriding the variable
-      # for BOTH services together. See the camera service above for the toggle.
+      # Middleware MUST match the camera container (all nodes share one RMW).
+      # CycloneDDS is the default; see the camera service above for the toggle.
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///config/cyclonedds_profile.xml      # large-msg tuning (CycloneDDS)
       - FASTRTPS_DEFAULT_PROFILES_FILE=/config/fastdds_profile.xml # 16 MB SHM segment (FastDDS fallback)
+      - ZENOH_SESSION_CONFIG_URI=/config/zenoh_session_config.json5 # SHM + routerless peer (Zenoh)
+      - ZENOH_ROUTER_CHECK_ATTEMPTS=-1                              # single host: never wait for rmw_zenohd
     volumes:
       - /dev:/dev
       - ./cyclonedds_profile.xml:/config/cyclonedds_profile.xml:ro # large-message tuning (CycloneDDS)
       - ./fastdds_profile.xml:/config/fastdds_profile.xml:ro # large-message SHM transport (FastDDS)
+      - ./zenoh_session_config.json5:/config/zenoh_session_config.json5:ro # Zenoh evaluation config
     # The app is CPU-only today (HSV detector). Uncomment to give it the GPU once
     # the RF-DETR TensorRT detector lands (report §3.2 of the localization doc):
     # deploy:

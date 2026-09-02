@@ -17,7 +17,7 @@
 # r39 (the l4t-* family stops at r36). JetPack 7.2 is a stock Ubuntu 24.04 + CUDA
 # 13 userspace; the NVIDIA Container Toolkit injects the host Tegra driver libs at
 # run time. This recipe is validated end-to-end on the real hardware — see
-# docs/zed_jetson_integration.md and docs/jetson_zed_workflow.md.
+# docs/zed_jetson_integration.md and docs/TROUBLESHOOTING.md.
 #
 # Run with the NVIDIA Container Toolkit (CDI). MANDATORY host prerequisites are
 # applied by deploy/ansible/provision.yml (the toolkit 1.19.1 `enable-cuda-compat`

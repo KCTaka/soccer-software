@@ -1,10 +1,17 @@
 # Jetson ↔ Master Communication Contract — Recommendation & Open Decisions
 
-> Status: **DRAFT for firmware + software team review.** Authored 2026-06-27.
-> Scope: the wire contract between the Jetson (ROS 2 `ros2_control`) and the
+> **Status: the canonical wire specification.** Authored 2026-06-27; the
+> host-side implementation landed, so this is no longer a standalone draft — it
+> is the contract that [`wire_protocol.hpp`](../../ros2_ws/src/soccer_hardware/include/soccer_hardware/wire_protocol.hpp)
+> and `soccerbot_serial_hardware` are written against. Five source files cite it
+> as their reference.
+>
+> **What is still open** is the firmware side: the structs in §4 are implemented
+> on the Jetson but **not yet in the Master STM32**, and the decisions in §5 are
+> unsettled. Read §3 and §7 before doing firmware work.
+>
+> **Scope.** The wire contract between the Jetson (ROS 2 `ros2_control`) and the
 > Master STM32, and onward to the Slave STM32(s) and Robostride CAN actuators.
-> This document captures the **reasoning**, the **recommended contract**, and the
-> **decisions still open**. Nothing here is final — it is the basis for agreement.
 
 ---
 
@@ -239,6 +246,24 @@ These size the contract and cannot be settled unilaterally.
    `ros2_control` interface, and add a **version handshake**.
 5. **Keep USB-CDC + COBS**; the Master MCU remains the real-time safety layer.
 
-The host-side `ros2_control` interface in `soccer_hardware` has been rewritten to
-this recommended contract as a **reviewable draft** — see
-[soccer_hardware_rewrite.md](soccer_hardware_rewrite.md).
+---
+
+## 7. Implementation status and known gaps
+
+The host side of this contract is implemented in `soccer_hardware`: the
+`ros2_control` interface exports position, velocity, `kp`, `kd` and effort per
+joint, generic over N joints, replacing the single-joint MiniBot placeholder.
+Four behaviours were carried over deliberately — degraded mode on link loss, the
+watchdog, CRC16 framing, and the sim/real boundary at the hardware plugin.
+
+| # | Gap | Resolution path |
+| - | --- | --------------- |
+| L1 | [`wire_protocol.hpp`](../../ros2_ws/src/soccer_hardware/include/soccer_hardware/wire_protocol.hpp) is **hand-written** and not shared with the firmware | Generate C, C++ and Python from one spec (§4 recommendation, decision D6) |
+| L2 | The contract structs are **not implemented in the firmware**. `MSG_MOTOR_CMD` is still a stub and `SpiMitCmd` drops the gains | Firmware work — findings #2 and #3 in §3 |
+| L3 | The URDF still has the single placeholder `neck_pan` joint | Replaced when the real humanoid URDF lands |
+| L4 | The serial parser assumes whole frames per read-loop iteration; **reassembly is basic** | Harden alongside the firmware, on real hardware |
+| L5 | No hardware-in-the-loop test of this protocol exists | Requires the firmware side (L2) first |
+
+> **The host and the firmware disagree today.** L1 and L2 together mean the
+> Jetson sends a frame layout the Master does not yet parse. This is the single
+> most important item in this document.

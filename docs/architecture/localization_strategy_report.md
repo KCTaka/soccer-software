@@ -36,16 +36,24 @@ Generic "best SLAM" advice is misleading here, because RoboCup Humanoid is a con
 | **Violent gait / head motion → motion blur**              | Humanoid walking & kicking    | Favors **geometric line features** (a blurred line is still a line) over fragile point descriptors.                            |
 | **Jetson compute budget**                                 | Onboard HW                    | Perception must be **TensorRT-accelerated**; the filter must be cheap (C++, few-hundred particles).                            |
 
-### 1.1 What this repo _already_ does (verified in code)
+### 1.1 What the prior codebase already did (verified in code)
 
-A crucial finding: the Gemini conversation assumed we localize from "YOLO boxes + EKF." **We do not.** The repo already implements a field-line geometric localizer:
+A crucial finding: the Gemini conversation assumed we localize from "YOLO boxes + EKF." **We do not.** The **legacy** `soccer-software` repo, which this architecture replaces, already implemented a field-line geometric localizer:
 
-| Component            | File                                                                                                                                                                                                   | What it actually does                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Field-line detection | [soccer_perception/soccer_object_localization/src/soccer_object_localization/detector_fieldline.py](soccer_perception/soccer_object_localization/src/soccer_object_localization/detector_fieldline.py) | Classical CV: HSV **grass mask** → extract white lines → project pixels to the floor via a **monocular flat-ground homography** (`find_floor_coordinate`) → emit a **field-line point cloud**. |
-| Field model          | [soccer_perception/soccer_localization/src/soccer_localization/field.py](soccer_perception/soccer_localization/src/soccer_localization/field.py)                                                       | Exact RoboCup field geometry (lines + center circle). `matchPointsWithMap` does **ICP-style** alignment of observed points to the map.                                                         |
-| Filter               | [soccer_perception/soccer_localization/src/soccer_localization/field_lines_ukf_ros.py](soccer_perception/soccer_localization/src/soccer_localization/field_lines_ukf_ros.py)                           | An **Unscented Kalman Filter** (not an EKF) that consumes `odom_combined` + the line point cloud, and broadcasts a `world → odom` correction. Publishes a (misnamed) `amcl_pose`.              |
-| Object detection     | [soccer_perception/soccer_object_detection/soccer_object_detection/object_detect_node.py](soccer_perception/soccer_object_detection/soccer_object_detection/object_detect_node.py)                     | **YOLOv5** detecting `BALL, GOALPOST, ROBOT` **and** `L/T/X line intersections`.                                                                                                               |
+| Component            | Legacy file (in the old `soccer-software` repo)                                                       | What it did                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field-line detection | `soccer_object_localization/src/soccer_object_localization/detector_fieldline.py` | Classical CV: HSV **grass mask** → extract white lines → project pixels to the floor via a **monocular flat-ground homography** (`find_floor_coordinate`) → emit a **field-line point cloud**. |
+| Field model          | `soccer_localization/src/soccer_localization/field.py`                                                 | Exact RoboCup field geometry (lines + center circle). `matchPointsWithMap` does **ICP-style** alignment of observed points to the map.                                                         |
+| Filter               | `soccer_localization/src/soccer_localization/field_lines_ukf_ros.py`                                   | An **Unscented Kalman Filter** (not an EKF) that consumes `odom_combined` + the line point cloud, and broadcasts a `world → odom` correction. Publishes a (misnamed) `amcl_pose`.              |
+| Object detection     | `soccer_object_detection/soccer_object_detection/object_detect_node.py`                                | **YOLOv5** detecting `BALL, GOALPOST, ROBOT` **and** `L/T/X line intersections`.                                                                                                               |
+
+> **Where these live now.** This repo carries the successors, not the originals:
+> [fieldline_node.py](../../ros2_ws/src/soccer_perception/soccer_perception/fieldline_node.py),
+> [field_model.py](../../ros2_ws/src/soccer_localization/soccer_localization/field_model.py),
+> [mcl_node.py](../../ros2_ws/src/soccer_localization/soccer_localization/mcl_node.py) and
+> [ekf_node.py](../../ros2_ws/src/soccer_localization/soccer_localization/ekf_node.py),
+> [detector_node.py](../../ros2_ws/src/soccer_perception/soccer_perception/detector_node.py).
+> The filter choice changed from UKF to **MCL + EKF** for the reasons in §3.
 
 Two implications:
 

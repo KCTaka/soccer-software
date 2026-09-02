@@ -14,9 +14,10 @@
 > dated pointers back here.
 >
 > **Related.** [`zed_jetson_integration.md`](zed_jetson_integration.md) is the
-> as-built integration record; [`bring_up_investigation_report.md`](bring_up_investigation_report.md)
-> is the June 2026 bring-up investigation. This document supersedes specific
-> claims in both, called out in §8.
+> as-built integration record;
+> [`architecture/middleware_evaluation.md`](architecture/middleware_evaluation.md)
+> is the RMW decision record. §10 maps each failure below to the check that now
+> catches it automatically.
 
 ---
 
@@ -24,7 +25,8 @@
 
 | #  | Symptom the operator sees                         | Real cause                                                   | Status  |
 | -- | ------------------------------------------------- | ------------------------------------------------------------ | ------- |
-| §1 | Every `docker run` fails after a reboot           | CDI spec written to tmpfs, generated before the driver loads  | Fixed   |
+| §1 | Every `docker run` fails after a reboot           | CDI spec written to tmpfs, generated before the driver loads  | Fixed, reboot-verified |
+| §1.6 | Same symptom, different error text              | The iGPU failed ACR firmware bootstrap; the device nodes never appeared | Transient; power-cycle |
 | §2 | ZED advertises all topics, publishes zero frames   | `camera.launch.py` was missing `robot_state_publisher`        | Fixed   |
 | §3 | App container exits instantly, `ros2: not found`   | Dockerfile stage 4 inherited a base with no ROS runtime       | Fixed   |
 | §4 | `colcon build` warns on every controller cycle     | `ros2_control` Jazzy deprecated the `get_value` / `set_value` API | Fixed |
@@ -35,12 +37,19 @@ error**. The CDI failure surfaced as a Docker message that named the wrong
 subsystem, the ZED node stalled on an `INFO` line, and the app container failed
 before any ROS logging existed to record it. Assume silence is not success.
 
+That property is why §10 exists: every one of these is now checked
+mechanically, either before bring-up or in CI.
+
 ---
 
-## 1. NVIDIA CDI spec vanishes on every reboot
+## 1. Containers fail to start after a reboot
 
 > **Severity: critical.** Blocks *every* container on the robot, not just GPU
-> ones.
+> ones, because `/etc/docker/daemon.json` sets `"default-runtime": "nvidia"`.
+>
+> There are **two** independent causes with near-identical symptoms. §1.1–§1.5
+> cover the CDI spec vanishing; §1.6 covers the GPU itself failing to come up.
+> Tell them apart by the exact Docker error text — see §1.6.
 
 ### 1.1 Symptom
 
@@ -127,7 +136,44 @@ which also removes the tmpfs copy. Note that `provision.yml` already declared
 `cdi_spec: /etc/cdi/nvidia.yaml` and read that path to verify the result — the
 playbook had always *assumed* this layout; the environment did not match it.
 
-### 1.4 Verify
+> **Update (2026-09-02) — verified across a reboot.** The fix holds.
+>
+> | Check | Result |
+> | ----- | ------ |
+> | Spec present after reboot | `/etc/cdi/nvidia.yaml`, 95673 B, mtime `04:24:18` — **older than the boot at `04:32:26`**, so it is the surviving copy, not a regenerated one |
+> | tmpfs copy | `/var/run/cdi/` does not exist |
+> | The race | Still fires. `nvidia-cdi-refresh.service` was `failed` / `exit-code` / status 1 this boot |
+> | Why that was harmless | `nvidia-ctk` logged `Generated CDI spec with version 0.3.0`, then `failed to write spec: invalid CDI Spec: failed add device "all": invalid device, empty device edits`. Its own validation refused to write the empty spec |
+>
+> **Residual risk.** The fix converts a fatal failure into a last-known-good
+> fallback. It does not make the spec *correct* — on a host where the race
+> always loses, the spec is never regenerated and will go **stale after a
+> driver or toolkit upgrade**. Addressed below.
+
+### 1.4 Root-cause fix: stop racing the driver
+
+Surviving the race is not the same as winning it. The unit's own
+`ExecCondition` greps `/lib/modules/$(uname -r)/modules.dep` — a file on
+**disk** — so it passes long before the module is live in memory. Gating on the
+device nodes instead is the actual precondition:
+
+```ini
+# /etc/systemd/system/nvidia-cdi-refresh.service.d/10-wait-for-gpu.conf
+[Service]
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do [ -e /dev/nvgpu/igpu0/as ] && exit 0; sleep 1; done; echo "GPU device nodes absent after 60s" >&2; exit 1'
+```
+
+A non-zero `ExecStartPre` aborts the unit **before** `nvidia-ctk cdi generate`
+runs, which is the behaviour we want: on a boot where the GPU never comes up at
+all (§1.5), the last good spec is preserved rather than overwritten.
+
+> **Why a wait loop and not `Restart=on-failure`.** `Restart=` is not valid on
+> `Type=oneshot` units. systemd will not retry this service, so the wait has to
+> happen inside it.
+
+Codified as **Fix 0b** in [`deploy/ansible/provision.yml`](../deploy/ansible/provision.yml).
+
+### 1.5 Verify
 
 ```bash
 ls -la /etc/cdi/nvidia.yaml                       # ~95 kB, CDI spec version 0.7.0
@@ -135,6 +181,104 @@ systemctl show -p Result --value nvidia-cdi-refresh.service   # success
 docker run --rm nvcr.io/nvidia/cuda:13.2.1-runtime-ubuntu24.04 nvidia-smi -L
 # GPU 0: Orin (nvgpu) (UUID: ...)
 ```
+
+Or simply `./tools/preflight.sh`, which runs all of the above and §1.6 (§10).
+
+### 1.6 The other cause: the GPU itself failed to initialise
+
+> **Severity: critical, and easily misattributed to §1.2.** Discovered
+> 2026-09-02 on the very reboot that was meant to validate the CDI fix.
+
+**Symptom.** Containers fail again, but with a **different** message:
+
+```
+failed to inject CDI devices: failed to inject devices:
+failed to stat CDI host device "/dev/nvhost-as-gpu": no such file or directory
+```
+
+> **Read the message carefully — it is good news about §1.** The old failure was
+> `unresolvable CDI devices nvidia.com/gpu=all`: the spec could not be found.
+> This one means the spec was found, parsed, and resolved; only the *hardware*
+> is missing. The change in wording is itself proof that the persistence fix
+> works.
+
+On the host:
+
+```console
+$ nvidia-smi -L
+libnvrm_gpu.so: NvRmGpuLibOpen failed, error=4
+No devices found.
+
+$ ls /dev/nvgpu/igpu0/
+power                       # should also contain as, ctrl, dbg, prof, tsg, ...
+```
+
+#### Root cause
+
+The iGPU firmware failed to load, so the driver never finished power-on:
+```
+gk20a 17000000.gpu: Direct firmware load for ga10b/acr-gsp.data.encrypt.bin.prod failed with error -40
+nvgpu: ga10b_load_riscv_acr_ucodes:454  [ERR]  acr-gsp.data.encrypt.bin.prod ucode get fail for ga10b
+nvgpu: nvgpu_acr_bootstrap_hs_ucode_riscv:481  [ERR]  RISCV ucode loading failed
+nvgpu: ga10b_bootstrap_hs_acr:53   [ERR]  ACR bootstrap failed
+nvgpu: nvgpu_finalize_poweron:1287 [ERR]  Failed initialization for: g->ops.acr.acr_construct_execute
+```
+
+Without `nvgpu_finalize_poweron()`, none of the GPU-backed device nodes are
+created — which is exactly the set the CDI spec enumerates.
+
+**This was transient, not a regression.** Everything that could have caused it
+was ruled out:
+
+| Check | Result |
+| ----- | ------ |
+| ACR failures in the two previous boots | **0** and **0**; this boot: 28 |
+| Package changes | None since 2026-06-21 (a Docker reinstall) |
+| Kernel / firmware versions | Identical to the two good boots |
+| Running kernel vs `/lib/modules` | Both `6.8.12-1021-tegra` |
+| Previous shutdown | Clean (`last -x`) |
+| The firmware file | Present, 9472 B, mode 0644, readable, owned by `nvidia-l4t-firmware` |
+| Symlink loop? | No — `namei -l` is clean; `/lib/firmware/updates` does not exist |
+| Other firmware affected? | No — exactly **one** file, across 8 search paths |
+
+> **The errno is a red herring.** `-40` is `ELOOP`, "too many levels of symbolic
+> links". There is no symlink loop. The kernel firmware loader returns `ELOOP`
+> from its `kernel_read_file_from_path_initns()` path for unrelated reasons.
+> Chasing the literal meaning wastes time.
+
+#### A second, correlated failure on the same boot
+The ZED Mini also came up degraded:
+
+| Expected | Observed |
+| -------- | -------- |
+| `2b03:f681` (HID) **and** `2b03:f682` (UVC video) | Only `f681` |
+| SuperSpeed link (5000M) | 12M, on the USB 2.0 root hub |
+| `/dev/video0`, `/dev/video1` | No `/dev/video*` at all |
+
+No USB errors were logged. A GPU rail failing ACR bootstrap **and** a USB 3
+SuperSpeed link failing to train, together, on one boot, with no software change
+and no errors in between, is the signature of a **marginal or brown-out power
+condition during boot** — not two independent faults.
+
+#### Fix
+
+1. **Full power cycle**, not `reboot`. Remove power, wait, restore. A warm
+   reboot does not reset the USB PHY or the GPU rail.
+2. Check the supply. The Orin Nano Super in MAXN draws up to ~25 W; a marginal
+   PSU or barrel jack shows up first as exactly these two symptoms.
+3. Reseat the ZED cable and confirm it is on a USB 3.0 port.
+4. Re-run `./tools/preflight.sh` — checks 1 and 6 cover both failures.
+
+> **Do not attempt a module reload.** `nvgpu` has refcount 1 with
+> `nvidia`/`nvidia_modeset`/`nvidia_drm` stacked on top and `nvmap` used by four
+> modules. Unloading that stack on a live system is far riskier than a reboot.
+
+#### Lesson
+
+"The CDI spec exists" is an **insufficient** health check. A spec can be present,
+valid, and correctly persisted while every device it names is absent. The
+pre-flight check therefore validates the spec **against the host**: every
+`/dev/...` path the spec references must actually exist (§10).
 
 ---
 
@@ -398,11 +542,41 @@ Each of these was tested and eliminated before concluding CPU:
 | Degradation over uptime           | Restarted camera fresh, re-measured                            | 30.45 Hz again — not cumulative        |
 | GPU contention                    | `tegrastats` during the run                                    | GPU 0–20 % idle                        |
 
-### 5.4 Consequence
+### 5.4 How we got here — the June 2026 tuning history
+
+Kept because it shows which levers were already pulled, and how much each was
+worth. Measured with `ros2 topic hz` from inside `soccer-app` with the full stack
+running, so these are **subscriber-side, full-stack** numbers and are not
+directly comparable to the publisher-side 30.45 Hz in §5.1.
+
+| Configuration                          | `camera_info` | `image_raw` | `depth` | What it showed |
+| -------------------------------------- | ------------- | ----------- | ------- | -------------- |
+| HD1080, default FastDDS (512 kB SHM)   | ~11 Hz        | **1.3 Hz**  | 2.7 Hz  | Baseline failure — 6 MB frames overflow the SHM segment and fall back to UDP |
+| HD1080, kernel buffers raised only     | ~11 Hz        | **1.5 Hz**  | 3 Hz    | Barely moved — proves the **SHM segment**, not the kernel buffer, was binding |
+| HD720, FastDDS 16 MB SHM               | 16.2 Hz       | **18.3 Hz** | 17.5 Hz | The primary fix. 14× improvement |
+| **HD720, CycloneDDS (current default)**| 19.5 Hz       | **19.8 Hz** | 19.2 Hz | Slightly better than FastDDS SHM, and simpler |
+| HD720, FastDDS fallback (toggle test)  | ~16 Hz        | 17.8 Hz     | 14.8 Hz | Confirms the RMW toggle works |
+
+Two conclusions from that era were **wrong** and are corrected here:
+
+| June conclusion | Correction |
+| --------------- | ---------- |
+| The HD1080 ceiling is GPU-bound neural depth | The ceiling is CPU. The GPU idles at 0–20 % (§5.2) |
+| QoS is best-effort end-to-end | Only `imu/data` honours the override (§8.1) |
+
+The residual 19.8 → 30.45 Hz gap was assumed to be transport and was not chased
+in June. §5.1 shows it is publisher-side CPU starvation.
+
+### 5.5 Consequence
 
 The robot is **CPU-bound with an idle GPU**. Any work that can be moved from the
 CPU to the GPU buys back frame rate directly. `detector_node` at 54 % of a core
 doing Python HSV thresholding is the clearest example on the platform.
+
+The other free win is **node composition**: the perception nodes run in a
+separate container from the camera, so `use_intra_process_comms` never applies
+and every 3.69 MB frame is serialised across the RMW. See
+[middleware_evaluation.md §7](architecture/middleware_evaluation.md).
 
 ---
 
@@ -539,11 +713,17 @@ being run headless. Use `-c` and read the OK/Failed lines only.
 
 | Item                                                | Impact                                                                 | Next step                                              |
 | --------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
+| ~~**CDI fix not reboot-validated**~~                | ~~Fix is verified live but the reboot path is untested~~                | **Closed 2026-09-02** — survived a reboot; evidence in §1.3 |
+| **iGPU failed ACR bootstrap on one boot**           | GPU absent; every GPU container fails. Correlated with the ZED's USB 3 link not training | Power-cycle and re-run `tools/preflight.sh`. If it recurs, the supply is the prime suspect (§1.6) |
+| **CDI spec is never regenerated at boot**           | Consequence of the §1.3 fix: the spec can go stale after a driver upgrade | §1.4 drop-in lets a good boot regenerate it; `preflight.sh` check 2 catches a stale one |
 | **QoS overrides are dead for image + depth**        | Config claims best-effort; publishers are RELIABLE                     | See §8.1 — decide whether it is worth pursuing         |
-| **CDI fix not reboot-validated**                    | Fix is verified live but the reboot path is untested                    | Reboot and confirm `/etc/cdi/nvidia.yaml` survives     |
-| **CPU saturation (§5)**                             | Camera runs at 20 Hz instead of 30 Hz whenever the stack is up          | RF-DETR migration (§6.3), then re-measure              |
+| **CPU saturation (§5)**                             | Camera runs at 20 Hz instead of 30 Hz whenever the stack is up          | Node composition, then RF-DETR migration (§6.3), then re-measure |
 | **`fieldline_node` at 48 % CPU**                    | Second-largest avoidable CPU consumer after `detector_node`             | Profile; candidate for the same GPU treatment          |
 | **`camera_info` double-advertised**                 | Topic reports ~59 Hz because two publishers exist                       | Cosmetic; confirm no consumer double-counts            |
+| **Point cloud published but unused**                | `point_cloud/cloud_registered` at 10 Hz, ~2 MB/msg — **~20 MB/s of pure waste**. No node subscribes | Set `depth.point_cloud_freq: 0` in [`zed_params_override.yaml`](../deploy/compose/zed_params_override.yaml) unless MCL starts using it |
+| **`net.core.rmem_max` is 16 MB, not the 2 GB Stereolabs suggests** | Sufficient for same-host loopback; may not be for multi-machine image streaming over Wi-Fi | First value to raise in `provision.yml` Fix 4 if cross-machine throughput is poor |
+| **No jumbo frames (MTU 9000)**                      | Irrelevant today — both containers are on loopback (MTU 65536)          | Only matters if camera data is ever sent between robots; needs switch + NIC + Netplan support |
+| **HD1080 remains unusable**                         | Neural depth at HD1080 ran ~11 Hz. The `libnvinfer_lean.so.10` blocker is fixed, but the rate ceiling is not | Not a defect — recorded so nobody re-tries HD1080 expecting it to work |
 
 ### 8.1 The QoS overrides do not apply to the image topics
 
@@ -588,15 +768,29 @@ changes.
 | `zed_jetson_integration.md` §5                  | "best-effort SensorData **end-to-end**"                         | §8.1       |
 | `zed_jetson_integration.md` §6                  | CDI covered by the two hook/mode fixes                          | §1         |
 | `zed_jetson_integration.md` §12                 | "App image apt dep names" listed as a *risk*                    | §3 — it was a live defect |
-| `bring_up_investigation_report.md` §12          | Same app-image risk entry                                       | §3         |
+| June 2026 bring-up report (deleted 2026-09-02)  | HD1080 ceiling is GPU-bound; QoS best-effort end-to-end         | §5.4 — both wrong; its surviving data is folded into §5.4 and §8 |
 
 ---
 
 ## 9. Diagnostic playbook
 
+**Start here:**
+
+```bash
+./tools/preflight.sh
+```
+
+It runs every check below and exits non-zero on failure. `make robot` runs it
+automatically before bring-up. The manual steps are kept for when you need to
+isolate a layer by hand.
+
 Ordered cheapest-first. Each step isolates a layer.
 
 ```bash
+# 0. Is the GPU even up?  (catches §1.6 — check this before blaming CDI)
+ls /dev/nvgpu/igpu0/          # only "power" -> the driver never finished poweron
+journalctl -b -k | grep -c "ACR bootstrap failed"
+
 # 1. Can any container start at all?  (catches §1)
 docker run --rm nvcr.io/nvidia/cuda:13.2.1-runtime-ubuntu24.04 nvidia-smi -L
 
@@ -630,3 +824,61 @@ top -bn2 -o %CPU               # per-process
 > not be on `PATH`. Every `exec` needs
 > `source /opt/ros/jazzy/setup.bash && source <ws>/install/setup.bash` first —
 > `/ros2_ws` in the camera container, `/ws` in the app container.
+
+---
+
+## 10. Preventative measures
+
+Every bug in §1–§4 was found by a human noticing something odd, hours after the
+fact. Each is now checked mechanically. This section is the map from failure to
+guard.
+
+### 10.1 Coverage
+
+| Failure | Guard | Where it runs | Catches it |
+| ------- | ----- | ------------- | ---------- |
+| §1 CDI spec in tmpfs | `check_repo_invariants.py` asserts `provision.yml` still pins `NVIDIA_CTK_CDI_OUTPUT_FILE_PATH` | CI, `make check` | At commit |
+| §1 CDI spec missing / stale / duplicated | `preflight.sh` check 2 | Before bring-up | At boot |
+| §1 boot race | `ExecStartPre` wait loop (§1.4) | systemd, every boot | At boot |
+| §1.6 GPU not initialised | `preflight.sh` check 1 (device nodes, `nvidia-smi`, kernel log) | Before bring-up | At boot |
+| §1.6 spec references absent devices | `preflight.sh` check 2 (spec ↔ host), plus an Ansible assert | Before bring-up, provisioning | At boot |
+| §2 missing `robot_state_publisher` | `check_repo_invariants.py` parses `camera.launch.py` with `ast` and requires the Node | CI, `make check` | At commit |
+| §3 runtime image with no ROS | `check_repo_invariants.py`: any stage copying a colcon `install/` must apply `soccer-app-deps.apt` | CI, `make check` | At commit |
+| §3 runtime image with no ROS | `docker-runtime-smoke` builds the image natively and runs `ros2 pkg prefix` for every launch-file dependency | CI | Before merge |
+| §3 unresolved shared libraries | `ldd` sweep over `install/**/*.so`, in CI and in `preflight.sh` check 4 | CI, before bring-up | Before merge |
+| Renamed Docker stage | `check_repo_invariants.py` cross-checks every compose `target:` against the Dockerfile's stages | CI, `make check` | At commit |
+| §1.6 ZED on a USB 2.0 link | `preflight.sh` check 6 requires the `2b03:f682` video interface and `/dev/video*` | Before bring-up | At boot |
+| Host tuning lost | `preflight.sh` check 5 (socket buffers, power mode, swap) | Before bring-up | At boot |
+
+### 10.2 The three entry points
+
+```bash
+make check        # static, seconds, no ROS/GPU/Docker needed. Also runs in CI.
+make preflight    # on-device health check. Non-zero exit on any FAIL.
+make robot        # runs preflight first, then brings up the stack.
+```
+
+CI gates everything behind `repo-invariants`, so a violation fails in seconds
+rather than after a full arm64 QEMU build.
+
+### 10.3 Design rules these encode
+
+The bugs were different, but they rhymed. Three rules generalise from them:
+
+| Rule | Because |
+| ---- | ------- |
+| **Test the artifact's behaviour, not its contents.** | The app image had the right *files* and could not run its own `CMD`. `ls` proved nothing; `ros2 pkg prefix` proved everything (§3) |
+| **Validate config against reality, not against itself.** | The CDI spec was valid YAML, correctly persisted, and named 22 devices that did not exist (§1.6) |
+| **A comment describing intent is not a test.** | `soccer-app-deps.apt` said "keep in sync with Dockerfile.jetson". It was not in sync. `Dockerfile.ci` carried the same defect for months (§3) |
+
+### 10.4 Known gaps
+
+Recorded rather than papered over.
+
+| Gap | Why it is not covered |
+| --- | --------------------- |
+| Nothing checks that the *Jetson* image (`Dockerfile.jetson`) can run its `CMD` | It needs a licensed SDK and an arm64 GPU host; cloud CI cannot build it. `preflight.sh` check 4 covers it on-device instead |
+| The launch-contract check is structural, not semantic | It asserts a `robot_state_publisher` Node exists in `camera.launch.py`. It cannot prove the URDF it publishes is the right one |
+| No check that the running stack still meets its rate targets | Would need a running robot. `ros2 topic hz` in §9 step 5 remains manual |
+| `preflight.sh` cannot detect a *marginal* power supply | It only sees the consequences (§1.6). A real diagnosis needs a meter on the supply rail |
+

@@ -524,6 +524,45 @@ ball centers — the camera **visibly follows the ball**, closing the full L5→
 loop. Meanwhile `fieldline_node` + `mcl_node` localize on the field, and
 `gc_bridge_node` gates everything on the GameController state.
 
+### 14.1 Who can run what
+
+The team is mixed, and only one machine has the camera. Map each developer to
+what they can run so nobody is blocked on hardware.
+
+| Environment | Can do | Cannot do |
+| ----------- | ------ | --------- |
+| **No NVIDIA GPU** (Windows 11 + WSL2, Apple-Silicon Mac) | Write code, full CPU sim, replay rosbags through perception / MCL / strategy, Foxglove viz, `colcon test` | Open a ZED, build TensorRT engines, Isaac Lab training |
+| **NVIDIA GPU laptop or desktop** | Everything above, plus opening a ZED locally, replaying SVOs, Isaac Lab training and ONNX export, x86 TensorRT experiments | Build the **on-robot** engine — that must happen on the Jetson (§13) |
+| **The shared Jetson** | Live ZED capture, arm64 TensorRT engines, MCU serial and motor hardware-in-the-loop | — |
+
+Notes that matter in practice:
+
+- On **Windows**, do all ROS work inside WSL2 Ubuntu 24.04 or the dev container.
+  Native Windows is not a ROS 2 target.
+- An **Apple-Silicon Mac** is arm64 — the same architecture as the Jetson — so
+  the arm64 Jazzy dev container runs natively. No CUDA, so no ZED or TensorRT,
+  but full sim, perception-on-rosbag, control and strategy all work.
+- **Reserve the Jetson for what only it can do.** Push everything else off it.
+  Two developers can share it simultaneously by exporting distinct
+  `ROS_DOMAIN_ID` values (the default is 42; hand out 41, 43, …). Only live
+  camera and motor time needs exclusive booking.
+
+### 14.2 Testing at three scales
+
+| Scale | What runs | Where | Command |
+| ----- | --------- | ----- | ------- |
+| **Unit** | One node or one function, no ROS graph needed | Anywhere, including a Mac | `colcon test`, or plain `pytest` for pure logic |
+| **Subsystem** | A pipeline fed from a rosbag or SVO — no GPU, no camera | Anywhere | `ros2 bag play` into `detector_node` / `mcl_node` |
+| **Full stack** | Everything, in sim or on hardware | Sim anywhere; hardware on the Jetson | `robot.launch.py sim:=true`, or `make robot` |
+
+A useful middle option: run the ZED node on the Jetson and your node under test
+on your laptop, in the same DDS graph. Set a matching `ROS_DOMAIN_ID` and
+`RMW_IMPLEMENTATION` on both — see
+[new_architecture_blueprint.md §8.1](architecture/new_architecture_blueprint.md).
+
+Before any hardware run, `make robot` invokes `tools/preflight.sh`. See
+[TROUBLESHOOTING.md §10](TROUBLESHOOTING.md) for what it checks and why.
+
 ---
 
 ## 15. What was verified

@@ -28,12 +28,18 @@
   vars:
     cdi_refresh_env: /etc/nvidia-container-toolkit/nvidia-cdi-refresh.env
     cdi_spec: /etc/cdi/nvidia.yaml
+    cdi_gpu_wait_seconds: 60
     ctk_runtime_config: /etc/nvidia-container-runtime/config.toml
     manage_swap: true # set false on hosts that only PULL prebuilt images
     swap_path: /swapfile
     swap_size: 8G
 
   handlers:
+    - name: Reload systemd units
+      ansible.builtin.systemd:
+        daemon_reload: true
+      listen: reload systemd
+
     - name: Regenerate the CDI specification
       ansible.builtin.systemd:
         name: nvidia-cdi-refresh.service
@@ -81,6 +87,39 @@
         state: absent
       notify: refresh cdi
 
+    # ── Fix 0b: stop the service racing the driver instead of just surviving it ─
+    # Persisting the spec (Fix 0) makes a failed regeneration harmless, but the
+    # spec then goes stale after a driver upgrade. The unit's own ExecCondition
+    # greps /lib/modules/.../modules.dep — a file on disk — so it passes even
+    # when the module is not yet in memory. Gate on the device nodes instead,
+    # which only appear after nvgpu_finalize_poweron() succeeds.
+    #
+    # A non-zero ExecStartPre aborts the unit BEFORE `nvidia-ctk cdi generate`
+    # runs, which is what we want: on a boot where the GPU never initialises we
+    # keep the last good spec rather than overwriting it with an empty one.
+    - name: Ensure the drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/nvidia-cdi-refresh.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Make the CDI refresh wait for the GPU device nodes
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/nvidia-cdi-refresh.service.d/10-wait-for-gpu.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Managed by deploy/ansible/provision.yml.
+          # See docs/TROUBLESHOOTING.md §1.
+          [Service]
+          ExecStartPre=/bin/sh -c 'for i in $(seq 1 {{ cdi_gpu_wait_seconds }}); do [ -e /dev/nvgpu/igpu0/as ] && exit 0; sleep 1; done; echo "GPU device nodes absent after {{ cdi_gpu_wait_seconds }}s - refusing to regenerate the CDI spec" >&2; exit 1'
+      notify:
+        - reload systemd
+        - refresh cdi
+
     # ── Fix 1: disable the buggy enable-cuda-compat CDI hook ──────────────────
     - name: Disable the broken enable-cuda-compat CDI hook
       ansible.builtin.lineinfile:
@@ -120,6 +159,42 @@
         fail_msg: >
           enable-cuda-compat is still present in {{ cdi_spec }}.
           Re-run after confirming nvidia-cdi-refresh.service restarted.
+
+    # A syntactically perfect spec is still unusable if the device nodes it
+    # names are absent — containers then fail with "failed to stat CDI host
+    # device". That happens when the iGPU fails nvgpu_finalize_poweron() at
+    # boot, which looks nothing like a CDI problem in the Docker error message.
+    - name: Collect the device nodes the CDI spec requires
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          grep -oE '^[[:space:]]*-?[[:space:]]*path:[[:space:]]*/dev/[^[:space:]]+' {{ cdi_spec }} \
+            | awk '{print $NF}' | sort -u
+      args:
+        executable: /bin/bash
+      register: cdi_device_paths
+      changed_when: false
+      failed_when: false
+
+    - name: Find CDI device nodes missing from the host
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ cdi_device_paths.stdout_lines | default([]) }}"
+      register: cdi_device_stats
+      changed_when: false
+
+    - name: Assert every CDI device node exists
+      ansible.builtin.assert:
+        that:
+          - cdi_device_stats.results | rejectattr('stat.exists') | list | length == 0
+        success_msg: "All CDI device nodes present — the GPU is up."
+        fail_msg: >
+          The CDI spec references device nodes that do not exist:
+          {{ cdi_device_stats.results | rejectattr('stat.exists')
+             | map(attribute='item') | join(', ') }}.
+          This means the iGPU did not initialise, not that CDI is misconfigured.
+          Check `journalctl -b -k | grep 'ACR bootstrap'` and power-cycle the
+          board. See docs/TROUBLESHOOTING.md §1.5.
 
     # ── Fix 3: 8 GB swap so on-device colcon/TensorRT builds don't OOM ────────
     - name: Create the swapfile
