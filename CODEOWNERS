@@ -1,0 +1,12 @@
+# Repository-wide fallback
+* @KCTaka
+
+# Safety-critical and generated paths (ADR-009)
+/model/generated/              @KCTaka
+/protocol/                     @KCTaka
+/firmware/shared/generated/    @KCTaka
+/src/humanoid_transport/       @KCTaka
+/src/humanoid_safety/          @KCTaka
+/src/humanoid_actuator_system/ @KCTaka
+/tools/                        @KCTaka
+/.github/                      @KCTaka

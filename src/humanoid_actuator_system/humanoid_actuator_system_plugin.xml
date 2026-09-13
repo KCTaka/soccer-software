@@ -1,0 +1,12 @@
+<library path="humanoid_actuator_system">
+  <class
+    name="humanoid_actuator_system/HumanoidActuatorSystem"
+    type="humanoid::actuator_system::HumanoidActuatorSystem"
+    base_class_type="hardware_interface::SystemInterface">
+    <description>
+      The sole production ros2_control system component. Named in ros2_control.xacro as
+      plugin="humanoid_actuator_system/HumanoidActuatorSystem". The ActuatorTransport
+      implementation is selected by a hardware parameter, not by a build variant.
+    </description>
+  </class>
+</library>

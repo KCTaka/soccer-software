@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>humanoid_transport</name>
+  <version>0.1.0</version>
+  <description>
+    The ActuatorTransport hardware-abstraction seam (ADR-001) and simulation seam (ADR-007).
+    Header-only and deliberately dependency-free: this package must not depend on ROS, on
+    hardware_interface, or on any bus library, so that a transport implementation can be
+    unit-tested without a middleware or a robot.
+  </description>
+  <maintainer email="unassigned@example.invalid">Robotics Software Team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_cppcheck</test_depend>
+  <test_depend>ament_cmake_cpplint</test_depend>
+  <test_depend>ament_cmake_uncrustify</test_depend>
+  <test_depend>ament_cmake_gmock</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
