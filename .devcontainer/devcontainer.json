@@ -3,4 +3,14 @@
   "image": "ghcr.io/utra-robosoccer/soccer-software/builder:3311ad84165b45d3f3ab39ee280c7f24346bd494",
   "workspaceFolder": "/ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.autopep8",
+        "ms-iot.vscode-ros"
+      ]
+    }
+  }
 }

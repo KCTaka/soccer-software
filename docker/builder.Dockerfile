@@ -4,6 +4,7 @@ FROM ubuntu@sha256:224a1869083a311ef3f13648a154ba79832fbef6364d31493642ca03082da
 ARG COLCON_COMMON_EXTENSIONS_VERSION=0.3.0
 ARG ROSDEP_VERSION=0.27.0
 ARG VCSTOOL_VERSION=0.3.0
+ARG PYYAML_VERSION=6.0.2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -48,7 +49,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
       "colcon-common-extensions==${COLCON_COMMON_EXTENSIONS_VERSION}" \
       "rosdep==${ROSDEP_VERSION}" \
-      "vcstool==${VCSTOOL_VERSION}"
+      "vcstool==${VCSTOOL_VERSION}" \
+      "pyyaml==${PYYAML_VERSION}"
 
 WORKDIR /ws
 COPY tools/pin_audit.py /usr/local/bin/pin_audit.py
