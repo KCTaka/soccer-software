@@ -195,7 +195,7 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
                                          f"{j['limits']['hard_stop_upper_rad']:.10g}")
                 je.set("damping", f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}")
                 je.set("frictionloss", f"{num_or(tr['friction_coulomb_nm']):.10g}")
-                je.set("armature", f"{num_or(tr['armature_kg_m2']):.10g}")
+                je.set("armature", f"{num_or(tr.get('armature_kg_m2'), default=0.0):.10g}")
         for cj in kids.get(link_name, []):
             add_body(be, cj["child_link"], False)
 

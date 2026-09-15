@@ -308,7 +308,12 @@
           ],
           "properties": {
             "gear_ratio": { "type": "number", "exclusiveMinimum": 0 },
-            "armature_kg_m2": { "$ref": "#/$defs/number_or_nr" },
+            "armature_kg_m2": {
+              "oneOf": [
+                { "type": "number", "minimum": 0 },
+                { "$ref": "#/$defs/nr" }
+              ]
+            },
             "direction_sign": {
               "enum": [-1, 1],
               "description": "Kept separate from gear_ratio magnitude so a sign error cannot hide inside a ratio and so G1 can verify it independently."
