@@ -1,0 +1,6 @@
+{
+  "name": "RoboSoccer Dev Container",
+  "image": "ghcr.io/utra-robosoccer/soccer-software/builder:3311ad84165b45d3f3ab39ee280c7f24346bd494",
+  "workspaceFolder": "/ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
+}

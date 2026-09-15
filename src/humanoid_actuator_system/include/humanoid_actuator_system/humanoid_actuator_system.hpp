@@ -112,6 +112,10 @@ private:
 
   void enter_protective_state(safety::Trigger trigger) noexcept;
 
+  /// Called from on_configure. Returns false (configuration error) if the claimed interface set
+  /// requires fields the transport cannot deliver and degradation has not been explicitly accepted.
+  [[nodiscard]] bool check_tuple_capability() noexcept;
+
   // Declaration order is load-bearing. Members are destroyed in reverse declaration order, so the
   // loader declared first is destroyed last -- after the instance whose deleter it owns. Reversing
   // these two lines produces a crash on shutdown that reproduces only sometimes.
@@ -131,6 +135,8 @@ private:
   std::uint8_t consecutive_bad_cycles_{0U};
   bool mit_tuple_claimed_{false};
   bool protective_state_{false};
+
+  transport::TupleCompleteness accepted_degradation_{transport::TupleCompleteness::kFull};
 };
 
 }  // namespace humanoid::actuator_system

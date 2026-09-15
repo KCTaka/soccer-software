@@ -21,6 +21,32 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   return hardware_interface::CallbackReturn::ERROR;
 }
 
+bool HumanoidActuatorSystem::check_tuple_capability() noexcept
+{
+  if (!transport_) {
+  return false;
+  }
+
+  const auto caps = transport_->capabilities();
+
+  // A full-tuple controller (all five interfaces claimed) requires a full-tuple transport,
+  // unless degradation was explicitly accepted in the hardware configuration.
+  if (mit_tuple_claimed_ &&
+  caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
+  accepted_degradation_ != transport::TupleCompleteness::kPositionVelocityOnly)
+  {
+  // Fail closed. A reduced transport silently passing as complete is Topic 1 finding 14.
+  return false;
+  }
+
+  // If degradation is accepted, record it. The tuple mapping at the transport boundary will
+  // drop stiffness/damping/effort before exchange() and note the degradation in every log record.
+  // That mapping logic lives in snapshot_commands() once B7 is implemented.
+
+  return true;
+}
+
+
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {

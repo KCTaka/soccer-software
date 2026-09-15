@@ -19,6 +19,12 @@ enum class TransportClass : std::uint8_t
   kFaultInjection
 };
 
+enum class TupleCompleteness : std::uint8_t
+{
+    kFull = 0, 
+    kPositionVelocityOnly
+};
+
 struct TransportCapabilities
 {
   std::array<char, kMaxNameLength> implementation_name{};
@@ -32,6 +38,9 @@ struct TransportCapabilities
   bool provides_bus_voltage{false};
   /// True only for kReplay. ADR-007 forbids claiming a timing property from a non-physical class.
   bool is_deterministic{false};
+
+  /// Which subset of the MIT tuple this transport delivers.
+  TupleCompleteness tuple_completeness{TupleCompleteness::kFull};
 };
 
 }  // namespace humanoid::transport
