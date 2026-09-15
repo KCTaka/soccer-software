@@ -1,0 +1,1071 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="unitree_g1">
+  <link name="pelvis">
+    <inertial xyz="0 0 -0.07605" rpy="0 -0.0007982960848 0">
+      <mass value="3.813" />
+      <inertia ixx="0.010549" iyy="0.0093089" izz="0.0079184" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/pelvis" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/pelvis" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_pitch_link">
+    <inertial xyz="0.002741 0.047791 -0.02606" rpy="0.598816898 0.04008100898 0.07544490693">
+      <mass value="1.35" />
+      <inertia ixx="0.00181517" iyy="0.00153422" izz="0.00116212" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_roll_link">
+    <inertial xyz="0.029812 -0.001045 -0.087934" rpy="-0.01817494732 0.4137285967 -0.08635902138">
+      <mass value="1.52" />
+      <inertia ixx="0.00254986" iyy="0.00241169" izz="0.00148755" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_yaw_link">
+    <inertial xyz="-0.057709 -0.010981 -0.15078" rpy="0.554090926 0.03059650621 1.80137517">
+      <mass value="1.702" />
+      <inertia ixx="0.00776166" iyy="0.00717575" izz="0.00160139" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_knee_link">
+    <inertial xyz="0.005457 0.003964 -0.12074" rpy="-0.04851901434 0.05429270488 0.7832943679">
+      <mass value="1.932" />
+      <inertia ixx="0.0113804" iyy="0.0112778" izz="0.00146458" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_knee_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_knee_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_ankle_pitch_link">
+    <inertial xyz="-0.007269 0 0.011137" rpy="1.098770422 0 1.57079637">
+      <mass value="0.074" />
+      <inertia ixx="1.89e-05" iyy="1.40805e-05" izz="6.9195e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_ankle_roll_link">
+    <inertial xyz="0.026505 0 -0.016425" rpy="-3.11635884 -1.509377344 -0.02542946254">
+      <mass value="0.608" />
+      <inertia ixx="0.00167218" iyy="0.0016161" izz="0.000217621" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_pitch_link">
+    <inertial xyz="0.002741 -0.047791 -0.02606" rpy="-0.598816898 0.04008100898 -0.07544490693">
+      <mass value="1.35" />
+      <inertia ixx="0.00181517" iyy="0.00153422" izz="0.00116212" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_roll_link">
+    <inertial xyz="0.029812 0.001045 -0.087934" rpy="0.01817494732 0.4137285967 0.08635902138">
+      <mass value="1.52" />
+      <inertia ixx="0.00254986" iyy="0.00241169" izz="0.00148755" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_yaw_link">
+    <inertial xyz="-0.057709 0.010981 -0.15078" rpy="0.554090926 -0.03059650621 1.340218027">
+      <mass value="1.702" />
+      <inertia ixx="0.00776166" iyy="0.00717575" izz="0.00160139" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_knee_link">
+    <inertial xyz="0.005457 -0.003964 -0.12074" rpy="0.0549708008 0.04788349692 -0.7831775797">
+      <mass value="1.932" />
+      <inertia ixx="0.011374" iyy="0.0112843" izz="0.00146452" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_knee_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_knee_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_ankle_pitch_link">
+    <inertial xyz="-0.007269 0 0.011137" rpy="1.098770422 0 1.57079637">
+      <mass value="0.074" />
+      <inertia ixx="1.89e-05" iyy="1.40805e-05" izz="6.9195e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_ankle_roll_link">
+    <inertial xyz="0.026505 0 -0.016425" rpy="3.11635884 -1.509377344 0.02542946254">
+      <mass value="0.608" />
+      <inertia ixx="0.00167218" iyy="0.0016161" izz="0.000217621" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="waist_yaw_link">
+    <inertial xyz="0.003494 0.000233 0.018034" rpy="-0.9922858548 -1.436472895 -3.071000374">
+      <mass value="0.214" />
+      <inertia ixx="0.000163531" iyy="0.000107714" izz="0.000102205" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/waist_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/waist_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="waist_roll_link">
+    <inertial xyz="0 2.3e-05 0" rpy="0 -1.570796327 0">
+      <mass value="0.086" />
+      <inertia ixx="8.245e-06" iyy="7.079e-06" izz="6.339e-06" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/waist_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/waist_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="torso_link">
+    <inertial xyz="0.00203158 0.000339683 0.184568" rpy="-6.835973498e-05 0.03965393936 0.002638885267">
+      <mass value="7.818" />
+      <inertia ixx="0.121847" iyy="0.109825" izz="0.0273735" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/torso_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/torso_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_pitch_link">
+    <inertial xyz="0 0.035892 -0.011628" rpy="-0.4983489685 -0.4607917477 1.732073178">
+      <mass value="0.718" />
+      <inertia ixx="0.000465864" iyy="0.000432842" izz="0.000406394" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_roll_link">
+    <inertial xyz="-0.000227 0.00727 -0.063243" rpy="-0.03765900888 0.0180045505 1.586509353">
+      <mass value="0.643" />
+      <inertia ixx="0.000691311" iyy="0.000618011" izz="0.000388977" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_yaw_link">
+    <inertial xyz="0.010773 -0.002949 -0.072009" rpy="-0.2340493243 0.03511334885 1.524303657">
+      <mass value="0.734" />
+      <inertia ixx="0.00106187" iyy="0.00103217" izz="0.000400661" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_elbow_link">
+    <inertial xyz="0.064956 0.004454 -0.010062" rpy="1.683017947 -0.07256700845 1.162120772">
+      <mass value="0.6" />
+      <inertia ixx="0.000443035" iyy="0.000421612" izz="0.000259353" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_elbow_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_elbow_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_wrist_roll_link">
+    <inertial xyz="0.0171394 0.000537591 4.8864e-07" rpy="1.54444072 -1.568900991 -0.3034936911">
+      <mass value="0.085445" />
+      <inertia ixx="5.48211e-05" iyy="4.96646e-05" izz="3.57798e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_wrist_pitch_link">
+    <inertial xyz="0.0229999 -0.00111685 -0.00111658" rpy="1.636450635 -0.7821414729 1.571082072">
+      <mass value="0.48405" />
+      <inertia ixx="0.000430353" iyy="0.000429873" izz="0.000164648" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_wrist_yaw_link">
+    <inertial xyz="0.0708244 0.000191745 0.00161742" rpy="1.562956493 -0.04116227463 1.495323705">
+      <mass value="0.254576" />
+      <inertia ixx="0.000646113" iyy="0.000559993" izz="0.000147566" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_pitch_link">
+    <inertial xyz="0 -0.035892 -0.011628" rpy="-0.4983489685 0.4607917477 1.409520027">
+      <mass value="0.718" />
+      <inertia ixx="0.000465864" iyy="0.000432842" izz="0.000406394" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_roll_link">
+    <inertial xyz="-0.000227 -0.00727 -0.063243" rpy="-0.03765900888 -0.0180045505 1.555083157">
+      <mass value="0.643" />
+      <inertia ixx="0.000691311" iyy="0.000618011" izz="0.000388977" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_yaw_link">
+    <inertial xyz="0.010773 0.002949 -0.072009" rpy="-0.2340493243 -0.03511334885 1.617290588">
+      <mass value="0.734" />
+      <inertia ixx="0.00106187" iyy="0.00103217" izz="0.000400661" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_elbow_link">
+    <inertial xyz="0.064956 -0.004454 -0.010062" rpy="1.683017947 0.07256700845 1.979470276">
+      <mass value="0.6" />
+      <inertia ixx="0.000443035" iyy="0.000421612" izz="0.000259353" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_elbow_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_elbow_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_wrist_roll_link">
+    <inertial xyz="0.0171394 -0.000537591 4.8864e-07" rpy="1.594627814 -1.568900991 0.3034936911">
+      <mass value="0.085445" />
+      <inertia ixx="5.48211e-05" iyy="4.96646e-05" izz="3.57798e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_roll_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_roll_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_wrist_pitch_link">
+    <inertial xyz="0.0229999 0.00111685 -0.00111658" rpy="1.636450635 0.7821414729 1.570514452">
+      <mass value="0.48405" />
+      <inertia ixx="0.000430353" iyy="0.000429873" izz="0.000164648" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_pitch_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_pitch_link" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_wrist_yaw_link">
+    <inertial xyz="0.0708244 -0.000191745 0.00161742" rpy="1.562956493 0.04116227463 1.646270127">
+      <mass value="0.254576" />
+      <inertia ixx="0.000646113" iyy="0.000559993" izz="0.000147566" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_yaw_link" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_yaw_link" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="left_hip_pitch_joint" type="revolute">
+    <origin xyz="0 0.064452 -0.1027" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="left_hip_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.5107" upper="2.8598" effort="88" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_hip_roll_joint" type="revolute">
+    <origin xyz="0 0.052 -0.030465" rpy="0 -0.1749000958 0" />
+    <parent link="left_hip_pitch_link" />
+    <child link="left_hip_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.5036" upper="2.9471" effort="139" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_hip_yaw_joint" type="revolute">
+    <origin xyz="0.025001 0 -0.12412" rpy="0 0 0" />
+    <parent link="left_hip_roll_link" />
+    <child link="left_hip_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.7376" upper="2.7376" effort="88" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_knee_joint" type="revolute">
+    <origin xyz="-0.078273 0.0021489 -0.17734" rpy="0 0.1749000958 0" />
+    <parent link="left_hip_yaw_link" />
+    <child link="left_knee_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.067267" upper="2.8598" effort="139" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 -9.4445e-05 -0.30001" rpy="0 0 0" />
+    <parent link="left_knee_link" />
+    <child link="left_ankle_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.85267" upper="0.5036" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_ankle_roll_joint" type="revolute">
+    <origin xyz="0 0 -0.017558" rpy="0 0 0" />
+    <parent link="left_ankle_pitch_link" />
+    <child link="left_ankle_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.2418" upper="0.2418" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_hip_pitch_joint" type="revolute">
+    <origin xyz="0 -0.064452 -0.1027" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="right_hip_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.5107" upper="2.8598" effort="88" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_hip_roll_joint" type="revolute">
+    <origin xyz="0 -0.052 -0.030465" rpy="0 -0.1749000958 0" />
+    <parent link="right_hip_pitch_link" />
+    <child link="right_hip_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-2.9471" upper="0.5036" effort="139" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_hip_yaw_joint" type="revolute">
+    <origin xyz="0.025001 0 -0.12412" rpy="0 0 0" />
+    <parent link="right_hip_roll_link" />
+    <child link="right_hip_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.7376" upper="2.7376" effort="88" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_knee_joint" type="revolute">
+    <origin xyz="-0.078273 -0.0021489 -0.17734" rpy="0 0.1749000958 0" />
+    <parent link="right_hip_yaw_link" />
+    <child link="right_knee_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.067267" upper="2.8598" effort="139" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 9.4445e-05 -0.30001" rpy="0 0 0" />
+    <parent link="right_knee_link" />
+    <child link="right_ankle_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.85267" upper="0.5036" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_ankle_roll_joint" type="revolute">
+    <origin xyz="0 0 -0.017558" rpy="0 0 0" />
+    <parent link="right_ankle_pitch_link" />
+    <child link="right_ankle_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.2418" upper="0.2418" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="waist_yaw_joint" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="waist_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.598" upper="2.598" effort="88" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="waist_roll_joint" type="revolute">
+    <origin xyz="-0.0039635 0 0.044" rpy="0 0 0" />
+    <parent link="waist_yaw_link" />
+    <child link="waist_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.5" upper="0.5" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="waist_pitch_joint" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="waist_roll_link" />
+    <child link="torso_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.5" upper="0.5" effort="50" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0039563 0.10022 0.24778" rpy="0.2793089849 5.494888304e-05 -0.0001915899239" />
+    <parent link="torso_link" />
+    <child link="left_shoulder_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.0692" upper="2.6504" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_shoulder_roll_joint" type="revolute">
+    <origin xyz="0 0.038 -0.013831" rpy="-0.279250397 0 0" />
+    <parent link="left_shoulder_pitch_link" />
+    <child link="left_shoulder_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.5682" upper="2.2315" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_shoulder_yaw_joint" type="revolute">
+    <origin xyz="0 0.00624 -0.1032" rpy="0 0 0" />
+    <parent link="left_shoulder_roll_link" />
+    <child link="left_shoulder_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.598" upper="2.598" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_elbow_joint" type="revolute">
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0" />
+    <parent link="left_shoulder_yaw_link" />
+    <child link="left_elbow_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.0272" upper="2.0744" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_wrist_roll_joint" type="revolute">
+    <origin xyz="0.1 0.00188791 -0.01" rpy="0 0 0" />
+    <parent link="left_elbow_link" />
+    <child link="left_wrist_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.95222" upper="1.95222" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_wrist_pitch_joint" type="revolute">
+    <origin xyz="0.038 0 0" rpy="0 0 0" />
+    <parent link="left_wrist_roll_link" />
+    <child link="left_wrist_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.59443" upper="1.59443" effort="5" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="left_wrist_yaw_joint" type="revolute">
+    <origin xyz="0.046 0 0" rpy="0 0 0" />
+    <parent link="left_wrist_pitch_link" />
+    <child link="left_wrist_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.59443" upper="1.59443" effort="5" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0039563 -0.10021 0.24778" rpy="-0.2793089849 5.494888304e-05 0.0001915899239" />
+    <parent link="torso_link" />
+    <child link="right_shoulder_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.0692" upper="2.6504" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_shoulder_roll_joint" type="revolute">
+    <origin xyz="0 -0.038 -0.013831" rpy="0.279250397 0 0" />
+    <parent link="right_shoulder_pitch_link" />
+    <child link="right_shoulder_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-2.2315" upper="1.5682" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_shoulder_yaw_joint" type="revolute">
+    <origin xyz="0 -0.00624 -0.1032" rpy="0 0 0" />
+    <parent link="right_shoulder_roll_link" />
+    <child link="right_shoulder_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.598" upper="2.598" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_elbow_joint" type="revolute">
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0" />
+    <parent link="right_shoulder_yaw_link" />
+    <child link="right_elbow_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.0272" upper="2.0744" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_wrist_roll_joint" type="revolute">
+    <origin xyz="0.1 -0.00188791 -0.01" rpy="0 0 0" />
+    <parent link="right_elbow_link" />
+    <child link="right_wrist_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.95222" upper="1.95222" effort="25" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_wrist_pitch_joint" type="revolute">
+    <origin xyz="0.038 0 0" rpy="0 0 0" />
+    <parent link="right_wrist_roll_link" />
+    <child link="right_wrist_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.59443" upper="1.59443" effort="5" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <joint name="right_wrist_yaw_joint" type="revolute">
+    <origin xyz="0.046 0 0" rpy="0 0 0" />
+    <parent link="right_wrist_pitch_link" />
+    <child link="right_wrist_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.59443" upper="1.59443" effort="5" velocity="20" />
+    <dynamics damping="0" friction="0.3" />
+  </joint>
+  <ros2_control name="HumanoidActuatorSystem" type="system">
+    <hardware>
+      <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
+      <param name="robot_model_path">model/source/robot_model.yaml</param>
+    </hardware>
+    <joint name="left_hip_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_hip_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_hip_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_knee_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_ankle_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_ankle_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_knee_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_ankle_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_ankle_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="waist_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="waist_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="waist_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_shoulder_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_shoulder_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_shoulder_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_elbow_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_wrist_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_wrist_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_wrist_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_shoulder_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_shoulder_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_shoulder_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_elbow_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_wrist_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_wrist_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_wrist_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+  </ros2_control>
+</robot>

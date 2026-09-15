@@ -1,0 +1,325 @@
+schema_version: 0.1.0-provisional
+source_digest_note: envelopes derived from robot_model.yaml limits; stiffness/damping/slew/power are provisional constants
+joint_count: 29
+max_consecutive_bad_cycles: 3
+feedback_max_age_us: 15000
+envelopes:
+  left_hip_pitch_joint:
+    position_min_rad: -2.5107
+    position_max_rad: 2.8598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 88.0
+    torque_peak_nm: 88.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_hip_roll_joint:
+    position_min_rad: -0.5035999999999999
+    position_max_rad: 2.9471
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 139.0
+    torque_peak_nm: 139.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_hip_yaw_joint:
+    position_min_rad: -2.7376
+    position_max_rad: 2.7376
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 88.0
+    torque_peak_nm: 88.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_knee_joint:
+    position_min_rad: -0.067267
+    position_max_rad: 2.8598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 139.0
+    torque_peak_nm: 139.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_ankle_pitch_joint:
+    position_min_rad: -0.8526699999999999
+    position_max_rad: 0.5035999999999999
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_ankle_roll_joint:
+    position_min_rad: -0.2418
+    position_max_rad: 0.2418
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_hip_pitch_joint:
+    position_min_rad: -2.5107
+    position_max_rad: 2.8598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 88.0
+    torque_peak_nm: 88.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_hip_roll_joint:
+    position_min_rad: -2.9471
+    position_max_rad: 0.5035999999999999
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 139.0
+    torque_peak_nm: 139.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_hip_yaw_joint:
+    position_min_rad: -2.7376
+    position_max_rad: 2.7376
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 88.0
+    torque_peak_nm: 88.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_knee_joint:
+    position_min_rad: -0.067267
+    position_max_rad: 2.8598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 139.0
+    torque_peak_nm: 139.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_ankle_pitch_joint:
+    position_min_rad: -0.8526699999999999
+    position_max_rad: 0.5035999999999999
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_ankle_roll_joint:
+    position_min_rad: -0.2418
+    position_max_rad: 0.2418
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  waist_yaw_joint:
+    position_min_rad: -2.598
+    position_max_rad: 2.598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 88.0
+    torque_peak_nm: 88.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  waist_roll_joint:
+    position_min_rad: -0.5
+    position_max_rad: 0.5
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  waist_pitch_joint:
+    position_min_rad: -0.5
+    position_max_rad: 0.5
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 50.0
+    torque_peak_nm: 50.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_shoulder_pitch_joint:
+    position_min_rad: -3.0692
+    position_max_rad: 2.6504
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_shoulder_roll_joint:
+    position_min_rad: -1.5682
+    position_max_rad: 2.2315
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_shoulder_yaw_joint:
+    position_min_rad: -2.598
+    position_max_rad: 2.598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_elbow_joint:
+    position_min_rad: -1.0272
+    position_max_rad: 2.0744
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_wrist_roll_joint:
+    position_min_rad: -1.95222
+    position_max_rad: 1.95222
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_wrist_pitch_joint:
+    position_min_rad: -1.59443
+    position_max_rad: 1.59443
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 5.0
+    torque_peak_nm: 5.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  left_wrist_yaw_joint:
+    position_min_rad: -1.59443
+    position_max_rad: 1.59443
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 5.0
+    torque_peak_nm: 5.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_shoulder_pitch_joint:
+    position_min_rad: -3.0692
+    position_max_rad: 2.6504
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_shoulder_roll_joint:
+    position_min_rad: -2.2315
+    position_max_rad: 1.5682
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_shoulder_yaw_joint:
+    position_min_rad: -2.598
+    position_max_rad: 2.598
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_elbow_joint:
+    position_min_rad: -1.0272
+    position_max_rad: 2.0744
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_wrist_roll_joint:
+    position_min_rad: -1.95222
+    position_max_rad: 1.95222
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 25.0
+    torque_peak_nm: 25.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_wrist_pitch_joint:
+    position_min_rad: -1.59443
+    position_max_rad: 1.59443
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 5.0
+    torque_peak_nm: 5.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  right_wrist_yaw_joint:
+    position_min_rad: -1.59443
+    position_max_rad: 1.59443
+    velocity_max_rad_s: 20.0
+    torque_continuous_nm: 5.0
+    torque_peak_nm: 5.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 10.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
