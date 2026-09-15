@@ -71,6 +71,23 @@ def emit_urdf(model, out_path, assets_rel):
                 oe = ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
                 ET.SubElement(ve, "geometry").append(
                     ET.Element("mesh", filename=f"{assets_rel}/{mesh}"))
+        for prim in l["collision"]["primitives"]:
+            ve = ET.SubElement(le, "collision")
+            ET.SubElement(ve, "origin", xyz=fmt(prim["frame"]["xyz_m"]),
+                          rpy=fmt(prim["frame"]["rpy_rad"]))
+            geometry = ET.SubElement(ve, "geometry")
+            shape = prim["shape"]
+            dimensions = prim["dimensions_m"]
+            if shape == "box":
+                ET.SubElement(geometry, "box", size=fmt([2.0 * x for x in dimensions]))
+            elif shape == "sphere":
+                ET.SubElement(geometry, "sphere", radius=f"{dimensions[0]:.10g}")
+            elif shape == "cylinder":
+                ET.SubElement(geometry, "cylinder", radius=f"{dimensions[0]:.10g}",
+                              length=f"{2.0 * dimensions[1]:.10g}")
+            elif shape == "capsule":
+                ET.SubElement(geometry, "capsule", radius=f"{dimensions[0]:.10g}",
+                              length=f"{2.0 * dimensions[1]:.10g}")
 
     for j in joints:
         je = ET.SubElement(robot, "joint", name=j["name"],
@@ -178,7 +195,7 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
                                          f"{j['limits']['hard_stop_upper_rad']:.10g}")
                 je.set("damping", f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}")
                 je.set("frictionloss", f"{num_or(tr['friction_coulomb_nm']):.10g}")
-                je.set("armature", f"{num_or(tr.get('armature_kg_m2', 0.0)):.10g}")
+                je.set("armature", f"{num_or(tr['armature_kg_m2']):.10g}")
         for cj in kids.get(link_name, []):
             add_body(be, cj["child_link"], False)
 

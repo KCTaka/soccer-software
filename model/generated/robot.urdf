@@ -125,6 +125,30 @@
         <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_roll_link" />
       </geometry>
     </collision>
+    <collision>
+      <origin xyz="-0.05 0.025 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.05 -0.025 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 0.03 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 -0.03 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
   </link>
   <link name="right_hip_pitch_link">
     <inertial xyz="0.002741 -0.047791 -0.02606" rpy="-0.598816898 0.04008100898 -0.07544490693">
@@ -233,6 +257,30 @@
         <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_roll_link" />
       </geometry>
     </collision>
+    <collision>
+      <origin xyz="-0.05 0.025 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.05 -0.025 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 0.03 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.12 -0.03 -0.03" rpy="0 0 0" />
+      <geometry>
+        <sphere radius="0.005" />
+      </geometry>
+    </collision>
   </link>
   <link name="waist_yaw_link">
     <inertial xyz="0.003494 0.000233 0.018034" rpy="-0.9922858548 -1.436472895 -3.071000374">
@@ -305,6 +353,12 @@
         <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_pitch_link" />
       </geometry>
     </collision>
+    <collision>
+      <origin xyz="0 0.04 -0.01" rpy="3.141592654 1.570796327 3.141592654" />
+      <geometry>
+        <cylinder radius="0.03" length="0.05" />
+      </geometry>
+    </collision>
   </link>
   <link name="left_shoulder_roll_link">
     <inertial xyz="-0.000227 0.00727 -0.063243" rpy="-0.03765900888 0.0180045505 1.586509353">
@@ -321,6 +375,12 @@
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_roll_link" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.004 0.006 -0.053" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.03" />
       </geometry>
     </collision>
   </link>
@@ -431,6 +491,12 @@
         <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_pitch_link" />
       </geometry>
     </collision>
+    <collision>
+      <origin xyz="0 -0.04 -0.01" rpy="3.141592654 1.570796327 3.141592654" />
+      <geometry>
+        <cylinder radius="0.03" length="0.05" />
+      </geometry>
+    </collision>
   </link>
   <link name="right_shoulder_roll_link">
     <inertial xyz="-0.000227 -0.00727 -0.063243" rpy="-0.03765900888 -0.0180045505 1.555083157">
@@ -447,6 +513,12 @@
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_roll_link" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-0.004 -0.006 -0.053" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.03" length="0.03" />
       </geometry>
     </collision>
   </link>

@@ -108,6 +108,7 @@ def make_transmission(attrs):
         "stiffness_nm_rad": "NR",
         "friction_coulomb_nm": float(attrs.get("frictionloss", 0.0)),
         "friction_viscous_nm_s_rad": float(attrs.get("damping", 0.0)),
+        "armature_kg_m2": float(attrs.get("armature", 0.0)),
     }
 
 def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_defaults):
@@ -168,10 +169,6 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
             else:
                 ctx.warnings.append(f"{name}: multiple mesh geoms; only first kept in schema record")
         elif gt in ("box", "cylinder", "sphere", "capsule"):
-            raw_sz = [float(x) for x in (g.get("size") or "").split()]
-            # Pad size to 3 elements (sphere has 1, capsule/cylinder have 2, box has 3)
-            dim = (raw_sz + [0.0] * 3)[:3]
-        elif gt in ("box", "cylinder", "sphere", "capsule"):
             prims.append({"shape": gt,
                 "frame": {"xyz_m": gpos, "rpy_rad": quat_to_rpy(gquat)},
                 "dimensions_m": geom_size(attrs.get("size"))})
@@ -199,7 +196,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "positive_direction": {
                     "description": (f"Provisional: positive follows the MJCF right-hand rule about "
                                     f"axis {axis} in link {name}. Not physically verified."),
-                    "photo": "PROVISIONAL", "verified_by": None},
+                    "photo": None, "verified_by": None},
                 "limits": make_limits(lo, hi, torque, ctx),
                 "transmission": make_transmission(attrs),
                 "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0,
@@ -214,7 +211,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "origin": {"xyz_m": pos, "rpy_rad": quat_to_rpy(quat)},
                 "axis": [0.0, 0.0, 1.0],
                 "positive_direction": {"description": "Fixed joint; no motion axis.",
-                                       "photo": "PROVISIONAL", "verified_by": None},
+                                       "photo": None, "verified_by": None},
                 "limits": make_limits(0.0, 0.0, PROVISIONAL_TORQUE_NM, ctx, fixed=True),
                 "transmission": make_transmission({}),
                 "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0,
@@ -275,10 +272,10 @@ def ingest(config_path, out_path, overlay_out_path):
         act_name = (act["name"] if act else f"{j['name']}_act").lower().replace("-", "_")
         nr_enc = {"bits": "NR", "min": "NR", "max": "NR", "endianness": "NR"}
         ctx.actuators.append({
-            "name": act_name, "motor_class": "RS00",
+            "name": act_name, "motor_class": "PROVISIONAL",
             "bus_segment": "sim0", "can_node_id": len(ctx.actuators),
             "mit_encoding": {
-                "verified_by": "unverified",
+                "verified_by": "NR",
                 "position": dict(nr_enc), "velocity": dict(nr_enc), "effort": dict(nr_enc),
                 "stiffness": dict(nr_enc), "damping": dict(nr_enc),
                 "frames_per_cycle_command": "NR", "frames_per_cycle_feedback": "NR",
@@ -298,7 +295,7 @@ def ingest(config_path, out_path, overlay_out_path):
         "schema_version": SCHEMA_VERSION,
         "robot": {"name": cfg["model_name"], "size_class": "kidsize",
                   "root_link": ctx.root_link, "total_mass_measured_kg": None,
-                  "zero_pose_photo": "PROVISIONAL"},
+                  "zero_pose_photo": None},
         "provenance": {"generated_from": [src_ref],
                        "ingest_tool_version": cfg["ingest_tool_version"],
                        "source_digests": digests},

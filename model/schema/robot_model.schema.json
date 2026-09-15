@@ -200,7 +200,8 @@
                     "type": "array",
                     "items": { "type": "number", "exclusiveMinimum": 0 },
                     "minItems": 1,
-                    "maxItems": 3
+                    "maxItems": 3,
+                    "description": "MJCF-native: sphere [r]; cylinder/capsule [r, half_len]; box half-extents [x/2, y/2, z/2]. URDF emitters must double box dimensions."
                   }
                 }
               }
@@ -246,7 +247,12 @@
           "description": "A physical description, not a view-dependent one. 'CCW' alone is rejected at review because it depends on the viewpoint.",
           "properties": {
             "description": { "type": "string", "minLength": 10 },
-            "photo": { "type": "string", "minLength": 1 },
+            "photo": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ]
+            },
             "verified_by": {
               "oneOf": [
                 { "type": "string", "minLength": 1 },
@@ -302,6 +308,7 @@
           ],
           "properties": {
             "gear_ratio": { "type": "number", "exclusiveMinimum": 0 },
+            "armature_kg_m2": { "$ref": "#/$defs/number_or_nr" },
             "direction_sign": {
               "enum": [-1, 1],
               "description": "Kept separate from gear_ratio magnitude so a sign error cannot hide inside a ratio and so G1 can verify it independently."
@@ -347,7 +354,7 @@
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
-        "motor_class": { "enum": ["RS00", "RS02", "RS03", "RS05", "RS06"] },
+        "motor_class": { "enum": ["RS00", "RS02", "RS03", "RS05", "RS06", "PROVISIONAL"] },
         "bus_segment": {
           "type": "string",
           "minLength": 1,
@@ -378,7 +385,7 @@
           "properties": {
             "verified_by": {
               "oneOf": [
-                { "type": "string", "minLength": 1 },
+                { "type": "string", "minLength": 1, "not": { "const": "NR" } },
                 { "$ref": "#/$defs/nr" }
               ]
             },
@@ -523,7 +530,12 @@
           ],
           "description": "Weighed, not summed. Reconciled against the sum of link masses in G2."
         },
-        "zero_pose_photo": { "type": "string", "minLength": 1 }
+        "zero_pose_photo": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ]
+        }
       }
     },
 
