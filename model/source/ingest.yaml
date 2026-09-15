@@ -1,0 +1,11 @@
+# Hand-authored. Determinism rule (model-gate-0 §5.4): exported_at and
+# ingest_tool_version are CONSTANTS here, never read from the clock or tool.
+model_name: unitree_g1
+source:
+  repository: https://github.com/google-deepmind/mujoco_menagerie
+  commit: 8161bba264d7fa7c99ca301e91e7fb44737676ad # ADR-009-02: pin before first ingest
+  mjcf: model/source/menagerie/unitree_g1/g1.xml
+  assets_dir: model/source/menagerie/unitree_g1/assets
+ingest_tool_version: "0.1.0"
+exported_at: "2026-09-03T00:00:00Z"
+exported_by: "model/generators/ingest.py"

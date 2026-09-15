@@ -1,0 +1,714 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/humanoid-soccer/model/schema/robot_model.schema.json",
+  "title": "Humanoid robot model - source of truth",
+  "description": "Schema for model/robot_model.yaml. This file is THE source of truth; URDF, MJCF, SDF, USD, ros2_control configuration, the safety manifest, and the firmware joint table are all generated siblings and are never inputs. Draft 2020-12. NOTE: no `default` keyword appears anywhere in this schema. A default is a silent value, and every silent value in this pipeline is a defect.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "robot",
+    "provenance",
+    "links",
+    "joints",
+    "actuators",
+    "closed_loops",
+    "emission",
+    "simulation"
+  ],
+
+  "$defs": {
+    "nr": {
+      "const": "NR",
+      "description": "Not reported. Never means zero. Records which gates the absence blocks."
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,62}$",
+      "description": "Lower snake_case. Used verbatim as a URDF/MJCF name and as a C identifier in the generated firmware joint table."
+    },
+    "vector3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "unit_vector3": {
+      "$ref": "#/$defs/vector3",
+      "description": "Must normalise to 1 within 1e-9. JSON Schema cannot express this; validator check K-02."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "iso_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "number_or_nr": {
+      "oneOf": [{ "type": "number" }, { "$ref": "#/$defs/nr" }]
+    },
+
+    "cad_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cad_system",
+        "document_id",
+        "version_or_configuration",
+        "exported_at",
+        "exported_by"
+      ],
+      "properties": {
+        "cad_system": {
+          "enum": ["onshape", "solidworks", "measured", "derived"],
+          "description": "Onshape is primary, SolidWorks is fallback. `measured` means a physical measurement, `derived` means computed by the ingest tool from other declared inputs."
+        },
+        "document_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Onshape document/workspace/element id, or SolidWorks file path plus revision."
+        },
+        "version_or_configuration": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Onshape version id or SolidWorks configuration name. A CAD export with no version is not reproducible."
+        },
+        "exported_at": { "$ref": "#/$defs/iso_datetime" },
+        "exported_by": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "inertia": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The reference point is REQUIRED and has no default. This is the single most common silent error in a robot model: an inertia tensor taken about the link origin but consumed as if it were about the centre of mass differs by the parallel-axis term m(|r|^2 I - r r^T), which is the same order as the tensor itself for a typical limb segment.",
+      "required": [
+        "reference_point",
+        "reference_frame",
+        "ixx_kg_m2",
+        "iyy_kg_m2",
+        "izz_kg_m2",
+        "ixy_kg_m2",
+        "ixz_kg_m2",
+        "iyz_kg_m2",
+        "provenance"
+      ],
+      "properties": {
+        "reference_point": {
+          "enum": ["com", "link_origin"],
+          "description": "Exactly two permitted values so the exporter cannot omit the decision and the ingester cannot assume it. When `link_origin`, the ingest tool applies the parallel-axis shift and records that it did."
+        },
+        "reference_frame": {
+          "enum": ["link", "principal"],
+          "description": "`link` means resolved in the link frame defined by this link's `frame` block. `principal` means the tensor is diagonal in its own principal axes, which then requires `principal_axes_rpy_rad`."
+        },
+        "principal_axes_rpy_rad": {
+          "oneOf": [{ "$ref": "#/$defs/vector3" }, { "type": "null" }],
+          "description": "Required to be non-null when reference_frame is `principal`. Validator check M-04."
+        },
+        "ixx_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
+        "iyy_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
+        "izz_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
+        "ixy_kg_m2": { "type": "number" },
+        "ixz_kg_m2": { "type": "number" },
+        "iyz_kg_m2": { "type": "number" },
+        "provenance": { "$ref": "#/$defs/cad_provenance" }
+      },
+      "if": {
+        "properties": { "reference_frame": { "const": "principal" } },
+        "required": ["reference_frame"]
+      },
+      "then": {
+        "properties": {
+          "principal_axes_rpy_rad": { "$ref": "#/$defs/vector3" }
+        },
+        "required": ["principal_axes_rpy_rad"]
+      }
+    },
+
+    "mass": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Both a CAD value and a weighed value are required to be present as keys. `measured_kg` may be null before the part exists, but the key may not be absent - absence is indistinguishable from an oversight.",
+      "required": ["cad_kg", "measured_kg", "provenance"],
+      "properties": {
+        "cad_kg": { "type": "number", "exclusiveMinimum": 0 },
+        "measured_kg": {
+          "oneOf": [
+            { "type": "number", "exclusiveMinimum": 0 },
+            { "type": "null" }
+          ]
+        },
+        "provenance": { "$ref": "#/$defs/cad_provenance" }
+      }
+    },
+
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xyz_m", "rpy_rad"],
+      "properties": {
+        "xyz_m": { "$ref": "#/$defs/vector3" },
+        "rpy_rad": { "$ref": "#/$defs/vector3" }
+      }
+    },
+
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "parent_joint",
+        "mass",
+        "com_m",
+        "inertia",
+        "visual_mesh",
+        "collision"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "parent_joint": {
+          "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }],
+          "description": "Null for exactly one link, the root. Validator check K-01."
+        },
+        "mass": { "$ref": "#/$defs/mass" },
+        "com_m": {
+          "$ref": "#/$defs/vector3",
+          "description": "Centre of mass in this link's frame."
+        },
+        "inertia": { "$ref": "#/$defs/inertia" },
+        "visual_mesh": {
+          "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }],
+          "description": "Path relative to model/source/meshes/. Null is permitted; a missing key is not."
+        },
+        "collision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primitives", "mesh"],
+          "properties": {
+            "primitives": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["shape", "frame", "dimensions_m"],
+                "properties": {
+                  "shape": { "enum": ["box", "cylinder", "sphere", "capsule"] },
+                  "frame": { "$ref": "#/$defs/frame" },
+                  "dimensions_m": {
+                    "type": "array",
+                    "items": { "type": "number", "exclusiveMinimum": 0 },
+                    "minItems": 1,
+                    "maxItems": 3
+                  }
+                }
+              }
+            },
+            "mesh": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    },
+
+    "joint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "parent_link",
+        "child_link",
+        "origin",
+        "axis",
+        "positive_direction",
+        "limits",
+        "transmission",
+        "calibration",
+        "actuator"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "type": { "enum": ["revolute", "continuous", "prismatic", "fixed"] },
+        "parent_link": { "$ref": "#/$defs/identifier" },
+        "child_link": { "$ref": "#/$defs/identifier" },
+        "origin": { "$ref": "#/$defs/frame" },
+        "axis": { "$ref": "#/$defs/unit_vector3" },
+        "positive_direction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "photo", "verified_by"],
+          "description": "A physical description, not a view-dependent one. 'CCW' alone is rejected at review because it depends on the viewpoint.",
+          "properties": {
+            "description": { "type": "string", "minLength": 10 },
+            "photo": { "type": "string", "minLength": 1 },
+            "verified_by": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ],
+              "description": "G1 single-joint jog test record id. Null until the test is run."
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hard_stop_lower_rad",
+            "hard_stop_upper_rad",
+            "software_lower_rad",
+            "software_upper_rad",
+            "velocity_rad_s",
+            "velocity_limit_origin",
+            "effort_continuous_nm",
+            "effort_peak_nm",
+            "effort_peak_duration_s"
+          ],
+          "properties": {
+            "hard_stop_lower_rad": { "type": "number" },
+            "hard_stop_upper_rad": { "type": "number" },
+            "software_lower_rad": { "type": "number" },
+            "software_upper_rad": { "type": "number" },
+            "velocity_rad_s": { "type": "number", "exclusiveMinimum": 0 },
+            "velocity_limit_origin": {
+              "enum": ["mechanical", "thermal", "drive"],
+              "description": "Which constraint binds. A velocity limit without its origin cannot be re-derived when the drive changes."
+            },
+            "effort_continuous_nm": { "type": "number", "exclusiveMinimum": 0 },
+            "effort_peak_nm": { "type": "number", "exclusiveMinimum": 0 },
+            "effort_peak_duration_s": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "A peak torque without a duration is unusable. Required, never null."
+            }
+          }
+        },
+        "transmission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gear_ratio",
+            "direction_sign",
+            "backlash_rad",
+            "stiffness_nm_rad",
+            "friction_coulomb_nm",
+            "friction_viscous_nm_s_rad"
+          ],
+          "properties": {
+            "gear_ratio": { "type": "number", "exclusiveMinimum": 0 },
+            "direction_sign": {
+              "enum": [-1, 1],
+              "description": "Kept separate from gear_ratio magnitude so a sign error cannot hide inside a ratio and so G1 can verify it independently."
+            },
+            "backlash_rad": { "$ref": "#/$defs/number_or_nr" },
+            "stiffness_nm_rad": { "$ref": "#/$defs/number_or_nr" },
+            "friction_coulomb_nm": { "$ref": "#/$defs/number_or_nr" },
+            "friction_viscous_nm_s_rad": { "$ref": "#/$defs/number_or_nr" }
+          }
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["zero_offset_rad", "zero_pose_value_rad", "measured_at"],
+          "description": "Joint zero offsets are the only calibration class in the ADR-002 startup interlock, because a zero error shifts the entire SafetyKernel envelope.",
+          "properties": {
+            "zero_offset_rad": {
+              "oneOf": [{ "type": "number" }, { "type": "null" }]
+            },
+            "zero_pose_value_rad": { "type": "number" },
+            "measured_at": {
+              "oneOf": [{ "$ref": "#/$defs/iso_datetime" }, { "type": "null" }]
+            }
+          }
+        },
+        "actuator": {
+          "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }],
+          "description": "Name of an entry in `actuators`. Null only for `fixed` joints. Validator check A-01."
+        }
+      }
+    },
+
+    "actuator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "motor_class",
+        "bus_segment",
+        "can_node_id",
+        "mit_encoding",
+        "thermal"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "motor_class": { "enum": ["RS00", "RS02", "RS03", "RS05", "RS06"] },
+        "bus_segment": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Feeds the HW-13 per-segment utilisation arithmetic."
+        },
+        "can_node_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 536870911,
+          "description": "29-bit extended identifier space."
+        },
+        "mit_encoding": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "UNVERIFIED until the section 6 bench test completes. Every field here is a hypothesis, not a specification. `verified_by` must name a bench record before G3 can pass.",
+          "required": [
+            "verified_by",
+            "position",
+            "velocity",
+            "effort",
+            "stiffness",
+            "damping",
+            "frames_per_cycle_command",
+            "frames_per_cycle_feedback",
+            "dlc_command_bytes",
+            "dlc_feedback_bytes"
+          ],
+          "properties": {
+            "verified_by": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "$ref": "#/$defs/nr" }
+              ]
+            },
+            "position": { "$ref": "#/$defs/field_encoding" },
+            "velocity": { "$ref": "#/$defs/field_encoding" },
+            "effort": { "$ref": "#/$defs/field_encoding" },
+            "stiffness": { "$ref": "#/$defs/field_encoding" },
+            "damping": { "$ref": "#/$defs/field_encoding" },
+            "frames_per_cycle_command": {
+              "oneOf": [
+                { "type": "integer", "minimum": 1 },
+                { "$ref": "#/$defs/nr" }
+              ],
+              "description": "The integer that determines whether the current bus topology can carry the robot. HW-13 assumes 1 and that assumption is unverified."
+            },
+            "frames_per_cycle_feedback": {
+              "oneOf": [
+                { "type": "integer", "minimum": 1 },
+                { "$ref": "#/$defs/nr" }
+              ]
+            },
+            "dlc_command_bytes": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0, "maximum": 64 },
+                { "$ref": "#/$defs/nr" }
+              ]
+            },
+            "dlc_feedback_bytes": {
+              "oneOf": [
+                { "type": "integer", "minimum": 0, "maximum": 64 },
+                { "$ref": "#/$defs/nr" }
+              ]
+            }
+          }
+        },
+        "thermal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["derating_curve", "measured"],
+          "description": "ADR-002 defines allowed torque as a function of temperature and voltage. Without a derating curve that function is a constant, and the safety envelope is weaker than it claims.",
+          "properties": {
+            "derating_curve": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["temperature_c", "max_torque_nm"],
+                    "properties": {
+                      "temperature_c": { "type": "number" },
+                      "max_torque_nm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
+                  }
+                },
+                { "$ref": "#/$defs/nr" }
+              ]
+            },
+            "measured": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "field_encoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bits", "min", "max", "endianness"],
+      "description": "Determines the quantisation floor of every command the robot can express.",
+      "properties": {
+        "bits": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 64 },
+            { "$ref": "#/$defs/nr" }
+          ]
+        },
+        "min": { "$ref": "#/$defs/number_or_nr" },
+        "max": { "$ref": "#/$defs/number_or_nr" },
+        "endianness": {
+          "oneOf": [{ "enum": ["little", "big"] }, { "$ref": "#/$defs/nr" }]
+        }
+      }
+    },
+
+    "closed_loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "member_links", "constraint", "urdf_policy"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "kind": {
+          "enum": ["four_bar", "parallel_ankle", "differential", "other"]
+        },
+        "member_links": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "constraint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mjcf_equality", "anchor_link", "anchor_point_m"],
+          "properties": {
+            "mjcf_equality": { "enum": ["connect", "weld", "joint"] },
+            "anchor_link": { "$ref": "#/$defs/identifier" },
+            "anchor_point_m": { "$ref": "#/$defs/vector3" }
+          }
+        },
+        "urdf_policy": {
+          "const": "exclude_subassembly",
+          "description": "The only permitted policy. URDF cannot represent a closed loop; approximating it as a serial chain is silently wrong, and failing the whole build is unnecessary when MJCF and SDF both represent it natively."
+        }
+      }
+    }
+  },
+
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+
+    "robot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "size_class",
+        "root_link",
+        "total_mass_measured_kg",
+        "zero_pose_photo"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "size_class": { "const": "kidsize" },
+        "root_link": { "$ref": "#/$defs/identifier" },
+        "total_mass_measured_kg": {
+          "oneOf": [
+            { "type": "number", "exclusiveMinimum": 0 },
+            { "type": "null" }
+          ],
+          "description": "Weighed, not summed. Reconciled against the sum of link masses in G2."
+        },
+        "zero_pose_photo": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generated_from", "ingest_tool_version", "source_digests"],
+      "properties": {
+        "generated_from": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "ingest_tool_version": { "type": "string", "minLength": 1 },
+        "source_digests": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/sha256" },
+          "description": "SHA-256 of every file under model/source/ that contributed. ADR-009-02: an input that is not pinned by content identity is not an input."
+        }
+      }
+    },
+
+    "links": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/link" }
+    },
+
+    "joints": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/joint" }
+    },
+
+    "actuators": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/actuator" }
+    },
+
+    "closed_loops": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/closed_loop" },
+      "description": "Baseline is an empty array: open serial chains. A non-empty array forces emission.urdf.mode to partial_with_exclusions."
+    },
+
+    "emission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urdf", "mjcf", "sdf", "usd"],
+      "properties": {
+        "urdf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "mode", "excluded_links"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "mode": { "enum": ["full_tree", "partial_with_exclusions"] },
+            "excluded_links": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        },
+        "mjcf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": { "enabled": { "const": true } }
+        },
+        "sdf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "usd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": { "enabled": { "type": "boolean" } }
+        }
+      }
+    },
+
+    "simulation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mjcf_compiler"],
+      "properties": {
+        "mjcf_compiler": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Every attribute is pinned by `const` where a non-default value would silently rewrite measured data, and required-but-free where MuJoCo documents that the default differs between URDF and MJCF. The generator emits all of these explicitly and never relies on a default.",
+          "required": [
+            "balanceinertia",
+            "boundmass",
+            "boundinertia",
+            "settotalmass",
+            "inertiafromgeom",
+            "strippath",
+            "angle",
+            "fusestatic",
+            "discardvisual"
+          ],
+          "properties": {
+            "balanceinertia": {
+              "const": false,
+              "description": "PROHIBITED to enable. MuJoCo: a valid diagonal inertia must satisfy A+B>=C for all permutations; violations 'will normally result in a compile error'; with this true 'the compiler will silently set all three diagonal elements to their average value'. Enabling it replaces the hardware team's measurement with an average and converts the free G2 validator into a silent corrupter."
+            },
+            "boundmass": {
+              "const": 0,
+              "description": "A positive lower bound silently raises a measured mass."
+            },
+            "boundinertia": {
+              "const": 0,
+              "description": "A positive lower bound silently raises a measured diagonal inertia."
+            },
+            "settotalmass": {
+              "const": -1,
+              "description": "A positive value silently rescales every mass in the model to hit a target total."
+            },
+            "inertiafromgeom": {
+              "enum": ["false"],
+              "description": "Inertia comes from the measured tensors, never inferred from collision geometry."
+            },
+            "strippath": {
+              "type": "boolean",
+              "description": "MuJoCo documents that this default DIFFERS between URDF and MJCF. Pinned explicitly so the two emissions cannot diverge."
+            },
+            "angle": {
+              "const": "radian",
+              "description": "Default differs between URDF and MJCF. Pinned to radian to match the schema's units and ADR-001's interface units."
+            },
+            "fusestatic": {
+              "const": "false",
+              "description": "Default differs between URDF and MJCF. Fusing static bodies destroys link identity, which breaks correlation against the URDF model and the firmware joint table."
+            },
+            "discardvisual": {
+              "type": "boolean",
+              "description": "Default differs between URDF and MJCF. Pinned explicitly."
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "closed_loops": { "minItems": 1 } },
+        "required": ["closed_loops"]
+      },
+      "then": {
+        "properties": {
+          "emission": {
+            "properties": {
+              "urdf": {
+                "properties": { "mode": { "const": "partial_with_exclusions" } }
+              }
+            }
+          }
+        },
+        "description": "A declared closed loop forces partial URDF emission. The two cannot disagree."
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "emission": {
+            "properties": {
+              "urdf": { "properties": { "mode": { "const": "full_tree" } } }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "emission": {
+            "properties": {
+              "urdf": { "properties": { "excluded_links": { "maxItems": 0 } } }
+            }
+          }
+        },
+        "description": "A full-tree URDF may not exclude links."
+      }
+    }
+  ]
+}
