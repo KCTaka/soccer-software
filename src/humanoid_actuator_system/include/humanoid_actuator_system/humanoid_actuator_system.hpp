@@ -126,6 +126,11 @@ private:
 
   transport::JointManifest joint_manifest_{};
   transport::SafetyManifest safety_manifest_{};
+  
+  std::vector<std::string> joint_names_;
+  std::vector<double> command_storage_;
+  std::vector<double> state_storage_;
+  hardware_interface::HardwareInfo info_;
 
   // Preallocated. Nothing in the cycle may allocate.
   transport::CommandBatch command_snapshot_{};

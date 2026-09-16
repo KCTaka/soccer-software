@@ -12,12 +12,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
 endif()
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
+  ament_index_cpp
   hardware_interface
   humanoid_safety
   humanoid_transport
   pluginlib
   rclcpp
   rclcpp_lifecycle
+  yaml-cpp
 )
 
 find_package(ament_cmake REQUIRED)
@@ -35,12 +37,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # Namespaced targets, matching what ros2_control 4.47.0 itself links against.
 target_link_libraries(${PROJECT_NAME} PUBLIC
+  ament_index_cpp::ament_index_cpp
   hardware_interface::hardware_interface
   humanoid_safety::humanoid_safety
   humanoid_transport::humanoid_transport
   pluginlib::pluginlib
   rclcpp::rclcpp
-  rclcpp_lifecycle::rclcpp_lifecycle)
+  rclcpp_lifecycle::rclcpp_lifecycle
+  yaml-cpp)
 
 pluginlib_export_plugin_description_file(hardware_interface humanoid_actuator_system_plugin.xml)
 

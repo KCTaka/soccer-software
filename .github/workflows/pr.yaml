@@ -30,7 +30,7 @@ jobs:
             platform: linux/arm64
     runs-on: ${{ matrix.runner }}
     container:
-      image: ghcr.io/kctaka/soccer-software/builder:main # Use main branch builder
+      image: ghcr.io/utra-robosoccer/soccer-software/builder:main # Use main branch builder
       options: --user root
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
