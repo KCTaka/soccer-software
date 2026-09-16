@@ -4,16 +4,18 @@ FROM ubuntu@sha256:224a1869083a311ef3f13648a154ba79832fbef6364d31493642ca03082da
 ARG COLCON_COMMON_EXTENSIONS_VERSION=0.3.0
 ARG ROSDEP_VERSION=0.27.0
 ARG VCSTOOL_VERSION=0.3.0
-ARG PYYAML_VERSION=6.0.2
+ARG MUJOCO_VERSION=3.2.7
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     RMW_IMPLEMENTATION=rmw_zenoh_cpp \
-    ROS_DISTRO=jazzy
+    ROS_DISTRO=jazzy \
+    CMAKE_PREFIX_PATH=/opt/mujoco
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# pyyaml is installed automatically
 RUN apt-get update && apt-get install --no-install-recommends -y \
       ca-certificates \
       curl \
@@ -46,11 +48,20 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       python3-rosdep \
  && rm -rf /var/lib/apt/lists/*
 
+# Download MuJoCo C++ binaries for the active architecture (amd64 or arm64)
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then MUJOCO_ARCH="x86_64"; \
+    elif [ "$ARCH" = "arm64" ]; then MUJOCO_ARCH="aarch64"; \
+    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
+    curl -fsSL "https://github.com/google-deepmind/mujoco/releases/download/${MUJOCO_VERSION}/mujoco-${MUJOCO_VERSION}-linux-${MUJOCO_ARCH}.tar.gz" \
+    | tar -xz -C /opt/ \
+ && ln -s /opt/mujoco-${MUJOCO_VERSION} /opt/mujoco
+
 RUN python3 -m pip install --no-cache-dir --break-system-packages \
       "colcon-common-extensions==${COLCON_COMMON_EXTENSIONS_VERSION}" \
       "rosdep==${ROSDEP_VERSION}" \
       "vcstool==${VCSTOOL_VERSION}" \
-      "pyyaml==${PYYAML_VERSION}"
+      "mujoco==${MUJOCO_VERSION}"
 
 WORKDIR /ws
 COPY tools/pin_audit.py /usr/local/bin/pin_audit.py

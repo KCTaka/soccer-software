@@ -1,0 +1,7 @@
+<library path="humanoid_transport_mujoco">
+  <class name="humanoid_transport_mujoco/MujocoActuatorTransport"
+         type="humanoid::transport_mujoco::MujocoActuatorTransport"
+         base_class_type="humanoid::transport::ActuatorTransport">
+    <description>MuJoCo SIL Transport implementing the ADR-001/ADR-007 seam</description>
+  </class>
+</library>
