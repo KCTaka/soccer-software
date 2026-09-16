@@ -54,6 +54,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
   const hardware_interface::HardwareComponentInterfaceParams & params)
 {
   info_ = params.hardware_info;
+  joint_names_ = joint_names_from_info(info_);
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
