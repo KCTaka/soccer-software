@@ -18,3 +18,33 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.x
       - name: Run pin audit
         run: python3 tools/pin_audit.py
+  build-and-test:
+    needs: pin-audit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ghcr.io/kctaka/soccer-software/builder:main # Use main branch builder
+      options: --user root
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      
+      - name: Build workspace
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release -Werror=dev
+          
+      - name: Test workspace
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          colcon test --packages-select humanoid_transport humanoid_safety humanoid_actuator_system
+          colcon test-result --verbose

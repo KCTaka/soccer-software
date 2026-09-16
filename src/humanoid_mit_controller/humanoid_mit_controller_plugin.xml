@@ -1,0 +1,10 @@
+<library path="humanoid_mit_controller">
+  <class name="humanoid_mit_controller/MitImpedanceController" 
+         type="humanoid::control::MitImpedanceController" 
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      200 Hz tuple owner. Claims position, velocity, effort, stiffness, and damping 
+      for all actuated joints.
+    </description>
+  </class>
+</library>
