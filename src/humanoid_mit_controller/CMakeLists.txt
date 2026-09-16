@@ -14,6 +14,7 @@ endif()
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   hardware_interface
+  humanoid_transport
   rclcpp
   rclcpp_lifecycle
   realtime_tools
@@ -35,11 +36,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
   controller_interface::controller_interface
   hardware_interface::hardware_interface
+  humanoid_transport::humanoid_transport
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
   realtime_tools::realtime_tools)
 
-pluginlib_export_plugin_description_file(controller_interface humanoid_mit_controller_plugin.xml)
+pluginlib_export_plugin_description_file(
+  controller_interface humanoid_mit_controller_plugin.xml)
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}

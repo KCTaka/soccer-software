@@ -7,18 +7,20 @@
       },
       "includePath": [
         "/opt/ros/jazzy/include/**",
+        "/opt/ros/jazzy/include/controller_interface/**",
         "/opt/mujoco/include/**",
         "/ws/src/humanoid_actuator_system/include/**",
         "/ws/src/humanoid_safety/include/**",
         "/ws/src/humanoid_transport/include/**",
         "/ws/src/humanoid_transport_mujoco/include/**",
+        "/ws/src/humanoid_mit_controller/include/**",
         "/usr/include/**"
       ],
       "name": "ros2",
       "intelliSenseMode": "gcc-x64",
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "gnu11",
-      "cppStandard": "c++17"
+      "cppStandard": "c++20"
     }
   ],
   "version": 4

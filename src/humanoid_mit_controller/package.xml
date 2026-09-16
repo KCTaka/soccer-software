@@ -4,9 +4,10 @@
   <name>humanoid_mit_controller</name>
   <version>0.1.0</version>
   <description>
-    The sole owner of the five-field MIT tuple (ADR-001). Reads from a bounded
-    non-real-time reference buffer and writes the complete snapshot to the
-    HumanoidActuatorSystem at 200 Hz.
+    MitImpedanceController: the sole owner of the five-field MIT tuple per joint (ADR-001-02).
+    Claims position, velocity, effort, stiffness, and damping for every controlled joint.
+    Reads desired references from a bounded lock-free SPSC buffer written by a non-real-time
+    producer. Never communicates over ROS, allocates, or logs inside update().
   </description>
   <maintainer email="unassigned@example.invalid">Robotics Software Team</maintainer>
   <license>Apache-2.0</license>
@@ -15,11 +16,15 @@
 
   <depend>controller_interface</depend>
   <depend>hardware_interface</depend>
+  <depend>humanoid_transport</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>realtime_tools</depend>
-  
+
   <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_cppcheck</test_depend>
+  <test_depend>ament_cmake_cpplint</test_depend>
+  <test_depend>ament_cmake_uncrustify</test_depend>
   <test_depend>ament_cmake_gmock</test_depend>
 
   <export>

@@ -39,10 +39,12 @@ RUN install -d -m 0755 /etc/apt/keyrings \
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-ros-base \
+      ros-jazzy-controller-interface \
       ros-jazzy-hardware-interface \
       ros-jazzy-pluginlib \
       ros-jazzy-rclcpp \
       ros-jazzy-rclcpp-lifecycle \
+      ros-jazzy-rmw-zenoh-cpp \
       ros-jazzy-ament-cmake \
       python3-colcon-ros \
       python3-rosdep \
