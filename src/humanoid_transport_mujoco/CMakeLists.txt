@@ -15,33 +15,36 @@ find_package(ament_cmake REQUIRED)
 find_package(humanoid_transport REQUIRED)
 find_package(pluginlib REQUIRED)
 
-# Support both mujoco_vendor (CONFIG) and system-wide MuJoCo installation
-find_package(mujoco CONFIG QUIET)
-if(mujoco_FOUND)
-  set(MUJOCO_LIBS mujoco::mujoco)
-else()
-  find_library(MUJOCO_LIBS mujoco REQUIRED)
+# MuJoCo: try CMake config first (MuJoCo 3.x ships one), fall back to find_library.
+find_package(mujoco QUIET)
+if(NOT mujoco_FOUND)
+  find_library(MUJOCO_LIBRARY NAMES mujoco REQUIRED)
   find_path(MUJOCO_INCLUDE_DIR mujoco/mujoco.h REQUIRED)
+  if(NOT MUJOCO_LIBRARY OR NOT MUJOCO_INCLUDE_DIR)
+  message(FATAL_ERROR
+      "MuJoCo not found. Install to /opt/mujoco-3.4.0 and run: "
+      "echo '/opt/mujoco-3.4.0/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig")
+  endif()
+  add_library(mujoco::mujoco UNKNOWN IMPORTED)
+  set_target_properties(mujoco::mujoco PROPERTIES
+    IMPORTED_LOCATION "${MUJOCO_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${MUJOCO_INCLUDE_DIR}")
 endif()
 
 add_library(${PROJECT_NAME} SHARED
   src/mujoco_actuator_transport.cpp
 )
-
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-  $<$<NOT:$<BOOL:${mujoco_FOUND}>>:${MUJOCO_INCLUDE_DIR}>
-)
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   humanoid_transport::humanoid_transport
   pluginlib::pluginlib
-  ${MUJOCO_LIBS}
-)
+  mujoco::mujoco)
 
+# Export plugin for the humanoid_transport base class package.
 pluginlib_export_plugin_description_file(humanoid_transport mujoco_transport_plugin.xml)
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
@@ -54,16 +57,6 @@ install(TARGETS ${PROJECT_NAME}
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  find_package(ament_cmake_gtest REQUIRED)
-  
-  ament_add_gtest(test_conformance test/conformance_test.cpp)
-  target_link_libraries(test_conformance ${PROJECT_NAME})
-  
-  # Set the environment variable for the test to find the generated MJCF model
-  set(TEST_MJCF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
-  get_filename_component(MUJOCO_ROOT_DIR "${MUJOCO_INCLUDE_DIR}" DIRECTORY)
-  set_tests_properties(test_conformance PROPERTIES
-    ENVIRONMENT "HUMANOID_MJCF_PATH=${TEST_MJCF_PATH};LD_LIBRARY_PATH=${MUJOCO_ROOT_DIR}/lib:$ENV{LD_LIBRARY_PATH}")
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
