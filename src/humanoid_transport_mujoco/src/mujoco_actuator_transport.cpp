@@ -107,6 +107,18 @@ bool MujocoActuatorTransport::configure(
   }
 
   active_ = false;
+
+  const char * push_force = std::getenv("HUMANOID_PUSH_FORCE_N");
+  const char * push_time = std::getenv("HUMANOID_PUSH_TIME_S");
+  const char * push_body = std::getenv("HUMANOID_PUSH_BODY");
+  if (push_force) push_force_n_ = std::atof(push_force);
+  if (push_time) push_time_s_ = std::atof(push_time);
+  if (push_body) push_body_id_ = mj_name2id(model_, mjOBJ_BODY, push_body);
+  if (push_force_n_ > 0.0 && push_body_id_ < 0) {
+    std::cerr << "MujocoActuatorTransport: push body not found in model\n";
+    return false;
+  }
+
   return true;
 }
 
@@ -121,6 +133,8 @@ bool MujocoActuatorTransport::activate()
   }
   // Reset simulation state to initial configuration.
   mj_resetData(model_, data_);
+  push_started_ = false;
+  push_active_ = false;
   active_ = true;
   return true;
 }
@@ -193,6 +207,25 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
       cmd.effort_nm;
 
     data_->qfrc_applied[dof] = tau;
+  }
+
+  // Apply a single lateral force pulse before the first step at or after the
+  // configured simulation time. MuJoCo retains xfrc_applied until cleared.
+  constexpr double kPushDurationS = 0.2;
+  const double sim_time = data_->time;
+  if (push_force_n_ > 0.0 && push_body_id_ >= 0) {
+    if (!push_started_ && sim_time >= push_time_s_) {
+      push_started_ = true;
+      push_active_ = true;
+    }
+    if (push_active_) {
+      if (sim_time < push_time_s_ + kPushDurationS) {
+        data_->xfrc_applied[6 * push_body_id_ + push_axis_] = push_force_n_;
+      } else {
+        data_->xfrc_applied[6 * push_body_id_ + push_axis_] = 0.0;
+        push_active_ = false;
+      }
+    }
   }
 
   // --- Step physics: n_substeps of dt_physics ---

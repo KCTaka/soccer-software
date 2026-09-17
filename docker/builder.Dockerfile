@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-ros-base \
       ros-jazzy-controller-manager \
       ros-jazzy-controller-interface \
+      ros-jazzy-ros2controlcli \
       ros-jazzy-joint-state-broadcaster \
       ros-jazzy-hardware-interface \
       ros-jazzy-pluginlib \

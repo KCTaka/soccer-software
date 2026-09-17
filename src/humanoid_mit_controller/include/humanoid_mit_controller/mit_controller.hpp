@@ -10,10 +10,14 @@
 #define HUMANOID_MIT_CONTROLLER__MIT_CONTROLLER_HPP_
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <rclcpp/subscription.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/handle.hpp"
@@ -72,6 +76,11 @@ public:
   ReferenceBuffer & reference_buffer() noexcept { return reference_buffer_; }
 
 private:
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr ref_sub_;
+  transport::CycleSequence ref_sequence_{0};
+  double default_kp_{0.0};
+  double default_kd_{0.0};
+
   /// Builds the full interface name: "joint_name/suffix".
   static std::string interface_name(
     const std::string & joint, const char * suffix);

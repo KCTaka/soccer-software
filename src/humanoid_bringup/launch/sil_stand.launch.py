@@ -5,6 +5,8 @@ from launch_ros.actions import Node
 from launch.substitutions import Command, PathJoinSubstitution
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -32,6 +34,17 @@ def generate_launch_description():
                 FindPackageShare('humanoid_bringup'),
                 'config', 'hardware_sil.yaml'
             ])],
+            output='screen',
+        ),
+        Node(
+            package='humanoid_bringup',
+            executable='trajectory_player.py',
+            arguments=[
+                '--keyframes', PathJoinSubstitution([
+                    FindPackageShare('humanoid_bringup'),
+                    'config', 'stand_keyframes.yaml']),
+                '--hold', '15.0',
+            ],
             output='screen',
         ),
         Node(

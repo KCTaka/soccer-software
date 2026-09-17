@@ -1,0 +1,71 @@
+# Stand-up trajectory for unitree_g1.
+# Times in seconds. Positions in radians.
+# 29 actuated joints, ordered to match hardware_sil.yaml.
+dt: 0.005
+joint_names:
+  - left_hip_pitch_joint
+  - left_hip_roll_joint
+  - left_hip_yaw_joint
+  - left_knee_joint
+  - left_ankle_pitch_joint
+  - left_ankle_roll_joint
+  - right_hip_pitch_joint
+  - right_hip_roll_joint
+  - right_hip_yaw_joint
+  - right_knee_joint
+  - right_ankle_pitch_joint
+  - right_ankle_roll_joint
+  - waist_yaw_joint
+  - waist_roll_joint
+  - waist_pitch_joint
+  - left_shoulder_pitch_joint
+  - left_shoulder_roll_joint
+  - left_shoulder_yaw_joint
+  - left_elbow_joint
+  - left_wrist_roll_joint
+  - left_wrist_pitch_joint
+  - left_wrist_yaw_joint
+  - right_shoulder_pitch_joint
+  - right_shoulder_roll_joint
+  - right_shoulder_yaw_joint
+  - right_elbow_joint
+  - right_wrist_roll_joint
+  - right_wrist_pitch_joint
+  - right_wrist_yaw_joint
+
+keyframes:
+  # t=0: collapsed / slumped (approximate initial contact pose)
+  - time: 0.0
+    positions: [
+      -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   # left leg tucked
+      -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   # right leg tucked
+       0.0, 0.0, 0.3,                    # waist bent forward
+       0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,  # left arm relaxed
+       0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0]  # right arm relaxed
+
+  # t=1.0: crouch — knees bent, torso upright, preparing to extend
+  - time: 1.0
+    positions: [
+      -0.8, 0.0, 0.0, 1.5, -0.7, 0.0,
+      -0.8, 0.0, 0.0, 1.5, -0.7, 0.0,
+       0.0, 0.0, 0.0,
+       0.2, 0.1, 0.0, 0.3, 0.0, 0.0, 0.0,
+       0.2, -0.1, 0.0, 0.3, 0.0, 0.0, 0.0]
+
+  # t=2.5: standing — legs extended, torso vertical
+  - time: 2.5
+    positions: [
+      -0.3, 0.0, 0.0, 0.6, -0.3, 0.0,
+      -0.3, 0.0, 0.0, 0.6, -0.3, 0.0,
+       0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+  # t=4.0: settled standing — same as t=2.5, hold
+  - time: 4.0
+    positions: [
+      -0.3, 0.0, 0.0, 0.6, -0.3, 0.0,
+      -0.3, 0.0, 0.0, 0.6, -0.3, 0.0,
+       0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

@@ -11,4 +11,7 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/config
   RENAME robot_description.urdf)
 
+install(PROGRAMS nodes/trajectory_player.py
+  DESTINATION lib/${PROJECT_NAME})
+
 ament_package()

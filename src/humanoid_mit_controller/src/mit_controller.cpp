@@ -55,6 +55,35 @@ controller_interface::CallbackReturn MitImpedanceController::on_configure(
     return controller_interface::CallbackReturn::ERROR;
   }
   num_joints_ = joint_names_.size();
+
+  auto_declare<double>("default_kp", 0.0);
+  auto_declare<double>("default_kd", 0.0);
+  default_kp_ = get_node()->get_parameter("default_kp").as_double();
+  default_kd_ = get_node()->get_parameter("default_kd").as_double();
+
+  // Non-RT subscription. Callback runs on executor thread, writes to SPSC buffer.
+  ref_sub_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
+    "~/joint_references", rclcpp::QoS(1).best_effort(),
+    [this](const sensor_msgs::msg::JointState::SharedPtr msg) {
+      ReferenceFrame frame{};
+      frame.valid = true;
+      frame.sequence = ++ref_sequence_;
+      frame.stamp = std::chrono::steady_clock::now();
+      frame.joint_count = static_cast<std::uint8_t>(
+      std::min(msg->name.size(), static_cast<std::size_t>(num_joints_)));
+      for (std::size_t i = 0; i < frame.joint_count && i < num_joints_; ++i) {
+      frame.joints[i].position_rad =
+          (i < msg->position.size()) ? msg->position[i] : 0.0;
+      frame.joints[i].velocity_rad_s =
+          (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
+      frame.joints[i].effort_nm =
+          (i < msg->effort.size()) ? msg->effort[i] : 0.0;
+      frame.joints[i].stiffness_nm_rad = default_kp_;
+      frame.joints[i].damping_nm_s_rad = default_kd_;
+      }
+      reference_buffer_.publish(frame);
+    });
+
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
