@@ -8,13 +8,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/pelvis" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/pelvis_contour_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/pelvis" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/pelvis_contour_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -26,13 +26,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -44,13 +44,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_roll_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -62,13 +62,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_hip_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_hip_yaw_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -80,13 +80,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_knee_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_knee_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_knee_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_knee_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -98,13 +98,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_ankle_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_ankle_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -116,13 +116,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_ankle_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_ankle_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_ankle_roll_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -158,13 +158,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -176,13 +176,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_roll_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -194,13 +194,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_hip_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_hip_yaw_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -212,13 +212,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_knee_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_knee_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_knee_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_knee_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -230,13 +230,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_ankle_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_ankle_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -248,13 +248,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_ankle_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_ankle_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_ankle_roll_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -290,13 +290,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/waist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/waist_yaw_link_rev_1_0.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/waist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/waist_yaw_link_rev_1_0.STL" />
       </geometry>
     </collision>
   </link>
@@ -308,13 +308,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/waist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/waist_roll_link_rev_1_0.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/waist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/waist_roll_link_rev_1_0.STL" />
       </geometry>
     </collision>
   </link>
@@ -326,13 +326,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/torso_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/torso_link_rev_1_0.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/torso_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/torso_link_rev_1_0.STL" />
       </geometry>
     </collision>
   </link>
@@ -344,13 +344,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_pitch_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -368,13 +368,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_roll_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -392,13 +392,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_shoulder_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_shoulder_yaw_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -410,13 +410,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_elbow_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_elbow_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_elbow_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_elbow_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -428,13 +428,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_roll_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -446,13 +446,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -464,13 +464,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/left_wrist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/left_wrist_yaw_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -482,13 +482,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_pitch_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -506,13 +506,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_roll_link.STL" />
       </geometry>
     </collision>
     <collision>
@@ -530,13 +530,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_shoulder_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_shoulder_yaw_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -548,13 +548,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_elbow_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_elbow_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_elbow_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_elbow_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -566,13 +566,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_roll_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_roll_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_roll_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -584,13 +584,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_pitch_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_pitch_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_pitch_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -602,13 +602,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_yaw_link.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../source/menagerie/unitree_g1/assets/right_wrist_yaw_link" />
+        <mesh filename="file:///ws/model/source/menagerie/unitree_g1/assets/right_wrist_yaw_link.STL" />
       </geometry>
     </collision>
   </link>

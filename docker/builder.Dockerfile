@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       pkg-config \
       python3 \
       python3-dev \
+      python3-jsonschema \
       python3-pip \
       python3-venv \
  && rm -rf /var/lib/apt/lists/*
@@ -39,7 +40,9 @@ RUN install -d -m 0755 /etc/apt/keyrings \
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-ros-base \
+      ros-jazzy-controller-manager \
       ros-jazzy-controller-interface \
+      ros-jazzy-joint-state-broadcaster \
       ros-jazzy-hardware-interface \
       ros-jazzy-pluginlib \
       ros-jazzy-rclcpp \
@@ -47,6 +50,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-rmw-zenoh-cpp \
       ros-jazzy-ament-cmake \
       ros-jazzy-mujoco-vendor \
+      ros-jazzy-rviz2 \
       python3-colcon-ros \
       python3-rosdep \
  && rm -rf /var/lib/apt/lists/*

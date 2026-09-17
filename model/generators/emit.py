@@ -47,71 +47,143 @@ def _inertial_xml(link):
         e2 = ET.SubElement(link_elem_placeholder := e, "mass") if False else None
     return e  # placeholder; real construction below
 
-def emit_urdf(model, out_path, assets_rel):
+def emit_urdf(model, out_path, assets_dir):
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     robot = ET.Element("robot", name=model["robot"]["name"])
+
+    # Index actual files on disk (case-insensitive mapping)
+    disk_assets = os.listdir(assets_dir) if os.path.exists(assets_dir) else []
+    abs_assets_dir = os.path.abspath(assets_dir).replace("\\", "/")
 
     for l in model["links"]:
         le = ET.SubElement(robot, "link", name=l["name"])
         ie = ET.SubElement(le, "inertial")
         inertia, com = l["inertia"], l["com_m"]
         rpy = inertia["principal_axes_rpy_rad"] or [0, 0, 0]
-        ie.set("xyz", fmt(com)); ie.set("rpy", fmt(rpy))
+        ie.set("xyz", fmt(com))
+        ie.set("rpy", fmt(rpy))
         ET.SubElement(ie, "mass", value=f"{l['mass']['cad_kg']:.10g}")
-        ET.SubElement(ie, "inertia",
-                      ixx=f"{inertia['ixx_kg_m2']:.10g}", iyy=f"{inertia['iyy_kg_m2']:.10g}",
-                      izz=f"{inertia['izz_kg_m2']:.10g}", ixy="0", ixz="0", iyz="0")
-        # NOTE: when reference_frame == "link", rotate the tensor by rpy=0 identity only if the
-        # tensor is already link-aligned; Menagerie data is principal, which is what we emit.
-        mesh = l["visual_mesh"]
+        ET.SubElement(
+            ie,
+            "inertia",
+            ixx=f"{inertia['ixx_kg_m2']:.10g}",
+            iyy=f"{inertia['iyy_kg_m2']:.10g}",
+            izz=f"{inertia['izz_kg_m2']:.10g}",
+            ixy="0",
+            ixz="0",
+            iyz="0",
+        )
+
+        mesh = l.get("visual_mesh")
         if mesh:
+            # Find the actual filename on disk matching this mesh name
+            mesh_file = None
+            for fname in disk_assets:
+                name_without_ext = os.path.splitext(fname)[0]
+                if fname == mesh or name_without_ext == mesh:
+                    mesh_file = fname
+                    break
+                # Handle suffixes like torso_link_rev_1_0.STL
+                if name_without_ext.startswith(mesh):
+                    mesh_file = fname
+                    break
+
+            # Fallback to appending .STL if no dynamic match found
+            if not mesh_file:
+                mesh_file = mesh if "." in mesh else f"{mesh}.STL"
+
+            mesh_uri = f"file://{abs_assets_dir}/{mesh_file}"
+
             for tag in ("visual", "collision"):
                 ve = ET.SubElement(le, tag)
                 oe = ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
                 ET.SubElement(ve, "geometry").append(
-                    ET.Element("mesh", filename=f"{assets_rel}/{mesh}"))
+                    ET.Element("mesh", filename=mesh_uri)
+                )
+
         for prim in l["collision"]["primitives"]:
             ve = ET.SubElement(le, "collision")
-            ET.SubElement(ve, "origin", xyz=fmt(prim["frame"]["xyz_m"]),
-                          rpy=fmt(prim["frame"]["rpy_rad"]))
+            ET.SubElement(
+                ve,
+                "origin",
+                xyz=fmt(prim["frame"]["xyz_m"]),
+                rpy=fmt(prim["frame"]["rpy_rad"]),
+            )
             geometry = ET.SubElement(ve, "geometry")
             shape = prim["shape"]
             dimensions = prim["dimensions_m"]
             if shape == "box":
-                ET.SubElement(geometry, "box", size=fmt([2.0 * x for x in dimensions]))
+                ET.SubElement(
+                    geometry, "box", size=fmt([2.0 * x for x in dimensions])
+                )
             elif shape == "sphere":
-                ET.SubElement(geometry, "sphere", radius=f"{dimensions[0]:.10g}")
+                ET.SubElement(
+                    geometry, "sphere", radius=f"{dimensions[0]:.10g}"
+                )
             elif shape == "cylinder":
-                ET.SubElement(geometry, "cylinder", radius=f"{dimensions[0]:.10g}",
-                              length=f"{2.0 * dimensions[1]:.10g}")
+                ET.SubElement(
+                    geometry,
+                    "cylinder",
+                    radius=f"{dimensions[0]:.10g}",
+                    length=f"{2.0 * dimensions[1]:.10g}",
+                )
             elif shape == "capsule":
-                ET.SubElement(geometry, "capsule", radius=f"{dimensions[0]:.10g}",
-                              length=f"{2.0 * dimensions[1]:.10g}")
+                ET.SubElement(
+                    geometry,
+                    "capsule",
+                    radius=f"{dimensions[0]:.10g}",
+                    length=f"{2.0 * dimensions[1]:.10g}",
+                )
 
     for j in joints:
-        je = ET.SubElement(robot, "joint", name=j["name"],
-                           type={"revolute": "revolute", "prismatic": "prismatic",
-                                 "fixed": "fixed"}[j["type"]])
-        ET.SubElement(je, "origin", xyz=fmt(j["origin"]["xyz_m"]),
-                      rpy=fmt(j["origin"]["rpy_rad"]))
+        je = ET.SubElement(
+            robot,
+            "joint",
+            name=j["name"],
+            type={
+                "revolute": "revolute",
+                "prismatic": "prismatic",
+                "fixed": "fixed",
+            }[j["type"]],
+        )
+        ET.SubElement(
+            je,
+            "origin",
+            xyz=fmt(j["origin"]["xyz_m"]),
+            rpy=fmt(j["origin"]["rpy_rad"]),
+        )
         ET.SubElement(je, "parent", link=j["parent_link"])
         ET.SubElement(je, "child", link=j["child_link"])
         if j["type"] != "fixed":
             ET.SubElement(je, "axis", xyz=fmt(j["axis"]))
         lim = j["limits"]
-        ET.SubElement(je, "limit", lower=f"{lim['software_lower_rad']:.10g}",
-                      upper=f"{lim['software_upper_rad']:.10g}",
-                      effort=f"{lim['effort_peak_nm']:.10g}",
-                      velocity=f"{lim['velocity_rad_s']:.10g}")
+        ET.SubElement(
+            je,
+            "limit",
+            lower=f"{lim['software_lower_rad']:.10g}",
+            upper=f"{lim['software_upper_rad']:.10g}",
+            effort=f"{lim['effort_peak_nm']:.10g}",
+            velocity=f"{lim['velocity_rad_s']:.10g}",
+        )
         tr = j["transmission"]
-        ET.SubElement(je, "dynamics", damping=f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}",
-                      friction=f"{num_or(tr['friction_coulomb_nm']):.10g}")
+        ET.SubElement(
+            je,
+            "dynamics",
+            damping=f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}",
+            friction=f"{num_or(tr['friction_coulomb_nm']):.10g}",
+        )
 
-    rc = ET.SubElement(robot, "ros2_control", name="HumanoidActuatorSystem", type="system")
+    rc = ET.SubElement(
+        robot, "ros2_control", name="HumanoidActuatorSystem", type="system"
+    )
     hw = ET.SubElement(rc, "hardware")
-    ET.SubElement(hw, "plugin").text = "humanoid_actuator_system/HumanoidActuatorSystem"
-    ET.SubElement(hw, "param", name="robot_model_path").text = "model/source/robot_model.yaml"
+    ET.SubElement(hw, "plugin").text = (
+        "humanoid_actuator_system/HumanoidActuatorSystem"
+    )
+    ET.SubElement(hw, "param", name="robot_model_path").text = (
+        "model/source/robot_model.yaml"
+    )
     for j in joints:
         if j["type"] == "fixed":
             continue
@@ -122,7 +194,9 @@ def emit_urdf(model, out_path, assets_rel):
             ET.SubElement(je, "state_interface", name=s)
 
     ET.indent(robot)
-    ET.ElementTree(robot).write(out_path, xml_declaration=True, encoding="utf-8")
+    ET.ElementTree(robot).write(
+        out_path, xml_declaration=True, encoding="utf-8"
+    )
 
 def emit_mjcf(model, overlay, out_path, assets_rel):
     links = {l["name"]: l for l in model["links"]}
@@ -238,9 +312,17 @@ def emit_safety_manifest(model, out_path):
 def generate(src, overlay_path, out_dir, assets_dir):
     model, overlay = load(src, overlay_path)
     os.makedirs(out_dir, exist_ok=True)
-    # Use canonical relative path from model/generated to assets_dir to maintain deterministic diffs
-    assets_rel = os.path.relpath(assets_dir, "model/generated").replace("\\", "/")
-    emit_urdf(model, os.path.join(out_dir, "robot.urdf"), assets_rel)
+    assets_rel = os.path.relpath(assets_dir, "model/generated").replace(
+        "\\", "/"
+    )
+
+    # URDF gets assets_dir to build absolute file:// URIs with .STL extensions
+    emit_urdf(model, os.path.join(out_dir, "robot.urdf"), assets_dir)
+
+    # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
     emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)
+
     emit_safety_manifest(model, os.path.join(out_dir, "safety_manifest.yaml"))
-    print(f"generated robot.urdf, robot.mjcf, safety_manifest.yaml in {out_dir}")
+    print(
+        f"generated robot.urdf, robot.mjcf, safety_manifest.yaml in {out_dir}"
+    )

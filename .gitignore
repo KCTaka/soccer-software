@@ -3,3 +3,4 @@ install
 log
 
 .vscode/BROWSE.VC.DB*
+*.pyc

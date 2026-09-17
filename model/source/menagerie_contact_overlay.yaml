@@ -1,6 +1,6 @@
 generated_from:
 - https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/source/menagerie/unitree_g1/g1.xml
-source_digest: 8aad7f1eb6d3195e54c527e90ea1aac5ac63ec9a6ca6d25ebba012bbd221f49e
+source_digest: 3c2616550a31f33e84d3c80b8e913ac5618c8888019b0c9490dae93493e647f3
 meshes:
   pelvis: pelvis.STL
   pelvis_contour_link: pelvis_contour_link.STL

@@ -1,5 +1,13 @@
 {
-  "python-envs.defaultEnvManager": "ms-python.python:conda",
-"python-envs.defaultPackageManager": "ms-python.python:conda",
-"ROS2.distro": "jazzy"
+  "python.defaultInterpreterPath": "/usr/bin/python3",
+  "python.analysis.extraPaths": [
+    "/opt/ros/jazzy/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/opt/sdformat_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_math_vendor/lib/python"
+  ],
+  "python.autoComplete.extraPaths": [
+    "/opt/ros/jazzy/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/opt/sdformat_vendor/lib/python",
+    "/opt/ros/jazzy/opt/gz_math_vendor/lib/python"
+  ]
 }
