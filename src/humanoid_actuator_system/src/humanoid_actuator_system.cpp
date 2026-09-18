@@ -25,6 +25,7 @@ constexpr char kTransportPluginParam[] = "transport_plugin";
 constexpr char kTransportPluginDefault[] =
   "humanoid_transport_mujoco/MujocoActuatorTransport";
 constexpr char kSafetyManifestParam[] = "safety_manifest_path";
+constexpr char kSafetyManifestPackageParam[] = "safety_manifest_package";
 constexpr char kAcceptedDegradationParam[] = "accepted_degradation";
 
 // Parse joint names from the ros2_control URDF <joint> tags.
@@ -68,6 +69,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   // 1. Read parameters
   std::string transport_plugin = kTransportPluginDefault;
   std::string safety_manifest_rel_path = "config/safety_manifest.yaml";
+  std::string safety_manifest_package = "humanoid_bringup";
   std::string degradation_str;
 
   if (info_.hardware_parameters.count(kTransportPluginParam)) {
@@ -75,6 +77,9 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   }
   if (info_.hardware_parameters.count(kSafetyManifestParam)) {
     safety_manifest_rel_path = info_.hardware_parameters.at(kSafetyManifestParam);
+  }
+  if (info_.hardware_parameters.count(kSafetyManifestPackageParam)) {
+    safety_manifest_package = info_.hardware_parameters.at(kSafetyManifestPackageParam);
   }
   if (info_.hardware_parameters.count(kAcceptedDegradationParam)) {
     degradation_str = info_.hardware_parameters.at(kAcceptedDegradationParam);
@@ -109,14 +114,19 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   }
 
   // 3. Build safety manifest
-  std::string package_share_dir;
-  try {
-    package_share_dir = ament_index_cpp::get_package_share_directory("humanoid_bringup");
-  } catch (const ament_index_cpp::PackageNotFoundError & e) {
-    RCLCPP_ERROR(logger, "Package 'humanoid_bringup' not found: %s", e.what());
-    return hardware_interface::CallbackReturn::ERROR;
+  std::string safety_manifest_path;
+  if (!safety_manifest_rel_path.empty() && safety_manifest_rel_path[0] == '/') {
+    safety_manifest_path = safety_manifest_rel_path;
+  } else {
+    std::string package_share_dir;
+    try {
+      package_share_dir = ament_index_cpp::get_package_share_directory(safety_manifest_package);
+    } catch (const ament_index_cpp::PackageNotFoundError & e) {
+      RCLCPP_ERROR(logger, "Package '%s' not found: %s", safety_manifest_package.c_str(), e.what());
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+    safety_manifest_path = package_share_dir + "/" + safety_manifest_rel_path;
   }
-  const std::string safety_manifest_path = package_share_dir + "/" + safety_manifest_rel_path;
   try {
     const YAML::Node manifest = YAML::LoadFile(safety_manifest_path);
     const auto manifest_joint_count = manifest["joint_count"].as<std::size_t>();
@@ -150,7 +160,8 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       env.power_max_w = node["power_max_w"].as<double>();
     }
   } catch (const YAML::Exception & e) {
-    RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s", safety_manifest_path.c_str(), e.what());
+    RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s", safety_manifest_path.c_str(),
+        e.what());
     return hardware_interface::CallbackReturn::ERROR;
   }
 

@@ -54,6 +54,9 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/safety_manifest.yaml"
+    DESTINATION share/${PROJECT_NAME}/config)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

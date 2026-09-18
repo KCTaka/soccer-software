@@ -11,10 +11,11 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     os.environ.setdefault('RMW_IMPLEMENTATION', 'rmw_fastrtps_cpp')
-    workspace_root = os.environ.get('HUMANOID_WORKSPACE', '/ws')
-    os.environ.setdefault(
-        'HUMANOID_MJCF_PATH',
-        os.path.join(workspace_root, 'model', 'generated', 'robot.mjcf'))
+    workspace_root = os.environ.get('HUMANOID_WORKSPACE')
+    if workspace_root:
+        os.environ.setdefault(
+            'HUMANOID_MJCF_PATH',
+            os.path.join(workspace_root, 'model', 'generated', 'robot.mjcf'))
 
     robot_description_path = PathJoinSubstitution([
         FindPackageShare('humanoid_bringup'), 'config', 'robot_description.urdf'

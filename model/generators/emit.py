@@ -181,12 +181,11 @@ def emit_urdf(model, out_path, assets_dir):
     ET.SubElement(hw, "plugin").text = (
         "humanoid_actuator_system/HumanoidActuatorSystem"
     )
-    ET.SubElement(hw, "param", name="transport_plugin").text = (
-        "humanoid_transport_mujoco/MujocoActuatorTransport"
-    )
-    # Use a relative path resolved at runtime against the package share directory
     ET.SubElement(hw, "param", name="safety_manifest_path").text = (
         "config/safety_manifest.yaml"
+    )
+    ET.SubElement(hw, "param", name="safety_manifest_package").text = (
+        "humanoid_bringup"
     )
     for j in joints:
         if j["type"] == "fixed":

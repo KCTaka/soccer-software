@@ -847,8 +847,8 @@
   <ros2_control name="HumanoidActuatorSystem" type="system">
     <hardware>
       <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
-      <param name="transport_plugin">humanoid_transport_mujoco/MujocoActuatorTransport</param>
       <param name="safety_manifest_path">config/safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_bringup</param>
     </hardware>
     <joint name="left_hip_pitch_joint">
       <command_interface name="position" />
