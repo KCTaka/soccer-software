@@ -11,8 +11,10 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     os.environ.setdefault('RMW_IMPLEMENTATION', 'rmw_fastrtps_cpp')
-    os.environ.setdefault('HUMANOID_MJCF_PATH',
-                          'model/generated/robot.mjcf')
+    workspace_root = os.environ.get('HUMANOID_WORKSPACE', '/ws')
+    os.environ.setdefault(
+        'HUMANOID_MJCF_PATH',
+        os.path.join(workspace_root, 'model', 'generated', 'robot.mjcf'))
 
     robot_description_path = PathJoinSubstitution([
         FindPackageShare('humanoid_bringup'), 'config', 'robot_description.urdf'
@@ -30,10 +32,13 @@ def generate_launch_description():
         Node(
             package='controller_manager',
             executable='ros2_control_node',
-            parameters=[PathJoinSubstitution([
-                FindPackageShare('humanoid_bringup'),
-                'config', 'hardware_sil.yaml'
-            ])],
+            parameters=[
+                {'robot_description': robot_description},
+                PathJoinSubstitution([
+                    FindPackageShare('humanoid_bringup'),
+                    'config', 'hardware_sil.yaml'
+                ]),
+            ],
             output='screen',
         ),
         Node(

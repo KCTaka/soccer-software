@@ -8,8 +8,8 @@ controller_manager:
 
 humanoid_mit_controller:
   ros__parameters:
-    default_kp: 80.0
-    default_kd: 2.0
+    default_kp: 20.0
+    default_kd: 1.0
     joints:
       - left_hip_pitch_joint
       - left_hip_roll_joint

@@ -9,5 +9,10 @@
     "/opt/ros/jazzy/lib/python3.12/site-packages",
     "/opt/ros/jazzy/opt/sdformat_vendor/lib/python",
     "/opt/ros/jazzy/opt/gz_math_vendor/lib/python"
+  ],
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "file": "./.github/git-commit-instructions.md"
+    }
   ]
 }
