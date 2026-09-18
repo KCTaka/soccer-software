@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // The stable hardware-abstraction seam of ADR-001, and the simulation seam of ADR-007.
 //
 // Replacing the physical actuator path -- dual-STM32 USB serial today, native CAN FD or EtherCAT

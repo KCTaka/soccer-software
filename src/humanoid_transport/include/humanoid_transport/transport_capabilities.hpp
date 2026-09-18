@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // What a transport can do, reported without naming a bus. No USB, SPI, CAN, EtherCAT, packet
 // layout, or topology concept may appear above the transport boundary (ADR-001).
 #ifndef HUMANOID_TRANSPORT__TRANSPORT_CAPABILITIES_HPP_
@@ -21,8 +22,8 @@ enum class TransportClass : std::uint8_t
 
 enum class TupleCompleteness : std::uint8_t
 {
-    kFull = 0, 
-    kPositionVelocityOnly
+  kFull = 0,
+  kPositionVelocityOnly
 };
 
 struct TransportCapabilities

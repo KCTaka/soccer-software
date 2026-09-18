@@ -1,3 +1,5 @@
+// Copyright 2026 Humanoid Robotics Team
+
 #include "humanoid_actuator_system/humanoid_actuator_system.hpp"
 
 #include <algorithm>
@@ -492,8 +494,8 @@ bool HumanoidActuatorSystem::check_tuple_capability() noexcept
   }
   const auto caps = transport_->capabilities();
   if (mit_tuple_claimed_ &&
-      caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
-      accepted_degradation_ != transport::TupleCompleteness::kPositionVelocityOnly)
+    caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
+    accepted_degradation_ != transport::TupleCompleteness::kPositionVelocityOnly)
   {
     return false;
   }

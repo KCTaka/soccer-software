@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // The only production hardware_interface::SystemInterface in this robot (ADR-001).
 //
 // Verified against ros2_control 4.47.0 (Jazzy). In that release SystemInterface is a four-line
@@ -74,10 +75,10 @@ public:
   // --- Interface export. 4.47.0 API: the framework owns the memory. ---
 
   std::vector<hardware_interface::StateInterface::ConstSharedPtr> on_export_state_interfaces()
-    override;
+  override;
 
   std::vector<hardware_interface::CommandInterface::SharedPtr> on_export_command_interfaces()
-    override;
+  override;
 
   // --- Mode switching. ---
 
@@ -126,7 +127,7 @@ private:
 
   transport::JointManifest joint_manifest_{};
   transport::SafetyManifest safety_manifest_{};
-  
+
   std::vector<std::string> joint_names_;
   std::vector<double> command_storage_;
   std::vector<double> state_storage_;

@@ -70,16 +70,16 @@ controller_interface::CallbackReturn MitImpedanceController::on_configure(
       frame.sequence = ++ref_sequence_;
       frame.stamp = std::chrono::steady_clock::now();
       frame.joint_count = static_cast<std::uint8_t>(
-      std::min(msg->name.size(), static_cast<std::size_t>(num_joints_)));
+        std::min(msg->name.size(), static_cast<std::size_t>(num_joints_)));
       for (std::size_t i = 0; i < frame.joint_count && i < num_joints_; ++i) {
-      frame.joints[i].position_rad =
-          (i < msg->position.size()) ? msg->position[i] : 0.0;
-      frame.joints[i].velocity_rad_s =
-          (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
-      frame.joints[i].effort_nm =
-          (i < msg->effort.size()) ? msg->effort[i] : 0.0;
-      frame.joints[i].stiffness_nm_rad = default_kp_;
-      frame.joints[i].damping_nm_s_rad = default_kd_;
+        frame.joints[i].position_rad =
+            (i < msg->position.size()) ? msg->position[i] : 0.0;
+        frame.joints[i].velocity_rad_s =
+            (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
+        frame.joints[i].effort_nm =
+            (i < msg->effort.size()) ? msg->effort[i] : 0.0;
+        frame.joints[i].stiffness_nm_rad = default_kp_;
+        frame.joints[i].damping_nm_s_rad = default_kd_;
       }
       reference_buffer_.publish(frame);
     });

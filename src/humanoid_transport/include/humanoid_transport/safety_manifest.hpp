@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // The ADR-002 command envelope, as data. Generated from model/robot_model.yaml; never hand-edited.
 #ifndef HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_
 #define HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_

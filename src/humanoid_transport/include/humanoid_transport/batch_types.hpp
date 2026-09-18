@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // Fixed-capacity value types crossing the ActuatorTransport boundary (ADR-001).
 // Every type here must be trivially copyable: the real-time path copies batches, never allocates.
 #ifndef HUMANOID_TRANSPORT__BATCH_TYPES_HPP_
@@ -85,7 +86,7 @@ struct ExchangeResult
   std::uint8_t joints_reported{0U};
   std::chrono::nanoseconds round_trip{0};
 
-  [[nodiscard]] constexpr bool ok() const noexcept { return error == TransportError::kNone; }
+  [[nodiscard]] constexpr bool ok() const noexcept {return error == TransportError::kNone;}
 };
 static_assert(std::is_trivially_copyable_v<ExchangeResult>);
 

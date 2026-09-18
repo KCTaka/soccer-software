@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // Joint identity crossing the transport boundary. Generated from model/robot_model.yaml.
 // Fixed-size character arrays, not std::string: this struct is held by the real-time path.
 #ifndef HUMANOID_TRANSPORT__JOINT_MANIFEST_HPP_

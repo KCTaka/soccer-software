@@ -1,3 +1,4 @@
+// Copyright 2026 Humanoid Robotics Team
 // The final host command gate of ADR-002. Runs inside every real-time write().
 //
 // Deliberately not a ROS node and not a class with dependencies: it takes a state and a command
@@ -44,7 +45,7 @@ struct Verdict
   bool projected{false};
   bool protective_state_required{false};
 
-  [[nodiscard]] constexpr bool accepted() const noexcept { return trigger == Trigger::kNone; }
+  [[nodiscard]] constexpr bool accepted() const noexcept {return trigger == Trigger::kNone;}
 };
 
 class SafetyKernel
@@ -66,9 +67,9 @@ public:
   /// zero position and velocity targets, zero feed-forward torque, zero stiffness, damping only.
   void enter_protective(Trigger trigger, transport::CommandBatch & command) noexcept;
 
-  [[nodiscard]] Trigger last_trigger() const noexcept { return last_trigger_; }
+  [[nodiscard]] Trigger last_trigger() const noexcept {return last_trigger_;}
 
-  [[nodiscard]] bool configured() const noexcept { return configured_; }
+  [[nodiscard]] bool configured() const noexcept {return configured_;}
 
 private:
   transport::JointManifest joints_{};

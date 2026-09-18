@@ -1,3 +1,5 @@
+// Copyright 2026 Humanoid Robotics Team
+
 #include "humanoid_safety/safety_kernel.hpp"
 
 #include <cmath>
@@ -37,8 +39,8 @@ Verdict SafetyKernel::project(
   for (std::uint8_t i = 0; i < command.joint_count; ++i) {
     const auto & j = command.joints[i];
     if (!std::isfinite(j.position_rad) || !std::isfinite(j.velocity_rad_s) ||
-        !std::isfinite(j.effort_nm) || !std::isfinite(j.stiffness_nm_rad) ||
-        !std::isfinite(j.damping_nm_s_rad))
+      !std::isfinite(j.effort_nm) || !std::isfinite(j.stiffness_nm_rad) ||
+      !std::isfinite(j.damping_nm_s_rad))
     {
       enter_protective(Trigger::kNonFiniteCommand, command);
       return Verdict{Trigger::kNonFiniteCommand, i, command.joint_count, true, true};
@@ -52,7 +54,7 @@ Verdict SafetyKernel::project(
 
     // Position bounds
     if (cmd.position_rad < env.position_min_rad ||
-        cmd.position_rad > env.position_max_rad)
+      cmd.position_rad > env.position_max_rad)
     {
       enter_protective(Trigger::kPositionEnvelope, command);
       return Verdict{Trigger::kPositionEnvelope, i, command.joint_count, true, true};
