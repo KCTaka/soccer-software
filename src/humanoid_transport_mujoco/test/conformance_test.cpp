@@ -1,10 +1,15 @@
+// Copyright 2026 Your Organization Name
+
+#include <mujoco/mujoco.h>
 #include <gtest/gtest.h>
-#include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
+
 #include <cstdlib>
 #include <cstring>
-#include <vector>
+#include <memory>
 #include <string>
+#include <vector>
 
+#include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
 class ConformanceTest : public ::testing::Test
 {
 protected:
@@ -24,12 +29,14 @@ protected:
       "left_shoulder_pitch_joint", "left_shoulder_roll_joint", "left_shoulder_yaw_joint",
       "left_elbow_joint", "left_wrist_roll_joint", "left_wrist_pitch_joint", "left_wrist_yaw_joint",
       "right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint",
-      "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint", "right_wrist_yaw_joint"
+      "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint",
+      "right_wrist_yaw_joint"
     };
 
     manifest.joint_count = static_cast<std::uint8_t>(joint_names.size());
     for (size_t i = 0; i < joint_names.size(); ++i) {
-      std::strncpy(manifest.joints[i].name.data(), joint_names[i].c_str(), humanoid::transport::kMaxNameLength - 1);
+      std::strncpy(manifest.joints[i].name.data(), joint_names[i].c_str(),
+        humanoid::transport::kMaxNameLength - 1);
       manifest.joints[i].name[humanoid::transport::kMaxNameLength - 1] = '\0';
     }
     safety.joint_count = manifest.joint_count;

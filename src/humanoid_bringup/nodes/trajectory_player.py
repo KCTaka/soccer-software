@@ -48,6 +48,7 @@ class TrajectoryPlayer(Node):
             return
         positions = self._interpolate(self._t)
         msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.name = self.joint_names
         msg.position = positions
         msg.velocity = [0.0] * len(positions)

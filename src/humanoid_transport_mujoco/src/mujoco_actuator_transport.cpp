@@ -1,11 +1,13 @@
+// Copyright 2026 Your Organization Name
+
 #include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
 
-#include <chrono>
+#include <mujoco/mujoco.h>
+
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 #include <iostream>
-
-#include <mujoco/mujoco.h>
 
 #include "pluginlib/class_list_macros.hpp"
 
@@ -73,8 +75,8 @@ bool MujocoActuatorTransport::configure(
   const double ratio = kControlPeriodS / dt;
   n_substeps_ = static_cast<int>(ratio + 0.5);  // round to nearest
   if (n_substeps_ < 1 ||
-      static_cast<double>(n_substeps_) * dt > kControlPeriodS + 1e-9 ||
-      static_cast<double>(n_substeps_) * dt < kControlPeriodS - 1e-9)
+    static_cast<double>(n_substeps_) * dt > kControlPeriodS + 1e-9 ||
+    static_cast<double>(n_substeps_) * dt < kControlPeriodS - 1e-9)
   {
     std::cerr << "MujocoActuatorTransport: timestep " << dt
               << " does not divide 5 ms control period by an integer. "
@@ -96,7 +98,7 @@ bool MujocoActuatorTransport::configure(
     }
     // Verify it is a hinge (revolute) or slide (prismatic) — 1-DOF joint.
     if (model_->jnt_type[jnt_id] != mjJNT_HINGE &&
-        model_->jnt_type[jnt_id] != mjJNT_SLIDE)
+      model_->jnt_type[jnt_id] != mjJNT_SLIDE)
     {
       std::cerr << "MujocoActuatorTransport: joint '" << name
                 << "' is not hinge/slide (type=" << model_->jnt_type[jnt_id] << ")\n";
@@ -111,9 +113,10 @@ bool MujocoActuatorTransport::configure(
   const char * push_force = std::getenv("HUMANOID_PUSH_FORCE_N");
   const char * push_time = std::getenv("HUMANOID_PUSH_TIME_S");
   const char * push_body = std::getenv("HUMANOID_PUSH_BODY");
-  if (push_force) push_force_n_ = std::atof(push_force);
-  if (push_time) push_time_s_ = std::atof(push_time);
-  if (push_body) push_body_id_ = mj_name2id(model_, mjOBJ_BODY, push_body);
+  if (push_force) {push_force_n_ = std::atof(push_force);}
+  if (push_time) {push_time_s_ = std::atof(push_time);}
+  if (!push_body && push_force_n_ > 0.0) {push_body = "torso_link";}
+  if (push_body) {push_body_id_ = mj_name2id(model_, mjOBJ_BODY, push_body);}
   if (push_force_n_ > 0.0 && push_body_id_ < 0) {
     std::cerr << "MujocoActuatorTransport: push body not found in model\n";
     return false;

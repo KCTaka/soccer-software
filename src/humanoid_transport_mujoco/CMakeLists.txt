@@ -56,7 +56,10 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
   ament_lint_auto_find_test_dependencies()
+  ament_add_gtest(${PROJECT_NAME}_conformance_test test/conformance_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

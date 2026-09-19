@@ -1,3 +1,4 @@
+// Copyright 2026 Your Organization Name
 // MujocoActuatorTransport: SIL transport at the ActuatorTransport seam (ADR-007-01).
 //
 // The generated MJCF contains no <actuator> section. This transport computes the MIT

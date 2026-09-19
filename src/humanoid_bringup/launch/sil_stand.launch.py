@@ -43,6 +43,13 @@ def generate_launch_description():
             output='screen',
         ),
         Node(
+            package='controller_manager',
+            executable='spawner',
+            arguments=['joint_state_broadcaster',
+                       'humanoid_mit_controller'],
+            output='screen',
+        ),
+        Node(
             package='humanoid_bringup',
             executable='trajectory_player.py',
             arguments=[
@@ -51,13 +58,6 @@ def generate_launch_description():
                     'config', 'stand_keyframes.yaml']),
                 '--hold', '15.0',
             ],
-            output='screen',
-        ),
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=['joint_state_broadcaster',
-                       'humanoid_mit_controller'],
             output='screen',
         ),
     ])

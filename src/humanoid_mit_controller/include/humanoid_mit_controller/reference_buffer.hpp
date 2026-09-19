@@ -1,3 +1,4 @@
+// Copyright 2026 Your Organization Name
 // Lock-free single-producer single-consumer reference buffer.
 //
 // Producer: non-real-time thread (trajectory player, Zenoh callback).

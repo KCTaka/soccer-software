@@ -1,3 +1,5 @@
+// Copyright 2026 Your Organization Name
+
 #include "humanoid_mit_controller/mit_controller.hpp"
 
 #include <algorithm>
@@ -73,11 +75,11 @@ controller_interface::CallbackReturn MitImpedanceController::on_configure(
         std::min(msg->name.size(), static_cast<std::size_t>(num_joints_)));
       for (std::size_t i = 0; i < frame.joint_count && i < num_joints_; ++i) {
         frame.joints[i].position_rad =
-            (i < msg->position.size()) ? msg->position[i] : 0.0;
+        (i < msg->position.size()) ? msg->position[i] : 0.0;
         frame.joints[i].velocity_rad_s =
-            (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
+        (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
         frame.joints[i].effort_nm =
-            (i < msg->effort.size()) ? msg->effort[i] : 0.0;
+        (i < msg->effort.size()) ? msg->effort[i] : 0.0;
         frame.joints[i].stiffness_nm_rad = default_kp_;
         frame.joints[i].damping_nm_s_rad = default_kd_;
       }
@@ -215,7 +217,8 @@ controller_interface::return_type MitImpedanceController::update(
           !command_interfaces_[base + 1U].set_value(0.0) ||
           !command_interfaces_[base + 2U].set_value(0.0) ||
           !command_interfaces_[base + 3U].set_value(0.0) ||
-          !command_interfaces_[base + 4U].set_value(0.0)) {
+          !command_interfaces_[base + 4U].set_value(0.0))
+        {
           return controller_interface::return_type::ERROR;
         }
       }
@@ -233,7 +236,8 @@ controller_interface::return_type MitImpedanceController::update(
       !command_interfaces_[base + 1U].set_value(jc.velocity_rad_s) ||
       !command_interfaces_[base + 2U].set_value(jc.effort_nm) ||
       !command_interfaces_[base + 3U].set_value(jc.stiffness_nm_rad) ||
-      !command_interfaces_[base + 4U].set_value(jc.damping_nm_s_rad)) {
+      !command_interfaces_[base + 4U].set_value(jc.damping_nm_s_rad))
+    {
       return controller_interface::return_type::ERROR;
     }
   }

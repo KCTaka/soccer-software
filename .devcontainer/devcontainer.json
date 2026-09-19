@@ -7,7 +7,12 @@
   "workspaceFolder": "/ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
 
-  "runArgs": ["--ipc=host", "--net=host"],
+  "runArgs": [
+      "--ipc=host",
+      "--net=host",
+      "--cap-add=SYS_NICE",
+      "--ulimit", "rtprio=99:99"
+  ],
 
   "containerEnv": {
     "DISPLAY": "${localEnv:DISPLAY::0}",

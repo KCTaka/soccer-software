@@ -20,6 +20,8 @@ jobs:
         run: python3 tools/pin_audit.py
   build-and-test:
     needs: pin-audit
+    env:
+      HUMANOID_MJCF_PATH: /ws/model/generated/robot.mjcf
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +48,7 @@ jobs:
           docker run --rm
           --platform ${{ matrix.platform }}
           --user root
+          --env HUMANOID_MJCF_PATH=${{ env.HUMANOID_MJCF_PATH }}
           --volume "$GITHUB_WORKSPACE:/ws"
           --workdir /ws
           --entrypoint /bin/bash
@@ -61,4 +64,4 @@ jobs:
           --workdir /ws
           --entrypoint /bin/bash
           local/builder:${{ github.sha }}
-          -lc 'source /opt/ros/jazzy/setup.bash && source install/setup.bash && colcon test --packages-select humanoid_transport humanoid_safety humanoid_actuator_system && colcon test-result --verbose'
+          -lc 'source /opt/ros/jazzy/setup.bash && source install/setup.bash && colcon test --packages-select humanoid_transport humanoid_safety humanoid_actuator_system humanoid_transport_mujoco && colcon test-result --verbose'

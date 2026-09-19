@@ -5,7 +5,6 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
     humanoid_mit_controller:
       type: humanoid_mit_controller/MitImpedanceController
-
 humanoid_mit_controller:
   ros__parameters:
     default_kp: 20.0

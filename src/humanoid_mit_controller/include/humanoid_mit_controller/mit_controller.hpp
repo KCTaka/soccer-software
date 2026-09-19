@@ -1,3 +1,4 @@
+// Copyright 2026 Your Organization Name
 // MitImpedanceController: the sole owner of the five-field MIT tuple (ADR-001-02).
 //
 // Claims all five command interfaces for every controlled joint.
@@ -59,9 +60,9 @@ public:
 
   // --- Interface configuration ---
   controller_interface::InterfaceConfiguration command_interface_configuration()
-    const override;
+  const override;
   controller_interface::InterfaceConfiguration state_interface_configuration()
-    const override;
+  const override;
 
   // --- The 200 Hz loop. No ROS, no allocation, no logging. ---
   controller_interface::return_type update(
@@ -73,7 +74,7 @@ public:
   void publish_reference(const ReferenceFrame & frame) noexcept;
 
   /// Access for external non-RT components (launch, trajectory loader).
-  ReferenceBuffer & reference_buffer() noexcept { return reference_buffer_; }
+  ReferenceBuffer & reference_buffer() noexcept {return reference_buffer_;}
 
 private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr ref_sub_;

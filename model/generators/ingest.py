@@ -21,6 +21,11 @@ GEOM_EXTRA_ATTRS = ("size", "mesh", "friction", "condim", "solref", "solimp",
 PROVISIONAL_VELOCITY_RAD_S = 20.0
 PROVISIONAL_TORQUE_NM = 10.0
 LIMIT_MARGIN_RAD = 0.02
+MIRRORED_TRANSMISSION_JOINTS = {
+    "right_hip_roll_joint",
+    "right_ankle_roll_joint",
+    "right_shoulder_roll_joint",
+}
 
 class Ctx:
     def __init__(self):
@@ -100,10 +105,10 @@ def make_limits(lo, hi, torque_nm, ctx, fixed=False):
         "effort_peak_duration_s": 1.0,
     }
 
-def make_transmission(attrs):
+def make_transmission(attrs, joint_name=None):
     return {
         "gear_ratio": 1.0,          # provisional: sim plant is the ground truth
-        "direction_sign": 1,        # provisional: axis defines positive
+        "direction_sign": -1 if joint_name in MIRRORED_TRANSMISSION_JOINTS else 1,
         "backlash_rad": "NR",
         "stiffness_nm_rad": "NR",
         "friction_coulomb_nm": float(attrs.get("frictionloss", 0.0)),
@@ -198,7 +203,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                                     f"axis {axis} in link {name}. Not physically verified."),
                     "photo": None, "verified_by": None},
                 "limits": make_limits(lo, hi, torque, ctx),
-                "transmission": make_transmission(attrs),
+                "transmission": make_transmission(attrs, joint_name),
                 "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0,
                                 "measured_at": None},
                 "actuator": None,  # filled after actuator entries exist

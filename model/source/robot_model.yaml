@@ -1382,7 +1382,7 @@ joints:
     effort_peak_duration_s: 1.0
   transmission:
     gear_ratio: 1.0
-    direction_sign: 1
+    direction_sign: -1
     backlash_rad: NR
     stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
@@ -1558,7 +1558,7 @@ joints:
     effort_peak_duration_s: 1.0
   transmission:
     gear_ratio: 1.0
-    direction_sign: 1
+    direction_sign: -1
     backlash_rad: NR
     stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
@@ -2086,7 +2086,7 @@ joints:
     effort_peak_duration_s: 1.0
   transmission:
     gear_ratio: 1.0
-    direction_sign: 1
+    direction_sign: -1
     backlash_rad: NR
     stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
