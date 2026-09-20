@@ -242,6 +242,15 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     ++deadline_misses_;
   }
 
+  if (command.sequence % 200 == 0) {  // log once per second
+    int pelvis_body = mj_name2id(model_, mjOBJ_BODY, "pelvis");
+    if (pelvis_body >= 0) {
+      std::cerr << "[MuJoCo] t=" << data_->time
+        << " pelvis_z=" << data_->xpos[3 * pelvis_body + 2]
+        << "\n";
+    }
+  }
+
   // --- Read feedback ---
   feedback.sequence = command.sequence;
   feedback.stamp = t_end;

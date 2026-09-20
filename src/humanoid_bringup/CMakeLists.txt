@@ -15,7 +15,9 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/safety_manifest.yaml"
     DESTINATION share/${PROJECT_NAME}/config)
 
-install(PROGRAMS nodes/trajectory_player.py
-    DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS
+  nodes/trajectory_player.py
+  nodes/sil_stand_verifier.py
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
