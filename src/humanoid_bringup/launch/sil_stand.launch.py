@@ -5,12 +5,8 @@ from launch_ros.actions import Node
 from launch.substitutions import Command, PathJoinSubstitution
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
-from launch.substitutions import LaunchConfiguration
-
 
 def generate_launch_description():
-    os.environ.setdefault('RMW_IMPLEMENTATION', 'rmw_fastrtps_cpp')
     workspace_root = os.environ.get('HUMANOID_WORKSPACE')
     if workspace_root:
         os.environ.setdefault(
