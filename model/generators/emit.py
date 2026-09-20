@@ -277,6 +277,14 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
             add_body(be, cj["child_link"], False)
 
     wb = ET.SubElement(mj, "worldbody")
+
+    ground = ET.SubElement(wb, "geom")
+    ground.set("type", "plane")
+    ground.set("size", "0 0 0.1")
+    ground.set("pos", "0 0 0")
+    ground.set("friction", "0.6")
+    ground.set("condim", "3")
+
     add_body(wb, model["robot"]["root_link"], True)
 
     ET.indent(mj)

@@ -134,8 +134,54 @@ bool MujocoActuatorTransport::activate()
   if (!model_ || !data_) {
     return false;
   }
-  // Reset simulation state to initial configuration.
   mj_resetData(model_, data_);
+
+  // Set the freejoint height so feet rest on the ground plane.
+  // The freejoint qpos layout is [x, y, z, qw, qx, qy, qz].
+  // Compute the pelvis height needed for the lowest foot contact
+  // sphere to sit on the z=0 ground plane.
+  int root_jnt = mj_name2id(model_, mjOBJ_JOINT, "root");
+  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjJNT_FREE) {
+    int qpos_adr = model_->jnt_qposadr[root_jnt];
+
+    // Compute pelvis height from the leg chain geometry.
+    // Sum the z-offsets from pelvis to ankle_roll, plus the
+    // contact sphere offset and radius.
+    //
+    // hip_pitch z: -0.1027
+    // hip_roll  z: -0.030465
+    // hip_yaw   z: -0.12412
+    // knee      z: -0.17734
+    // ankle_pitch z: -0.30001
+    // ankle_roll  z: -0.017558
+    // contact sphere z offset: -0.03, radius: 0.005
+    // Total leg length: ~0.787 m
+    constexpr double kPelvisHeight = 0.793;
+
+    data_->qpos[qpos_adr + 2] = kPelvisHeight;  // z
+    data_->qpos[qpos_adr + 3] = 1.0;            // qw (identity quaternion)
+  }
+
+  // Set the initial joint positions to match the first keyframe
+  // so the controller starts from the slumped pose, not all-zeros.
+  // This avoids a large initial tracking error impulse.
+  const double initial_positions[] = {
+    -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // left leg
+    -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // right leg
+     0.0, 0.0, 0.3,                    // waist
+     0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,  // left arm
+     0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0   // right arm
+  };
+  for (std::uint8_t i = 0; i < joint_count_ && i < 29; ++i) {
+    int qp = joint_map_[i].qpos_adr;
+    if (qp >= 0) {
+      data_->qpos[qp] = initial_positions[i];
+    }
+  }
+
+  // Settle the contact state.
+  mj_forward(model_, data_);
+
   push_started_ = false;
   push_active_ = false;
   active_ = true;

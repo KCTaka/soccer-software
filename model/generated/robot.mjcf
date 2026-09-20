@@ -40,6 +40,7 @@
     <mesh name="waist_yaw_link" file="waist_yaw_link_rev_1_0.STL" />
   </asset>
   <worldbody>
+    <geom type="plane" size="0 0 0.1" pos="0 0 0" friction="0.6" condim="3" />
     <body name="pelvis">
       <freejoint name="root" />
       <inertial pos="0 0 -0.07605" mass="3.813" quat="0.9999999203 0 -0.0003991480318 0" diaginertia="0.010549 0.0093089 0.0079184" />
