@@ -15,6 +15,7 @@
   ],
 
   "containerEnv": {
+    "HUMANOID_WORKSPACE": "/ws",
     "DISPLAY": "${localEnv:DISPLAY::0}",
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY:wayland-0}",
     "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR:/mnt/wslg/runtime-dir}",

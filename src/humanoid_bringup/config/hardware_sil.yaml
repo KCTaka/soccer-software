@@ -7,6 +7,7 @@ controller_manager:
       type: humanoid_mit_controller/MitImpedanceController
 humanoid_mit_controller:
   ros__parameters:
+    transport_plugin: "humanoid_transport_mujoco/MujocoActuatorTransport"
     default_kp: 20.0
     default_kd: 1.0
     joints:
