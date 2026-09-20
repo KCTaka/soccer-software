@@ -226,6 +226,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   // Zero out command snapshot
   for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
     command_snapshot_.joints[i] = transport::JointCommand{};
+    feedback_.joints[i] = transport::JointFeedback{};
   }
 
   RCLCPP_INFO(logger, "Activated");
@@ -388,24 +389,13 @@ hardware_interface::return_type HumanoidActuatorSystem::read(
     return hardware_interface::return_type::ERROR;
   }
 
-  // Build an empty command batch for the exchange (read-only cycle)
-  transport::CommandBatch empty_cmd{};
-  empty_cmd.joint_count = joint_manifest_.joint_count;
-  empty_cmd.sequence = cycle_;
+  // Copy feedback stored by the previous write() into state interfaces.
+  // No transport call here. The single exchange() happens in write().
+  //
+  // On the first cycle after activation, feedback_ is zeroed, which is
+  // acceptable: the controller sees zero state and uses its fallback
+  // reference until the first write() produces real feedback.
 
-  auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(5);
-  auto result = transport_->exchange(empty_cmd, feedback_, deadline);
-
-  if (!result.ok()) {
-    ++consecutive_bad_cycles_;
-    if (consecutive_bad_cycles_ >= safety_manifest_.max_consecutive_bad_cycles) {
-      enter_protective_state(safety::Trigger::kCommandLoss);
-      return hardware_interface::return_type::ERROR;
-    }
-    return hardware_interface::return_type::OK;
-  }
-
-  // Validate feedback
   if (!accept_feedback(feedback_)) {
     ++consecutive_bad_cycles_;
     if (consecutive_bad_cycles_ >= safety_manifest_.max_consecutive_bad_cycles) {
@@ -460,7 +450,10 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
     return hardware_interface::return_type::ERROR;
   }
 
-  // 4. Exchange with transport
+  // 4. Single exchange with transport. This is the ONLY call to exchange()
+  //    per cycle. In SIL it applies torque, steps physics, and returns
+  //    the resulting state. In production it sends the command and reads
+  //    hardware feedback.
   command_snapshot_.sequence = cycle_;
   auto deadline = now + std::chrono::milliseconds(5);
   auto result = transport_->exchange(command_snapshot_, feedback_, deadline);
@@ -501,20 +494,23 @@ void HumanoidActuatorSystem::snapshot_commands() noexcept
 bool HumanoidActuatorSystem::accept_feedback(
   const transport::FeedbackBatch & candidate) noexcept
 {
-  // Reject if sequence went backwards (duplicate or out-of-order)
-  if (candidate.sequence < cycle_) {
-    return false;
-  }
-  // Reject wrong joint count
+  // Reject wrong joint count.
   if (candidate.joint_count != joint_manifest_.joint_count) {
     return false;
   }
-  // Check freshness of individual joints
+
+  // Reject if all joints report not-fresh (no exchange has happened yet).
+  bool any_fresh = false;
   for (std::uint8_t i = 0; i < candidate.joint_count; ++i) {
-    if (!candidate.joints[i].fresh) {
-      return false;
+    if (candidate.joints[i].fresh) {
+      any_fresh = true;
+      break;
     }
   }
+  if (!any_fresh) {
+    return false;
+  }
+
   return true;
 }
 
