@@ -53,6 +53,9 @@ bool MujocoActuatorTransport::configure(
     return false;
   }
 
+  viz_node_ = rclcpp::Node::make_shared("mujoco_viz");
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*viz_node_);
+
   // 3. Create data.
   data_ = mj_makeData(model_);
   if (!data_) {
@@ -295,6 +298,23 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
         << " pelvis_z=" << data_->xpos[3 * pelvis_body + 2]
         << "\n";
     }
+  }
+
+  // Publish base pose at 20 Hz (every 10th cycle) for RViz2 visualization.
+  // This is diagnostic-only, not part of the control path.
+  if (++viz_counter_ % 10 == 0 && tf_broadcaster_) {
+    geometry_msgs::msg::TransformStamped t;
+    t.header.stamp = viz_node_->now();
+    t.header.frame_id = "odom";
+    t.child_frame_id = "pelvis";
+    t.transform.translation.x = data_->qpos[0];
+    t.transform.translation.y = data_->qpos[1];
+    t.transform.translation.z = data_->qpos[2];
+    t.transform.rotation.w = data_->qpos[3];
+    t.transform.rotation.x = data_->qpos[4];
+    t.transform.rotation.y = data_->qpos[5];
+    t.transform.rotation.z = data_->qpos[6];
+    tf_broadcaster_->sendTransform(t);
   }
 
   // --- Read feedback ---

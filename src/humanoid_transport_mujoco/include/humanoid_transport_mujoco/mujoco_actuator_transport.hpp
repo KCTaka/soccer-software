@@ -15,6 +15,10 @@
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+
 #include <cstdint>
 #include <vector>
 
@@ -87,6 +91,11 @@ private:
   int push_axis_{1};  // 1 = lateral (y)
   bool push_started_{false};
   bool push_active_{false};
+
+  // In the class, add:
+  rclcpp::Node::SharedPtr viz_node_{nullptr};
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_{nullptr};
+  std::uint64_t viz_counter_{0};
 };
 
 }  // namespace humanoid::transport_mujoco

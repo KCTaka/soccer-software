@@ -56,4 +56,12 @@ def generate_launch_description():
             ],
             output='screen',
         ),
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            arguments=['-d', PathJoinSubstitution([
+                FindPackageShare('humanoid_bringup'), 'config', 'sil_stand.rviz'
+            ])],
+            output='screen',
+        ),
     ])

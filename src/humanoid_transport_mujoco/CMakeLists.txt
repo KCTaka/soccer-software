@@ -15,6 +15,10 @@ find_package(ament_cmake REQUIRED)
 find_package(humanoid_transport REQUIRED)
 find_package(pluginlib REQUIRED)
 
+# Should be ros free, move this to a separeate visualization node before finalizing
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+
 # MuJoCo: try CMake config first (MuJoCo 3.x ships one), fall back to find_library.
 find_package(mujoco QUIET)
 if(NOT mujoco_FOUND)
@@ -42,6 +46,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
   humanoid_transport::humanoid_transport
   pluginlib::pluginlib
+  geometry_msgs::geometry_msgs
+  tf2_ros::tf2_ros
   mujoco::mujoco)
 
 # Export plugin for the humanoid_transport base class package.
