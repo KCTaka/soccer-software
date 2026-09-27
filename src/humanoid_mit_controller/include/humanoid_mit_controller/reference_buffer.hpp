@@ -4,7 +4,7 @@
 // Producer: non-real-time thread (trajectory player, Zenoh callback).
 // Consumer: the 200 Hz update() loop.
 //
-// The lock-free double-buffer mechanics live in
+// The lock-free triple-buffer mechanics live in
 // humanoid_transport::LatestValueBuffer, shared with other SPSC producer/
 // consumer handoffs (e.g. humanoid_transport_mujoco's ground-truth buffer).
 // This class adds the reference-specific convenience accessors.
@@ -47,20 +47,22 @@ public:
 
   /// Real-time. Called inside update(). Never blocks, never allocates.
   /// Returns false if no valid reference has been published yet.
-  [[nodiscard]] bool read(ReferenceFrame & out) const noexcept
+  [[nodiscard]] bool read(ReferenceFrame & out) noexcept
   {
     return buffer_.read(out);
   }
 
-  /// Real-time. Returns the sequence of the latest published reference,
-  /// or 0 if none.
-  [[nodiscard]] transport::CycleSequence latest_sequence() const noexcept
+  /// Real-time, consumer side only. Returns the sequence of the latest
+  /// published reference, or 0 if none.
+  [[nodiscard]] transport::CycleSequence latest_sequence() noexcept
   {
     ReferenceFrame frame;
     static_cast<void>(buffer_.read(frame));
     return frame.sequence;
   }
 
+  /// Consumer side only. Discards any published reference, so read()
+  /// returns false until the next publish().
   void reset() noexcept
   {
     buffer_.reset();

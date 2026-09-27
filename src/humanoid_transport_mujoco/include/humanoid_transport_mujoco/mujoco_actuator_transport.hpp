@@ -77,7 +77,7 @@ public:
     buffer_.publish(frame);
   }
 
-  [[nodiscard]] bool read(GroundTruthFrame & out) const noexcept
+  [[nodiscard]] bool read(GroundTruthFrame & out) noexcept
   {
     return buffer_.read(out);
   }

@@ -6,13 +6,16 @@
 // no mutex on either the publish or read path.
 //
 // FrameT must have a `bool valid` member: a default-constructed FrameT is
-// expected to read as invalid until the first publish().
+// expected to read as invalid until the first publish(). FrameT must also be
+// trivially copyable, so a slot copy is a plain memcpy that cannot allocate
+// or throw.
 #ifndef HUMANOID_TRANSPORT__LATEST_VALUE_BUFFER_HPP_
 #define HUMANOID_TRANSPORT__LATEST_VALUE_BUFFER_HPP_
 
 #include <atomic>
 #include <concepts>  // NOLINT(build/include_order)
-#include <cstddef>
+#include <cstdint>
+#include <type_traits>
 
 namespace humanoid::transport
 {
@@ -20,49 +23,85 @@ namespace humanoid::transport
 template<typename FrameT>
 concept LatestValueFrame = requires(const FrameT & frame) {
   {frame.valid}->std::convertible_to<bool>;
+  requires std::is_trivially_copyable_v<FrameT>;
 };  // NOLINT(readability/braces)
 
-/// Double-buffered latest-value SPSC.
-/// The producer writes to the back buffer, then atomically swaps the index.
-/// The consumer reads whichever buffer the index points to.
-/// Because there is exactly one producer and one consumer, and the swap is
-/// a single atomic store, the consumer never observes a torn write.
+/// Triple-buffered latest-value SPSC.
+///
+/// Three slots are partitioned between three owners at all times:
+///   back_   - owned by the producer, the slot it writes next;
+///   front_  - owned by the consumer, the slot it copies from;
+///   middle_ - the hand-off slot, owned by neither.
+/// publish() writes the back slot, then atomically exchanges it with the
+/// middle slot and sets kFresh. read() exchanges its front slot with the
+/// middle slot only when kFresh is set, so repeated reads keep returning the
+/// latest frame instead of swapping an older one back in.
+///
+/// Because neither side ever touches a slot the other side owns, the consumer
+/// never observes a torn write, however long a copy is preempted. (A double
+/// buffer cannot give this guarantee: two publishes during one read cycle the
+/// producer back onto the slot being read.)
 template<LatestValueFrame FrameT>
 class LatestValueBuffer
 {
 public:
   LatestValueBuffer() = default;
 
-  /// Called by the producer. May be real-time or non-real-time depending on
-  /// which side of a given buffer is designated the producer.
+  /// Called by the producer only. May be real-time or non-real-time depending
+  /// on which side of a given buffer is designated the producer.
   void publish(const FrameT & frame) noexcept
   {
-    const std::size_t back = 1U - index_.load(std::memory_order_relaxed);
-    slots_[back] = frame;
-    // Release: the frame write is visible before the index swap.
-    index_.store(back, std::memory_order_release);
+    slots_[back_] = frame;
+    // Release: the slot write is visible to the consumer that takes this
+    // index. Acquire: the consumer has finished reading the slot we get back.
+    const std::uint32_t previous =
+      middle_.exchange(back_ | kFresh, std::memory_order_acq_rel);
+    back_ = previous & kIndexMask;
   }
 
-  /// Called by the consumer. Never blocks, never allocates.
+  /// Called by the consumer only. Never blocks, never allocates.
   /// Returns false if no valid frame has been published yet.
-  [[nodiscard]] bool read(FrameT & out) const noexcept
+  [[nodiscard]] bool read(FrameT & out) noexcept
   {
-    // Acquire: see the frame that was published before the index swap.
-    const std::size_t front = index_.load(std::memory_order_acquire);
-    out = slots_[front];
+    take_latest();
+    out = slots_[front_];
     return out.valid;
   }
 
+  /// Called by the consumer only. Discards every frame published so far, so
+  /// read() returns false until the next publish(). A publish() running
+  /// concurrently with reset() may land either side of it.
   void reset() noexcept
   {
-    slots_[0] = FrameT{};
-    slots_[1] = FrameT{};
-    index_.store(0U, std::memory_order_relaxed);
+    take_latest();
+    // The middle slot is not fresh, and the back slot is overwritten before
+    // it is handed off, so the front slot is the only pre-reset frame that
+    // read() could still return.
+    slots_[front_] = FrameT{};
   }
 
 private:
-  FrameT slots_[2]{};
-  std::atomic<std::size_t> index_{0U};
+  static constexpr std::uint32_t kIndexMask = 0x3U;
+  static constexpr std::uint32_t kFresh = 0x4U;
+
+  static_assert(std::atomic<std::uint32_t>::is_always_lock_free);
+
+  /// Consumer side: swap the fresh middle slot into front_, if there is one.
+  void take_latest() noexcept
+  {
+    // Only the producer sets kFresh and only the consumer clears it, so a
+    // relaxed check is safe; the exchange supplies the synchronisation.
+    if ((middle_.load(std::memory_order_relaxed) & kFresh) != 0U) {
+      const std::uint32_t previous =
+        middle_.exchange(front_, std::memory_order_acq_rel);
+      front_ = previous & kIndexMask;
+    }
+  }
+
+  FrameT slots_[3]{};
+  std::atomic<std::uint32_t> middle_{0U};
+  std::uint32_t back_{1U};   // producer-owned
+  std::uint32_t front_{2U};  // consumer-owned
 };
 
 }  // namespace humanoid::transport

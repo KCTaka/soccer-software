@@ -26,7 +26,12 @@ install(TARGETS ${PROJECT_NAME} EXPORT export_${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  ament_add_gtest(${PROJECT_NAME}_latest_value_buffer_test
+    test/latest_value_buffer_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_latest_value_buffer_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME})

@@ -229,23 +229,6 @@ bool MujocoActuatorTransport::activate()
     data_->qpos[qpos_adr + 3] = 1.0;            // qw (identity quaternion)
   }
 
-  // Set the initial joint positions to match the first keyframe
-  // so the controller starts from the slumped pose, not all-zeros.
-  // This avoids a large initial tracking error impulse.
-  const double initial_positions[] = {
-    -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // left leg
-    -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // right leg
-    0.0, 0.0, 0.3,                     // waist
-    0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,   // left arm
-    0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0    // right arm
-  };
-  for (std::uint8_t i = 0; i < joint_count_ && i < 29; ++i) {
-    int qp = joint_map_[i].qpos_adr;
-    if (qp >= 0) {
-      data_->qpos[qp] = initial_positions[i];
-    }
-  }
-
   // Settle the contact state.
   mj_forward(model_.get(), data_.get());
 
