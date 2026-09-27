@@ -15,7 +15,10 @@ find_package(ament_cmake REQUIRED)
 find_package(humanoid_transport REQUIRED)
 find_package(pluginlib REQUIRED)
 
-# Should be ros free, move this to a separeate visualization node before finalizing
+# ADR-001: the real-time exchange() path stays ROS-free. geometry_msgs/tf2_ros
+# are used only by the non-real-time viz thread (see viz_thread_main()).
+# Full extraction into a standalone visualization node remains a possible
+# follow-up (TODO.md item 1).
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
@@ -63,9 +66,22 @@ install(TARGETS ${PROJECT_NAME}
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(rclcpp REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  ament_add_gtest(${PROJECT_NAME}_conformance_test test/conformance_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME})
+
+  # Custom main: configure() creates an rclcpp::Node (mujoco_viz), which
+  # requires rclcpp::init() to have been called. The default gtest_main
+  # never calls it, so we supply our own and skip linking gtest's.
+  #
+  # ENV supplies HUMANOID_MJCF_PATH so this test exercises the real MuJoCo
+  # path under `colcon test` rather than silently GTEST_SKIP()-ing: colcon's
+  # test subprocess does not inherit the developer's shell environment.
+  ament_add_gtest(${PROJECT_NAME}_conformance_test
+    test/conformance_test.cpp
+    test/conformance_test_main.cpp
+    SKIP_LINKING_MAIN_LIBRARIES
+    ENV "HUMANOID_MJCF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
+  target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME} rclcpp::rclcpp)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

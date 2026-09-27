@@ -17,14 +17,17 @@
 
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <thread>
 #include <vector>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include "humanoid_transport/actuator_transport.hpp"
+#include "humanoid_transport/latest_value_buffer.hpp"
 
 // Forward-declare MuJoCo types to avoid pulling the full header into dependents.
 struct mjModel_;
@@ -47,11 +50,47 @@ struct MjDataDeleter
 using MjModelPtr = std::unique_ptr<mjModel_, MjModelDeleter>;
 using MjDataPtr = std::unique_ptr<mjData_, MjDataDeleter>;
 
+// SIL-only ground-truth snapshot, handed from the real-time exchange() thread
+// to the non-real-time visualization thread. Deliberately holds no reference
+// to mjData/mjModel: the viz thread never touches MuJoCo state directly, only
+// this plain copy.
+//
+// Extension point: additional SIL-only ground-truth fields (true CoM,
+// per-foot contact state, ...) can be added here without touching the
+// ActuatorTransport contract or the exchange() signature.
+struct GroundTruthFrame
+{
+  bool valid{false};
+  double position[3]{0.0, 0.0, 0.0};        // world frame, metres
+  double orientation_wxyz[4]{1.0, 0.0, 0.0, 0.0};
+};
+
+// Thin wrapper over humanoid_transport::LatestValueBuffer<GroundTruthFrame>.
+// Producer is the real-time exchange() call, consumer is the non-real-time
+// visualization thread (roles reversed relative to humanoid_mit_controller's
+// ReferenceBuffer, which shares the same underlying template).
+class GroundTruthBuffer
+{
+public:
+  void publish(const GroundTruthFrame & frame) noexcept
+  {
+    buffer_.publish(frame);
+  }
+
+  [[nodiscard]] bool read(GroundTruthFrame & out) const noexcept
+  {
+    return buffer_.read(out);
+  }
+
+private:
+  transport::LatestValueBuffer<GroundTruthFrame> buffer_;
+};
+
 class MujocoActuatorTransport : public transport::ActuatorTransport
 {
 public:
   MujocoActuatorTransport() = default;
-  ~MujocoActuatorTransport() override = default;
+  ~MujocoActuatorTransport() override;
 
   MujocoActuatorTransport(const MujocoActuatorTransport &) = delete;
   MujocoActuatorTransport & operator=(const MujocoActuatorTransport &) = delete;
@@ -114,10 +153,29 @@ private:
   bool push_started_{false};
   bool push_active_{false};
 
-  // Diagnostic-only RViz2 visualization (not part of the control path).
+  // qpos offset of the pelvis freejoint, resolved once at load time so
+  // exchange() never does a string-based MuJoCo lookup on the real-time path.
+  int root_qpos_adr_{-1};
+
+  // --- Diagnostic-only RViz2 visualization (ADR-001) ---
+  //
+  // exchange() only ever writes a plain snapshot into ground_truth_buffer_.
+  // All ROS/TF work (node, publisher, sendTransform) happens on viz_thread_,
+  // which is not part of the real-time read()/update()/write() path.
+  //
+  // The parent frame is sim_world, not odom: this is exact noise-free MuJoCo
+  // ground truth, not the Tier 0 estimator's output, and must not be
+  // mistakable for it by a downstream consumer. The child frame is "pelvis"
+  // (not renamed): it must match the URDF root link exactly, since it is the
+  // one transform that bridges into robot_state_publisher's tree, which
+  // publishes every transform out of "pelvis" but none into it.
+  void viz_thread_main();
+
   rclcpp::Node::SharedPtr viz_node_{nullptr};
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_{nullptr};
-  std::uint64_t viz_counter_{0};
+  GroundTruthBuffer ground_truth_buffer_;
+  std::thread viz_thread_;
+  std::atomic<bool> viz_thread_running_{false};
 };
 
 }  // namespace humanoid::transport_mujoco

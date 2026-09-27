@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 
 #include "pluginlib/class_list_macros.hpp"
 
@@ -61,6 +62,18 @@ void MjDataDeleter::operator()(mjData_ * d) const noexcept
   }
 }
 
+// Defensive: deactivate() already stops and joins viz_thread_, but a
+// defaulted destructor would call std::terminate if a joinable std::thread
+// were destroyed without this, e.g. on an abnormal shutdown that skips the
+// lifecycle contract.
+MujocoActuatorTransport::~MujocoActuatorTransport()
+{
+  viz_thread_running_.store(false, std::memory_order_relaxed);
+  if (viz_thread_.joinable()) {
+    viz_thread_.join();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // configure: load model, map joints, assert integer substep ratio
 // ---------------------------------------------------------------------------
@@ -94,6 +107,13 @@ bool MujocoActuatorTransport::load_model()
   data_.reset(mj_makeData(model_.get()));
   if (!data_) {
     return fail("mj_makeData failed");
+  }
+
+  // Resolve the pelvis freejoint's qpos offset once here, non-real-time, so
+  // exchange() never does a string-based MuJoCo lookup on the real-time path.
+  const int root_jnt = mj_name2id(model_.get(), mjOBJ_JOINT, "root");
+  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjJNT_FREE) {
+    root_qpos_adr_ = model_->jnt_qposadr[root_jnt];
   }
   return true;
 }
@@ -188,9 +208,8 @@ bool MujocoActuatorTransport::activate()
   // The freejoint qpos layout is [x, y, z, qw, qx, qy, qz].
   // Compute the pelvis height needed for the lowest foot contact
   // sphere to sit on the z=0 ground plane.
-  int root_jnt = mj_name2id(model_.get(), mjOBJ_JOINT, "root");
-  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjJNT_FREE) {
-    int qpos_adr = model_->jnt_qposadr[root_jnt];
+  if (root_qpos_adr_ >= 0) {
+    const int qpos_adr = root_qpos_adr_;
 
     // Compute pelvis height from the leg chain geometry.
     // Sum the z-offsets from pelvis to ankle_roll, plus the
@@ -233,12 +252,55 @@ bool MujocoActuatorTransport::activate()
   push_started_ = false;
   push_active_ = false;
   active_ = true;
+
+  // Defensive: a previous deactivate() should already have joined this, but
+  // guard against a double-activate() leaving a stale running thread, which
+  // would make the std::thread assignment below call std::terminate.
+  if (viz_thread_.joinable()) {
+    viz_thread_running_.store(false, std::memory_order_relaxed);
+    viz_thread_.join();
+  }
+  viz_thread_running_.store(true, std::memory_order_relaxed);
+  viz_thread_ = std::thread(&MujocoActuatorTransport::viz_thread_main, this);
+
   return true;
 }
 
 void MujocoActuatorTransport::deactivate()
 {
   active_ = false;
+  viz_thread_running_.store(false, std::memory_order_relaxed);
+  if (viz_thread_.joinable()) {
+    viz_thread_.join();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// diagnostics: non-real-time visualization thread (ADR-001)
+// ---------------------------------------------------------------------------
+
+void MujocoActuatorTransport::viz_thread_main()
+{
+  using namespace std::chrono_literals;
+
+  GroundTruthFrame frame;
+  while (viz_thread_running_.load(std::memory_order_relaxed)) {
+    if (ground_truth_buffer_.read(frame) && tf_broadcaster_) {
+      geometry_msgs::msg::TransformStamped t;
+      t.header.stamp = viz_node_->now();
+      t.header.frame_id = "sim_world";
+      t.child_frame_id = "pelvis";
+      t.transform.translation.x = frame.position[0];
+      t.transform.translation.y = frame.position[1];
+      t.transform.translation.z = frame.position[2];
+      t.transform.rotation.w = frame.orientation_wxyz[0];
+      t.transform.rotation.x = frame.orientation_wxyz[1];
+      t.transform.rotation.y = frame.orientation_wxyz[2];
+      t.transform.rotation.z = frame.orientation_wxyz[3];
+      tf_broadcaster_->sendTransform(t);
+    }
+    std::this_thread::sleep_for(50ms);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -345,21 +407,21 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     }
   }
 
-  // Publish base pose at 20 Hz (every 10th cycle) for RViz2 visualization.
-  // This is diagnostic-only, not part of the control path.
-  if (++viz_counter_ % 10 == 0 && tf_broadcaster_) {
-    geometry_msgs::msg::TransformStamped t;
-    t.header.stamp = viz_node_->now();
-    t.header.frame_id = "odom";
-    t.child_frame_id = "pelvis";
-    t.transform.translation.x = data_->qpos[0];
-    t.transform.translation.y = data_->qpos[1];
-    t.transform.translation.z = data_->qpos[2];
-    t.transform.rotation.w = data_->qpos[3];
-    t.transform.rotation.x = data_->qpos[4];
-    t.transform.rotation.y = data_->qpos[5];
-    t.transform.rotation.z = data_->qpos[6];
-    tf_broadcaster_->sendTransform(t);
+  // Hand the pelvis ground-truth pose to the non-real-time viz thread. This
+  // is a plain memory copy into a lock-free buffer: no allocation, no ROS or
+  // Zenoh call, no unbounded wait (ADR-001). The actual TF publish happens on
+  // viz_thread_main(), never here.
+  if (root_qpos_adr_ >= 0) {
+    GroundTruthFrame frame;
+    frame.valid = true;
+    frame.position[0] = data_->qpos[root_qpos_adr_ + 0];
+    frame.position[1] = data_->qpos[root_qpos_adr_ + 1];
+    frame.position[2] = data_->qpos[root_qpos_adr_ + 2];
+    frame.orientation_wxyz[0] = data_->qpos[root_qpos_adr_ + 3];
+    frame.orientation_wxyz[1] = data_->qpos[root_qpos_adr_ + 4];
+    frame.orientation_wxyz[2] = data_->qpos[root_qpos_adr_ + 5];
+    frame.orientation_wxyz[3] = data_->qpos[root_qpos_adr_ + 6];
+    ground_truth_buffer_.publish(frame);
   }
 
   // --- Read feedback ---
