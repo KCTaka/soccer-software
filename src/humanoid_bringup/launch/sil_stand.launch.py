@@ -26,6 +26,26 @@ def generate_launch_description():
             parameters=[{'robot_description': robot_description}],
             output='screen',
         ),
+        # SIL-only ground-truth view. MujocoActuatorTransport publishes
+        # sim_world -> ground_truth/pelvis; this second publisher hangs the
+        # link tree off it under the "ground_truth/" prefix. The production
+        # tree (odom -> pelvis -> links, owned by the Tier 0 estimator and
+        # the publisher above) is never touched by the simulator, so SIL and
+        # hardware resolve the same frames through the same producers.
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            namespace='ground_truth',
+            parameters=[{
+                'robot_description': robot_description,
+                'frame_prefix': 'ground_truth/',
+            }],
+            # /tf is absolute in tf2_ros and unaffected by the namespace;
+            # joint_states is relative and must be pulled back to the root.
+            remappings=[('joint_states', '/joint_states')],
+            output='screen',
+        ),
         Node(
             package='controller_manager',
             executable='ros2_control_node',

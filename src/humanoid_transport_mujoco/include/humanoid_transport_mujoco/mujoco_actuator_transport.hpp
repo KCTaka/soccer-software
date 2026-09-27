@@ -61,7 +61,14 @@ using MjDataPtr = std::unique_ptr<mjData_, MjDataDeleter>;
 struct GroundTruthFrame
 {
   bool valid{false};
-  double position[3]{0.0, 0.0, 0.0};        // world frame, metres
+  // Control-cycle sequence of the exchange() that produced this sample. The
+  // viz thread publishes only when it changes, so a stalled or deactivated
+  // simulation never republishes a stale pose under a fresh timestamp.
+  transport::CycleSequence sequence{0};
+  // Monotonic instant the sample was taken (after the physics step). Lets the
+  // viz thread stamp the TF with the sample time, not its own publish time.
+  transport::MonotonicStamp captured{};
+  double position[3]{0.0, 0.0, 0.0};        // sim_world frame, metres
   double orientation_wxyz[4]{1.0, 0.0, 0.0, 0.0};
 };
 
@@ -163,12 +170,22 @@ private:
   // All ROS/TF work (node, publisher, sendTransform) happens on viz_thread_,
   // which is not part of the real-time read()/update()/write() path.
   //
-  // The parent frame is sim_world, not odom: this is exact noise-free MuJoCo
-  // ground truth, not the Tier 0 estimator's output, and must not be
-  // mistakable for it by a downstream consumer. The child frame is "pelvis"
-  // (not renamed): it must match the URDF root link exactly, since it is the
-  // one transform that bridges into robot_state_publisher's tree, which
-  // publishes every transform out of "pelvis" but none into it.
+  // Frames: sim_world -> ground_truth/pelvis. Both ends are deliberately
+  // outside the production TF tree:
+  //   - sim_world (the MuJoCo floor) is not odom or map: this is exact,
+  //     noise-free ground truth, not an estimator output (Topic 6 D1).
+  //   - The child is NOT the URDF root "pelvis". tf2 permits one parent per
+  //     frame, and the Tier 0 estimator owns odom -> pelvis (REP-105). Were
+  //     the simulator to also parent "pelvis", the two would fight in the
+  //     tree, and every production consumer resolving odom -> pelvis in SIL
+  //     would see the simulator's truth or a flip-flop between the two.
+  //     That breaks ADR-007-01: SIL would no longer exercise the production
+  //     data path it claims to test.
+  // A second robot_state_publisher with frame_prefix "ground_truth/" hangs
+  // the link tree off ground_truth/pelvis for RViz (see sil_stand.launch.py).
+  static constexpr const char * kWorldFrame = "sim_world";
+  static constexpr const char * kGroundTruthRootFrame = "ground_truth/pelvis";
+
   void viz_thread_main();
 
   rclcpp::Node::SharedPtr viz_node_{nullptr};

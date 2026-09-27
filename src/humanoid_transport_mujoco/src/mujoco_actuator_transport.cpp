@@ -267,12 +267,23 @@ void MujocoActuatorTransport::viz_thread_main()
   using namespace std::chrono_literals;
 
   GroundTruthFrame frame;
+  transport::CycleSequence last_published = 0;
+  bool published_any = false;
   while (viz_thread_running_.load(std::memory_order_relaxed)) {
-    if (ground_truth_buffer_.read(frame) && tf_broadcaster_) {
+    // Publish only a new sample: re-sending the last pose under a fresh
+    // stamp would present a stalled simulation as a live one.
+    if (ground_truth_buffer_.read(frame) && tf_broadcaster_ &&
+      (!published_any || frame.sequence != last_published))
+    {
+      // Stamp with the sample time, not the publish time. The sample is
+      // 0-50 ms old here; convert its monotonic age into the node clock so
+      // the pose lines up with the joint_states from the same cycle.
+      const auto age = transport::MonotonicStamp::clock::now() - frame.captured;
       geometry_msgs::msg::TransformStamped t;
-      t.header.stamp = viz_node_->now();
-      t.header.frame_id = "sim_world";
-      t.child_frame_id = "pelvis";
+      t.header.stamp = viz_node_->now() - rclcpp::Duration(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(age));
+      t.header.frame_id = kWorldFrame;
+      t.child_frame_id = kGroundTruthRootFrame;
       t.transform.translation.x = frame.position[0];
       t.transform.translation.y = frame.position[1];
       t.transform.translation.z = frame.position[2];
@@ -281,6 +292,8 @@ void MujocoActuatorTransport::viz_thread_main()
       t.transform.rotation.y = frame.orientation_wxyz[2];
       t.transform.rotation.z = frame.orientation_wxyz[3];
       tf_broadcaster_->sendTransform(t);
+      last_published = frame.sequence;
+      published_any = true;
     }
     std::this_thread::sleep_for(50ms);
   }
@@ -397,6 +410,8 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
   if (root_qpos_adr_ >= 0) {
     GroundTruthFrame frame;
     frame.valid = true;
+    frame.sequence = command.sequence;
+    frame.captured = t_end;
     frame.position[0] = data_->qpos[root_qpos_adr_ + 0];
     frame.position[1] = data_->qpos[root_qpos_adr_ + 1];
     frame.position[2] = data_->qpos[root_qpos_adr_ + 2];
