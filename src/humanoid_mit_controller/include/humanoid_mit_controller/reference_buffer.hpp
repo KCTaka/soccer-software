@@ -1,4 +1,4 @@
-// Copyright 2026 Your Organization Name
+// Copyright 2026 UTRA-RoboSoccer
 // Reference buffer for the 200 Hz control loop.
 //
 // Producer: non-real-time thread (trajectory player, Zenoh callback).

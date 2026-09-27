@@ -1,4 +1,4 @@
-// Copyright 2026 Your Organization Name
+// Copyright 2026 UTRA-RoboSoccer
 // Lock-free single-producer single-consumer latest-value buffer.
 //
 // Semantics: the consumer always reads the most recently published frame.
@@ -11,7 +11,7 @@
 #define HUMANOID_TRANSPORT__LATEST_VALUE_BUFFER_HPP_
 
 #include <atomic>
-#include <concepts>
+#include <concepts>  // NOLINT(build/include_order)
 #include <cstddef>
 
 namespace humanoid::transport
@@ -20,7 +20,7 @@ namespace humanoid::transport
 template<typename FrameT>
 concept LatestValueFrame = requires(const FrameT & frame) {
   {frame.valid}->std::convertible_to<bool>;
-};
+};  // NOLINT(readability/braces)
 
 /// Double-buffered latest-value SPSC.
 /// The producer writes to the back buffer, then atomically swaps the index.
@@ -63,7 +63,7 @@ public:
 private:
   FrameT slots_[2]{};
   std::atomic<std::size_t> index_{0U};
-}
+};
 
 }  // namespace humanoid::transport
 

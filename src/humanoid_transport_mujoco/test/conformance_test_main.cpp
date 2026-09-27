@@ -1,4 +1,4 @@
-// Copyright 2026 Your Organization Name
+// Copyright 2026 UTRA-RoboSoccer
 
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>

@@ -1,4 +1,4 @@
-// Copyright 2026 Your Organization Name
+// Copyright 2026 UTRA-RoboSoccer
 
 #include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
 
