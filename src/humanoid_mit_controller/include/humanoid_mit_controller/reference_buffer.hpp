@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 #include "humanoid_transport/batch_types.hpp"
 #include "humanoid_transport/latest_value_buffer.hpp"
@@ -46,23 +47,22 @@ public:
   }
 
   /// Real-time. Called inside update(). Never blocks, never allocates.
-  /// Returns false if no valid reference has been published yet.
-  [[nodiscard]] bool read(ReferenceFrame & out) noexcept
+  /// Returns nullopt if no valid reference has been published yet.
+  [[nodiscard]] std::optional<ReferenceFrame> read() noexcept
   {
-    return buffer_.read(out);
+    return buffer_.read();
   }
 
   /// Real-time, consumer side only. Returns the sequence of the latest
   /// published reference, or 0 if none.
   [[nodiscard]] transport::CycleSequence latest_sequence() noexcept
   {
-    ReferenceFrame frame;
-    static_cast<void>(buffer_.read(frame));
-    return frame.sequence;
+    const auto frame = buffer_.read();
+    return frame ? frame->sequence : 0U;
   }
 
   /// Consumer side only. Discards any published reference, so read()
-  /// returns false until the next publish().
+  /// returns nullopt until the next publish().
   void reset() noexcept
   {
     buffer_.reset();

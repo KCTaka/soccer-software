@@ -20,6 +20,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -87,9 +88,9 @@ public:
     buffer_.publish(frame);
   }
 
-  [[nodiscard]] bool read(GroundTruthFrame & out) noexcept
+  [[nodiscard]] std::optional<GroundTruthFrame> read() noexcept
   {
-    return buffer_.read(out);
+    return buffer_.read();
   }
 
 private:

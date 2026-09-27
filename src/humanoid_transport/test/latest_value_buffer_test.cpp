@@ -32,8 +32,7 @@ TestFrame make_frame(std::uint64_t sequence)
 TEST(LatestValueBuffer, ReadsInvalidBeforeFirstPublish)
 {
   LatestValueBuffer<TestFrame> buffer;
-  TestFrame out;
-  EXPECT_FALSE(buffer.read(out));
+  EXPECT_FALSE(buffer.read().has_value());
 }
 
 TEST(LatestValueBuffer, ReadsMostRecentPublish)
@@ -42,9 +41,9 @@ TEST(LatestValueBuffer, ReadsMostRecentPublish)
   for (std::uint64_t s = 1U; s <= 5U; ++s) {
     buffer.publish(make_frame(s));
   }
-  TestFrame out;
-  ASSERT_TRUE(buffer.read(out));
-  EXPECT_EQ(out.words[0], 5U);
+  const auto out = buffer.read();
+  ASSERT_TRUE(out.has_value());
+  EXPECT_EQ(out->words[0], 5U);
 }
 
 // Repeated reads with no intervening publish must keep returning the latest
@@ -55,32 +54,32 @@ TEST(LatestValueBuffer, RepeatedReadsAreStable)
   buffer.publish(make_frame(1U));
   buffer.publish(make_frame(2U));
   for (int i = 0; i < 4; ++i) {
-    TestFrame out;
-    ASSERT_TRUE(buffer.read(out)) << "read " << i;
-    EXPECT_EQ(out.words[0], 2U) << "read " << i;
+    const auto out = buffer.read();
+    ASSERT_TRUE(out.has_value()) << "read " << i;
+    EXPECT_EQ(out->words[0], 2U) << "read " << i;
   }
   buffer.publish(make_frame(3U));
   for (int i = 0; i < 4; ++i) {
-    TestFrame out;
-    ASSERT_TRUE(buffer.read(out)) << "read " << i;
-    EXPECT_EQ(out.words[0], 3U) << "read " << i;
+    const auto out = buffer.read();
+    ASSERT_TRUE(out.has_value()) << "read " << i;
+    EXPECT_EQ(out->words[0], 3U) << "read " << i;
   }
 }
 
 TEST(LatestValueBuffer, ResetDiscardsPublishedFrames)
 {
   LatestValueBuffer<TestFrame> buffer;
-  TestFrame out;
   buffer.publish(make_frame(1U));
-  ASSERT_TRUE(buffer.read(out));   // frame 1 now in the consumer slot
-  buffer.publish(make_frame(2U));  // frame 2 pending in the middle slot
+  ASSERT_TRUE(buffer.read().has_value());  // frame 1 now in the consumer slot
+  buffer.publish(make_frame(2U));          // frame 2 pending in the middle slot
   buffer.reset();
-  EXPECT_FALSE(buffer.read(out));
-  EXPECT_FALSE(buffer.read(out));
+  EXPECT_FALSE(buffer.read().has_value());
+  EXPECT_FALSE(buffer.read().has_value());
 
   buffer.publish(make_frame(3U));
-  ASSERT_TRUE(buffer.read(out));
-  EXPECT_EQ(out.words[0], 3U);
+  const auto out = buffer.read();
+  ASSERT_TRUE(out.has_value());
+  EXPECT_EQ(out->words[0], 3U);
 }
 
 // Producer publishes as fast as it can while the consumer reads: every frame
@@ -99,20 +98,20 @@ TEST(LatestValueBuffer, ConcurrentReadsAreNeverTornOrStale)
   std::uint64_t torn = 0U;
   std::uint64_t regressions = 0U;
   for (int i = 0; i < 200000; ++i) {
-    TestFrame out;
-    if (!buffer.read(out)) {
+    const auto out = buffer.read();
+    if (!out) {
       continue;
     }
-    for (const auto word : out.words) {
-      if (word != out.words[0]) {
+    for (const auto word : out->words) {
+      if (word != out->words[0]) {
         ++torn;
         break;
       }
     }
-    if (out.words[0] < last) {
+    if (out->words[0] < last) {
       ++regressions;
     }
-    last = out.words[0];
+    last = out->words[0];
   }
   stop.store(true, std::memory_order_relaxed);
   producer.join();

@@ -15,6 +15,7 @@
 #include <atomic>
 #include <concepts>  // NOLINT(build/include_order)
 #include <cstdint>
+#include <optional>
 #include <type_traits>
 
 namespace humanoid::transport
@@ -60,16 +61,26 @@ public:
   }
 
   /// Called by the consumer only. Never blocks, never allocates.
-  /// Returns false if no valid frame has been published yet.
-  [[nodiscard]] bool read(FrameT & out) noexcept
+  /// Returns the latest frame, or nullopt if no valid frame has been
+  /// published yet (or since reset()).
+  ///
+  /// Returns by value (C++ Core Guidelines F.20). A caller initialising a
+  /// fresh object gets the slot copied straight into it: the prvalue is
+  /// guaranteed-elided and, under the x86-64/AArch64 ABIs, the hidden return
+  /// pointer *is* the caller's object. No frame is copied on the empty path.
+  /// std::optional of a trivially copyable FrameT is itself trivially
+  /// copyable, so this stays allocation-free and real-time safe.
+  [[nodiscard]] std::optional<FrameT> read() noexcept
   {
     take_latest();
-    out = slots_[front_];
-    return out.valid;
+    if (!slots_[front_].valid) {
+      return std::nullopt;
+    }
+    return slots_[front_];
   }
 
   /// Called by the consumer only. Discards every frame published so far, so
-  /// read() returns false until the next publish(). A publish() running
+  /// read() returns nullopt until the next publish(). A publish() running
   /// concurrently with reset() may land either side of it.
   void reset() noexcept
   {

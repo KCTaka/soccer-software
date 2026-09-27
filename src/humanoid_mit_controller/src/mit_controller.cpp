@@ -205,10 +205,9 @@ MitImpedanceController::state_interface_configuration() const
 controller_interface::return_type MitImpedanceController::update(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  ReferenceFrame ref;
-  bool have_ref = reference_buffer_.read(ref);
+  const auto latest = reference_buffer_.read();
 
-  if (!have_ref) {
+  if (!latest) {
     if (!have_fallback_) {
       // No reference and no fallback. Write zeros to prevent uncommanded motion.
       for (std::size_t j = 0U; j < num_joints_; ++j) {
@@ -224,8 +223,10 @@ controller_interface::return_type MitImpedanceController::update(
       }
       return controller_interface::return_type::OK;
     }
-    ref = fallback_reference_;
   }
+  // Bind, don't copy: the fallback is read in place rather than copied over
+  // the latest frame (a 1.3 KB copy every cycle without a reference).
+  const ReferenceFrame & ref = latest ? *latest : fallback_reference_;
 
   // Write all five fields for all joints from the reference.
   // Command interfaces are ordered: [joint0/pos, joint0/vel, ..., jointN/damping]

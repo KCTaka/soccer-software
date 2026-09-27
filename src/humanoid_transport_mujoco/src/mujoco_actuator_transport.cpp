@@ -266,7 +266,6 @@ void MujocoActuatorTransport::viz_thread_main()
 {
   using namespace std::chrono_literals;
 
-  GroundTruthFrame frame;
   transport::CycleSequence last_published = 0;
   bool published_any = false;
   // Logging lives here, not in exchange(): a stream write is a syscall that
@@ -275,9 +274,11 @@ void MujocoActuatorTransport::viz_thread_main()
   while (viz_thread_running_.load(std::memory_order_relaxed)) {
     // Publish only a new sample: re-sending the last pose under a fresh
     // stamp would present a stalled simulation as a live one.
-    if (ground_truth_buffer_.read(frame) && tf_broadcaster_ &&
-      (!published_any || frame.sequence != last_published))
+    const auto sample = ground_truth_buffer_.read();
+    if (sample && tf_broadcaster_ &&
+      (!published_any || sample->sequence != last_published))
     {
+      const GroundTruthFrame & frame = *sample;
       // Stamp with the sample time, not the publish time. The sample is
       // 0-50 ms old here; convert its monotonic age into the node clock so
       // the pose lines up with the joint_states from the same cycle.
