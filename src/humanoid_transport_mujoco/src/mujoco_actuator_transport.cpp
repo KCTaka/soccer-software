@@ -171,9 +171,9 @@ bool MujocoActuatorTransport::activate()
   const double initial_positions[] = {
     -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // left leg
     -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   // right leg
-     0.0, 0.0, 0.3,                    // waist
-     0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,  // left arm
-     0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0   // right arm
+    0.0, 0.0, 0.3,                     // waist
+    0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,   // left arm
+    0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0    // right arm
   };
   for (std::uint8_t i = 0; i < joint_count_ && i < 29; ++i) {
     int qp = joint_map_[i].qpos_adr;
@@ -295,8 +295,8 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     int pelvis_body = mj_name2id(model_, mjOBJ_BODY, "pelvis");
     if (pelvis_body >= 0) {
       std::cerr << "[MuJoCo] t=" << data_->time
-        << " pelvis_z=" << data_->xpos[3 * pelvis_body + 2]
-        << "\n";
+                << " pelvis_z=" << data_->xpos[3 * pelvis_body + 2]
+                << "\n";
     }
   }
 
