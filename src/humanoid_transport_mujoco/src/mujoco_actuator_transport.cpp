@@ -269,6 +269,9 @@ void MujocoActuatorTransport::viz_thread_main()
   GroundTruthFrame frame;
   transport::CycleSequence last_published = 0;
   bool published_any = false;
+  // Logging lives here, not in exchange(): a stream write is a syscall that
+  // can block on a slow terminal or pipe, which ADR-001 forbids in-cycle.
+  double next_log_time_s = 0.0;
   while (viz_thread_running_.load(std::memory_order_relaxed)) {
     // Publish only a new sample: re-sending the last pose under a fresh
     // stamp would present a stalled simulation as a live one.
@@ -294,6 +297,13 @@ void MujocoActuatorTransport::viz_thread_main()
       tf_broadcaster_->sendTransform(t);
       last_published = frame.sequence;
       published_any = true;
+
+      // pelvis_z is the freejoint height, i.e. the pelvis body origin.
+      if (frame.sim_time_s >= next_log_time_s) {
+        std::cerr << "[MuJoCo] t=" << frame.sim_time_s
+                  << " pelvis_z=" << frame.position[2] << "\n";
+        next_log_time_s = std::floor(frame.sim_time_s) + 1.0;
+      }
     }
     std::this_thread::sleep_for(50ms);
   }
@@ -394,15 +404,6 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     ++deadline_misses_;
   }
 
-  if (command.sequence % 200 == 0) {  // log once per second
-    int pelvis_body = mj_name2id(model_.get(), mjOBJ_BODY, "pelvis");
-    if (pelvis_body >= 0) {
-      std::cerr << "[MuJoCo] t=" << data_->time
-                << " pelvis_z=" << data_->xpos[3 * pelvis_body + 2]
-                << "\n";
-    }
-  }
-
   // Hand the pelvis ground-truth pose to the non-real-time viz thread. This
   // is a plain memory copy into a lock-free buffer: no allocation, no ROS or
   // Zenoh call, no unbounded wait (ADR-001). The actual TF publish happens on
@@ -412,6 +413,7 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     frame.valid = true;
     frame.sequence = command.sequence;
     frame.captured = t_end;
+    frame.sim_time_s = data_->time;
     frame.position[0] = data_->qpos[root_qpos_adr_ + 0];
     frame.position[1] = data_->qpos[root_qpos_adr_ + 1];
     frame.position[2] = data_->qpos[root_qpos_adr_ + 2];

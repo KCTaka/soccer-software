@@ -68,6 +68,9 @@ struct GroundTruthFrame
   // Monotonic instant the sample was taken (after the physics step). Lets the
   // viz thread stamp the TF with the sample time, not its own publish time.
   transport::MonotonicStamp captured{};
+  // MuJoCo simulation time after the step, seconds. Drives the viz thread's
+  // once-per-simulated-second diagnostic log.
+  double sim_time_s{0.0};
   double position[3]{0.0, 0.0, 0.0};        // sim_world frame, metres
   double orientation_wxyz[4]{1.0, 0.0, 0.0, 0.0};
 };
