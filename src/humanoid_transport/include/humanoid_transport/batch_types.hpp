@@ -7,6 +7,7 @@
 #include <array>
 #include <bitset>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 
@@ -32,6 +33,15 @@ struct JointCommand
   double damping_nm_s_rad{0.0};
 };
 static_assert(std::is_trivially_copyable_v<JointCommand>);
+
+/// True when all five MIT fields are finite. A single NaN or Inf field makes the whole tuple
+/// undefined, so callers must reject the tuple, not patch the field.
+[[nodiscard]] inline bool is_finite(const JointCommand & c) noexcept
+{
+  return std::isfinite(c.position_rad) && std::isfinite(c.velocity_rad_s) &&
+         std::isfinite(c.effort_nm) && std::isfinite(c.stiffness_nm_rad) &&
+         std::isfinite(c.damping_nm_s_rad);
+}
 
 struct JointFeedback
 {

@@ -37,11 +37,7 @@ Verdict SafetyKernel::project(
 
   // --- Check 1: finiteness ---
   for (std::uint8_t i = 0; i < command.joint_count; ++i) {
-    const auto & j = command.joints[i];
-    if (!std::isfinite(j.position_rad) || !std::isfinite(j.velocity_rad_s) ||
-      !std::isfinite(j.effort_nm) || !std::isfinite(j.stiffness_nm_rad) ||
-      !std::isfinite(j.damping_nm_s_rad))
-    {
+    if (!transport::is_finite(command.joints[i])) {
       enter_protective(Trigger::kNonFiniteCommand, command);
       return Verdict{Trigger::kNonFiniteCommand, i, command.joint_count, true, true};
     }

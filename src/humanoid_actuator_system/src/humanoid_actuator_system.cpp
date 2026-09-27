@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <string>
@@ -39,13 +38,6 @@ std::vector<std::string> joint_names_from_info(
     names.push_back(j.name);
   }
   return names;
-}
-
-bool is_finite(const transport::JointCommand & c)
-{
-  return std::isfinite(c.position_rad) && std::isfinite(c.velocity_rad_s) &&
-         std::isfinite(c.effort_nm) && std::isfinite(c.stiffness_nm_rad) &&
-         std::isfinite(c.damping_nm_s_rad);
 }
 }  // namespace
 
@@ -436,7 +428,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
 
   // 2. Validate finiteness
   for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    if (!is_finite(command_snapshot_.joints[i])) {
+    if (!transport::is_finite(command_snapshot_.joints[i])) {
       enter_protective_state(safety::Trigger::kNonFiniteCommand);
       return hardware_interface::return_type::ERROR;
     }
