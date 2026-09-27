@@ -18,6 +18,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -128,14 +129,7 @@ public:
   [[nodiscard]] transport::HealthSnapshot health_snapshot() const noexcept override;
 
 private:
-  // --- configure() steps, in order ---
-  [[nodiscard]] bool load_model();
-  [[nodiscard]] bool validate_substeps();
-  [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
-  [[nodiscard]] bool parse_perturbation_params();
-
-  MjModelPtr model_;
-  MjDataPtr data_;
+  // --- Types ---
 
   // Per-joint mapping from manifest index to MuJoCo addresses.
   struct JointMapping
@@ -143,36 +137,17 @@ private:
     int qpos_adr{-1};  // index into d->qpos
     int dof_adr{-1};   // index into d->qvel, d->qfrc_applied
   };
-  std::vector<JointMapping> joint_map_;
 
-  std::uint8_t joint_count_{0};
-  int n_substeps_{0};
+  // --- configure() steps, in order ---
+  [[nodiscard]] bool load_model();
+  [[nodiscard]] bool validate_substeps();
+  [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
+  [[nodiscard]] bool parse_perturbation_params();
 
-  // Health counters.
-  transport::CycleSequence last_sequence_{0};
-  std::uint64_t exchanges_attempted_{0};
-  std::uint64_t exchanges_failed_{0};
-  std::uint64_t deadline_misses_{0};
-  std::chrono::nanoseconds worst_round_trip_{0};
-  bool active_{false};
+  // --- Non-real-time visualization thread body ---
+  void viz_thread_main();
 
-  // Perturbation parameters (set via environment or parameters)
-  double push_force_n_{0.0};
-  double push_time_s_{0.0};
-  int push_body_id_{-1};
-  int push_axis_{1};  // 1 = lateral (y)
-  bool push_started_{false};
-  bool push_active_{false};
-
-  // qpos offset of the pelvis freejoint, resolved once at load time so
-  // exchange() never does a string-based MuJoCo lookup on the real-time path.
-  int root_qpos_adr_{-1};
-
-  // --- Diagnostic-only RViz2 visualization (ADR-001) ---
-  //
-  // exchange() only ever writes a plain snapshot into ground_truth_buffer_.
-  // All ROS/TF work (node, publisher, sendTransform) happens on viz_thread_,
-  // which is not part of the real-time read()/update()/write() path.
+  // --- Constants ---
   //
   // Frames: sim_world -> ground_truth/pelvis. Both ends are deliberately
   // outside the production TF tree:
@@ -190,8 +165,37 @@ private:
   static constexpr const char * kWorldFrame = "sim_world";
   static constexpr const char * kGroundTruthRootFrame = "ground_truth/pelvis";
 
-  void viz_thread_main();
+  // --- MuJoCo state ---
+  MjModelPtr model_;
+  MjDataPtr data_;
+  std::vector<JointMapping> joint_map_;
+  std::uint8_t joint_count_{0};
+  int n_substeps_{0};
+  // qpos offset of the pelvis freejoint, resolved once at load time so
+  // exchange() never does a string-based MuJoCo lookup on the real-time path.
+  int root_qpos_adr_{-1};
 
+  // --- Health counters ---
+  transport::CycleSequence last_sequence_{0};
+  std::uint64_t exchanges_attempted_{0};
+  std::uint64_t exchanges_failed_{0};
+  std::uint64_t deadline_misses_{0};
+  std::chrono::nanoseconds worst_round_trip_{0};
+  bool active_{false};
+
+  // --- Perturbation parameters (set via environment or parameters) ---
+  double push_force_n_{0.0};
+  double push_time_s_{0.0};
+  int push_body_id_{-1};
+  int push_axis_{1};  // 1 = lateral (y)
+  bool push_started_{false};
+  bool push_active_{false};
+
+  // --- Diagnostic-only RViz2 visualization (ADR-001) ---
+  //
+  // exchange() only ever writes a plain snapshot into ground_truth_buffer_.
+  // All ROS/TF work (node, publisher, sendTransform) happens on viz_thread_,
+  // which is not part of the real-time read()/update()/write() path.
   rclcpp::Node::SharedPtr viz_node_{nullptr};
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_{nullptr};
   GroundTruthBuffer ground_truth_buffer_;

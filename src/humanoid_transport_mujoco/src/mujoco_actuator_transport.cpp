@@ -21,27 +21,10 @@
 namespace
 {
 
-bool fail(std::string_view msg)
-{
-  std::cerr << "MujocoActuatorTransport: " << msg << "\n";
-  return false;
-}
-
-// Parses an environment variable as a double. Returns nullopt if unset,
-// empty, or not parseable as a number (mirrors std::atof's tolerance for
-// garbage input, but distinguishes "unset" from "zero").
-std::optional<double> env_double(const char * name)
-{
-  const char * val = std::getenv(name);
-  if (!val || val[0] == '\0') {
-    return std::nullopt;
-  }
-  try {
-    return std::stod(val);
-  } catch (const std::exception &) {
-    return std::nullopt;
-  }
-}
+// File-local helpers. Declared here, defined at the end of this file, so the
+// class implementation reads first.
+bool fail(std::string_view msg);
+std::optional<double> env_double(const char * name);
 
 }  // namespace
 
@@ -74,6 +57,10 @@ MujocoActuatorTransport::~MujocoActuatorTransport()
   }
 }
 
+// ===========================================================================
+// ActuatorTransport overrides
+// ===========================================================================
+
 // ---------------------------------------------------------------------------
 // configure: load model, map joints, assert integer substep ratio
 // ---------------------------------------------------------------------------
@@ -86,111 +73,6 @@ bool MujocoActuatorTransport::configure(
          validate_substeps() &&
          map_joints(joints) &&
          parse_perturbation_params();
-}
-
-bool MujocoActuatorTransport::load_model()
-{
-  const char * mjcf_path = std::getenv("HUMANOID_MJCF_PATH");
-  if (!mjcf_path || mjcf_path[0] == '\0') {
-    return fail("HUMANOID_MJCF_PATH not set");
-  }
-
-  char error_buf[1024] = {};
-  model_.reset(mj_loadXML(mjcf_path, nullptr, error_buf, sizeof(error_buf)));
-  if (!model_) {
-    return fail(std::format("mj_loadXML failed: {}", error_buf));
-  }
-
-  viz_node_ = rclcpp::Node::make_shared("mujoco_viz");
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*viz_node_);
-
-  data_.reset(mj_makeData(model_.get()));
-  if (!data_) {
-    return fail("mj_makeData failed");
-  }
-
-  // Resolve the pelvis freejoint's qpos offset once here, non-real-time, so
-  // exchange() never does a string-based MuJoCo lookup on the real-time path.
-  const int root_jnt = mj_name2id(model_.get(), mjOBJ_JOINT, "root");
-  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjJNT_FREE) {
-    root_qpos_adr_ = model_->jnt_qposadr[root_jnt];
-  }
-  return true;
-}
-
-bool MujocoActuatorTransport::validate_substeps()
-{
-  // Assert integer substep ratio (ADR-007-03).
-  //   control_period = 5 ms = 5000 us.
-  //   dt_physics = model_->opt.timestep (expected 0.001 s = 1 ms).
-  //   n_substeps = control_period / dt_physics must be a positive integer.
-  constexpr double kControlPeriodS = 0.005;
-  const double dt = model_->opt.timestep;
-  if (dt <= 0.0) {
-    return fail(std::format("invalid timestep {}", dt));
-  }
-
-  const double ratio = kControlPeriodS / dt;
-  n_substeps_ = static_cast<int>(std::lround(ratio));
-
-  if (n_substeps_ < 1 ||
-    std::abs(static_cast<double>(n_substeps_) * dt - kControlPeriodS) > 1e-9)
-  {
-    return fail(std::format(
-      "timestep {} does not divide 5 ms control period by an integer. ratio={}",
-      dt, ratio));
-  }
-  return true;
-}
-
-bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints)
-{
-  joint_count_ = joints.joint_count;
-  joint_map_.resize(joint_count_);
-
-  for (std::uint8_t i = 0; i < joint_count_; ++i) {
-    const char * name = joints.joints[i].name.data();
-    const int jnt_id = mj_name2id(model_.get(), mjOBJ_JOINT, name);
-    if (jnt_id < 0) {
-      return fail(std::format("joint '{}' not found in model", name));
-    }
-
-    // Verify it is a hinge (revolute) or slide (prismatic) — 1-DOF joint.
-    const int type = model_->jnt_type[jnt_id];
-    if (type != mjJNT_HINGE && type != mjJNT_SLIDE) {
-      return fail(std::format("joint '{}' is not hinge/slide (type={})", name, type));
-    }
-
-    joint_map_[i] = {
-      .qpos_adr = model_->jnt_qposadr[jnt_id],
-      .dof_adr = model_->jnt_dofadr[jnt_id],
-    };
-  }
-  return true;
-}
-
-bool MujocoActuatorTransport::parse_perturbation_params()
-{
-  active_ = false;
-
-  if (const auto force = env_double("HUMANOID_PUSH_FORCE_N")) {
-    push_force_n_ = *force;
-  }
-  if (const auto time = env_double("HUMANOID_PUSH_TIME_S")) {
-    push_time_s_ = *time;
-  }
-
-  const char * push_body = std::getenv("HUMANOID_PUSH_BODY");
-  if (!push_body && push_force_n_ > 0.0) {
-    push_body = "torso_link";
-  }
-  if (push_body) {
-    push_body_id_ = mj_name2id(model_.get(), mjOBJ_BODY, push_body);
-  }
-  if (push_force_n_ > 0.0 && push_body_id_ < 0) {
-    return fail("push body not found in model");
-  }
-  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -255,58 +137,6 @@ void MujocoActuatorTransport::deactivate()
   viz_thread_running_.store(false, std::memory_order_relaxed);
   if (viz_thread_.joinable()) {
     viz_thread_.join();
-  }
-}
-
-// ---------------------------------------------------------------------------
-// diagnostics: non-real-time visualization thread (ADR-001)
-// ---------------------------------------------------------------------------
-
-void MujocoActuatorTransport::viz_thread_main()
-{
-  using namespace std::chrono_literals;
-
-  transport::CycleSequence last_published = 0;
-  bool published_any = false;
-  // Logging lives here, not in exchange(): a stream write is a syscall that
-  // can block on a slow terminal or pipe, which ADR-001 forbids in-cycle.
-  double next_log_time_s = 0.0;
-  while (viz_thread_running_.load(std::memory_order_relaxed)) {
-    // Publish only a new sample: re-sending the last pose under a fresh
-    // stamp would present a stalled simulation as a live one.
-    const auto sample = ground_truth_buffer_.read();
-    if (sample && tf_broadcaster_ &&
-      (!published_any || sample->sequence != last_published))
-    {
-      const GroundTruthFrame & frame = *sample;
-      // Stamp with the sample time, not the publish time. The sample is
-      // 0-50 ms old here; convert its monotonic age into the node clock so
-      // the pose lines up with the joint_states from the same cycle.
-      const auto age = transport::MonotonicStamp::clock::now() - frame.captured;
-      geometry_msgs::msg::TransformStamped t;
-      t.header.stamp = viz_node_->now() - rclcpp::Duration(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(age));
-      t.header.frame_id = kWorldFrame;
-      t.child_frame_id = kGroundTruthRootFrame;
-      t.transform.translation.x = frame.position[0];
-      t.transform.translation.y = frame.position[1];
-      t.transform.translation.z = frame.position[2];
-      t.transform.rotation.w = frame.orientation_wxyz[0];
-      t.transform.rotation.x = frame.orientation_wxyz[1];
-      t.transform.rotation.y = frame.orientation_wxyz[2];
-      t.transform.rotation.z = frame.orientation_wxyz[3];
-      tf_broadcaster_->sendTransform(t);
-      last_published = frame.sequence;
-      published_any = true;
-
-      // pelvis_z is the freejoint height, i.e. the pelvis body origin.
-      if (frame.sim_time_s >= next_log_time_s) {
-        std::cerr << "[MuJoCo] t=" << frame.sim_time_s
-                  << " pelvis_z=" << frame.position[2] << "\n";
-        next_log_time_s = std::floor(frame.sim_time_s) + 1.0;
-      }
-    }
-    std::this_thread::sleep_for(50ms);
   }
 }
 
@@ -510,7 +340,199 @@ transport::HealthSnapshot MujocoActuatorTransport::health_snapshot() const noexc
   return snap;
 }
 
+// ===========================================================================
+// Private helpers
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// configure() steps, in call order
+// ---------------------------------------------------------------------------
+
+bool MujocoActuatorTransport::load_model()
+{
+  const char * mjcf_path = std::getenv("HUMANOID_MJCF_PATH");
+  if (!mjcf_path || mjcf_path[0] == '\0') {
+    return fail("HUMANOID_MJCF_PATH not set");
+  }
+
+  char error_buf[1024] = {};
+  model_.reset(mj_loadXML(mjcf_path, nullptr, error_buf, sizeof(error_buf)));
+  if (!model_) {
+    return fail(std::format("mj_loadXML failed: {}", error_buf));
+  }
+
+  viz_node_ = rclcpp::Node::make_shared("mujoco_viz");
+  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*viz_node_);
+
+  data_.reset(mj_makeData(model_.get()));
+  if (!data_) {
+    return fail("mj_makeData failed");
+  }
+
+  // Resolve the pelvis freejoint's qpos offset once here, non-real-time, so
+  // exchange() never does a string-based MuJoCo lookup on the real-time path.
+  const int root_jnt = mj_name2id(model_.get(), mjtObj::mjOBJ_JOINT, "root");
+  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjtJoint::mjJNT_FREE) {
+    root_qpos_adr_ = model_->jnt_qposadr[root_jnt];
+  }
+  return true;
+}
+
+bool MujocoActuatorTransport::validate_substeps()
+{
+  // Assert integer substep ratio (ADR-007-03).
+  //   control_period = 5 ms = 5000 us.
+  //   dt_physics = model_->opt.timestep (expected 0.001 s = 1 ms).
+  //   n_substeps = control_period / dt_physics must be a positive integer.
+  constexpr double kControlPeriodS = 0.005;
+  const double dt = model_->opt.timestep;
+  if (dt <= 0.0) {
+    return fail(std::format("invalid timestep {}", dt));
+  }
+
+  const double ratio = kControlPeriodS / dt;
+  n_substeps_ = static_cast<int>(std::lround(ratio));
+
+  if (n_substeps_ < 1 ||
+    std::abs(static_cast<double>(n_substeps_) * dt - kControlPeriodS) > 1e-9)
+  {
+    return fail(std::format(
+      "timestep {} does not divide 5 ms control period by an integer. ratio={}",
+      dt, ratio));
+  }
+  return true;
+}
+
+bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints)
+{
+  joint_count_ = joints.joint_count;
+  joint_map_.resize(joint_count_);
+
+  for (std::uint8_t i = 0; i < joint_count_; ++i) {
+    const char * name = joints.joints[i].name.data();
+    const int jnt_id = mj_name2id(model_.get(), mjtObj::mjOBJ_JOINT, name);
+    if (jnt_id < 0) {
+      return fail(std::format("joint '{}' not found in model", name));
+    }
+
+    // Verify it is a hinge (revolute) or slide (prismatic) — 1-DOF joint.
+    const int type = model_->jnt_type[jnt_id];
+    if (type != mjtJoint::mjJNT_HINGE && type != mjtJoint::mjJNT_SLIDE) {
+      return fail(std::format("joint '{}' is not hinge/slide (type={})", name, type));
+    }
+
+    joint_map_[i] = {
+      .qpos_adr = model_->jnt_qposadr[jnt_id],
+      .dof_adr = model_->jnt_dofadr[jnt_id],
+    };
+  }
+  return true;
+}
+
+bool MujocoActuatorTransport::parse_perturbation_params()
+{
+  active_ = false;
+
+  if (const auto force = env_double("HUMANOID_PUSH_FORCE_N")) {
+    push_force_n_ = *force;
+  }
+  if (const auto time = env_double("HUMANOID_PUSH_TIME_S")) {
+    push_time_s_ = *time;
+  }
+
+  const char * push_body = std::getenv("HUMANOID_PUSH_BODY");
+  if (!push_body && push_force_n_ > 0.0) {
+    push_body = "torso_link";
+  }
+  if (push_body) {
+    push_body_id_ = mj_name2id(model_.get(), mjtObj::mjOBJ_BODY, push_body);
+  }
+  if (push_force_n_ > 0.0 && push_body_id_ < 0) {
+    return fail("push body not found in model");
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// non-real-time visualization thread (ADR-001)
+// ---------------------------------------------------------------------------
+
+void MujocoActuatorTransport::viz_thread_main()
+{
+  using namespace std::chrono_literals;
+
+  transport::CycleSequence last_published = 0;
+  bool published_any = false;
+  // Logging lives here, not in exchange(): a stream write is a syscall that
+  // can block on a slow terminal or pipe, which ADR-001 forbids in-cycle.
+  double next_log_time_s = 0.0;
+  while (viz_thread_running_.load(std::memory_order_relaxed)) {
+    // Publish only a new sample: re-sending the last pose under a fresh
+    // stamp would present a stalled simulation as a live one.
+    const auto sample = ground_truth_buffer_.read();
+    if (sample && tf_broadcaster_ &&
+      (!published_any || sample->sequence != last_published))
+    {
+      const GroundTruthFrame & frame = *sample;
+      // Stamp with the sample time, not the publish time. The sample is
+      // 0-50 ms old here; convert its monotonic age into the node clock so
+      // the pose lines up with the joint_states from the same cycle.
+      const auto age = transport::MonotonicStamp::clock::now() - frame.captured;
+      geometry_msgs::msg::TransformStamped t;
+      t.header.stamp = viz_node_->now() - rclcpp::Duration(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(age));
+      t.header.frame_id = kWorldFrame;
+      t.child_frame_id = kGroundTruthRootFrame;
+      t.transform.translation.x = frame.position[0];
+      t.transform.translation.y = frame.position[1];
+      t.transform.translation.z = frame.position[2];
+      t.transform.rotation.w = frame.orientation_wxyz[0];
+      t.transform.rotation.x = frame.orientation_wxyz[1];
+      t.transform.rotation.y = frame.orientation_wxyz[2];
+      t.transform.rotation.z = frame.orientation_wxyz[3];
+      tf_broadcaster_->sendTransform(t);
+      last_published = frame.sequence;
+      published_any = true;
+
+      // pelvis_z is the freejoint height, i.e. the pelvis body origin.
+      if (frame.sim_time_s >= next_log_time_s) {
+        std::cerr << "[MuJoCo] t=" << frame.sim_time_s
+                  << " pelvis_z=" << frame.position[2] << "\n";
+        next_log_time_s = std::floor(frame.sim_time_s) + 1.0;
+      }
+    }
+    std::this_thread::sleep_for(50ms);
+  }
+}
+
 }  // namespace humanoid::transport_mujoco
+
+namespace
+{
+
+bool fail(std::string_view msg)
+{
+  std::cerr << "MujocoActuatorTransport: " << msg << "\n";
+  return false;
+}
+
+// Parses an environment variable as a double. Returns nullopt if unset,
+// empty, or not parseable as a number (mirrors std::atof's tolerance for
+// garbage input, but distinguishes "unset" from "zero").
+std::optional<double> env_double(const char * name)
+{
+  const char * val = std::getenv(name);
+  if (!val || val[0] == '\0') {
+    return std::nullopt;
+  }
+  try {
+    return std::stod(val);
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
+}  // namespace
 
 PLUGINLIB_EXPORT_CLASS(
   humanoid::transport_mujoco::MujocoActuatorTransport,
