@@ -33,11 +33,25 @@ struct mjData_;
 namespace humanoid::transport_mujoco
 {
 
+// Deleter bodies live in the .cpp, where <mujoco/mujoco.h> is visible; the
+// header only forward-declares mjModel_/mjData_ so dependents don't pull in
+// the full MuJoCo header.
+struct MjModelDeleter
+{
+  void operator()(mjModel_ * m) const noexcept;
+};
+struct MjDataDeleter
+{
+  void operator()(mjData_ * d) const noexcept;
+};
+using MjModelPtr = std::unique_ptr<mjModel_, MjModelDeleter>;
+using MjDataPtr = std::unique_ptr<mjData_, MjDataDeleter>;
+
 class MujocoActuatorTransport : public transport::ActuatorTransport
 {
 public:
   MujocoActuatorTransport() = default;
-  ~MujocoActuatorTransport() override;
+  ~MujocoActuatorTransport() override = default;
 
   MujocoActuatorTransport(const MujocoActuatorTransport &) = delete;
   MujocoActuatorTransport & operator=(const MujocoActuatorTransport &) = delete;
@@ -64,8 +78,14 @@ public:
   [[nodiscard]] transport::HealthSnapshot health_snapshot() const noexcept override;
 
 private:
-  mjModel_ * model_{nullptr};
-  mjData_ * data_{nullptr};
+  // --- configure() steps, in order ---
+  [[nodiscard]] bool load_model();
+  [[nodiscard]] bool validate_substeps();
+  [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
+  [[nodiscard]] bool parse_perturbation_params();
+
+  MjModelPtr model_;
+  MjDataPtr data_;
 
   // Per-joint mapping from manifest index to MuJoCo addresses.
   struct JointMapping
@@ -94,7 +114,7 @@ private:
   bool push_started_{false};
   bool push_active_{false};
 
-  // In the class, add:
+  // Diagnostic-only RViz2 visualization (not part of the control path).
   rclcpp::Node::SharedPtr viz_node_{nullptr};
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_{nullptr};
   std::uint64_t viz_counter_{0};
