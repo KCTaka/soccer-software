@@ -8,7 +8,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wsuggest-override -Werror)
 endif()
 
 find_package(ament_cmake REQUIRED)
