@@ -28,7 +28,6 @@ namespace humanoid::actuator_system
 
 namespace
 {
-constexpr char kLogName[] = "HumanoidActuatorSystem";
 // ROS parameters of the component's own node, which ros2_control names after the description's
 // <ros2_control name>, lower-cased. They choose the deployment, so they have no defaults.
 constexpr char kTransportPluginParam[] = "transport_plugin";
@@ -50,7 +49,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
 {
   info_ = params.hardware_info;
   if (const auto violation = hardware_contract_violation(info_)) {
-    RCLCPP_ERROR(rclcpp::get_logger(kLogName), "Robot description: %s", violation->c_str());
+    RCLCPP_ERROR(get_logger(), "Robot description: %s", violation->c_str());
     return hardware_interface::CallbackReturn::ERROR;
   }
   joint_names_ = joint_names_from_info(info_);
@@ -66,7 +65,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  const auto logger = rclcpp::get_logger(kLogName);
+  const auto logger = get_logger();
 
   // ADR-001-03: the rate is an invariant, so a mismatched controller_manager
   // update_rate is a configuration error, not a different operating point.
@@ -175,7 +174,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  const auto logger = rclcpp::get_logger(kLogName);
+  const auto logger = get_logger();
 
   if (!transport_->activate()) {
     RCLCPP_ERROR(logger, "Transport activate() failed");
@@ -451,7 +450,7 @@ void HumanoidActuatorSystem::log_exchange_stats() const
     stats_.attempted, stats_.failed, stats_.deadline_misses,
     std::chrono::duration<double, std::micro>(stats_.worst_exchange).count(),
     stats_.last_sequence);
-  RCLCPP_INFO(rclcpp::get_logger(kLogName), "%s", summary.c_str());
+  RCLCPP_INFO(get_logger(), "%s", summary.c_str());
 }
 
 transport::ExchangeResult HumanoidActuatorSystem::exchange_once(
@@ -477,7 +476,7 @@ void HumanoidActuatorSystem::enter_protective_state(
 
 std::optional<HumanoidActuatorSystem::Parameters> HumanoidActuatorSystem::read_parameters() const
 {
-  const auto logger = rclcpp::get_logger(kLogName);
+  const auto logger = get_logger();
   const auto node = get_node();
   if (!node) {
     RCLCPP_ERROR(logger, "ros2_control created no node for this component; cannot declare its "
