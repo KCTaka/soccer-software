@@ -32,6 +32,9 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_latest_value_buffer_test
     test/latest_value_buffer_test.cpp)
   target_link_libraries(${PROJECT_NAME}_latest_value_buffer_test ${PROJECT_NAME})
+
+  ament_add_gtest(${PROJECT_NAME}_exchange_stats_test test/exchange_stats_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_exchange_stats_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME})
