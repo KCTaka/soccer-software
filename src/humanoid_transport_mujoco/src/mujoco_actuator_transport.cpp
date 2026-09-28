@@ -14,7 +14,8 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
+
+#include <rclcpp/rclcpp.hpp>
 
 #include "pluginlib/class_list_macros.hpp"
 
@@ -45,17 +46,7 @@ void MjDataDeleter::operator()(mjData_ * d) const noexcept
   }
 }
 
-// Defensive: deactivate() already stops and joins viz_thread_, but a
-// defaulted destructor would call std::terminate if a joinable std::thread
-// were destroyed without this, e.g. on an abnormal shutdown that skips the
-// lifecycle contract.
-MujocoActuatorTransport::~MujocoActuatorTransport()
-{
-  viz_thread_running_.store(false, std::memory_order_relaxed);
-  if (viz_thread_.joinable()) {
-    viz_thread_.join();
-  }
-}
+MujocoActuatorTransport::~MujocoActuatorTransport() = default;
 
 // ===========================================================================
 // ActuatorTransport overrides
@@ -118,15 +109,7 @@ bool MujocoActuatorTransport::activate()
   push_active_ = false;
   active_ = true;
 
-  // Defensive: a previous deactivate() should already have joined this, but
-  // guard against a double-activate() leaving a stale running thread, which
-  // would make the std::thread assignment below call std::terminate.
-  if (viz_thread_.joinable()) {
-    viz_thread_running_.store(false, std::memory_order_relaxed);
-    viz_thread_.join();
-  }
-  viz_thread_running_.store(true, std::memory_order_relaxed);
-  viz_thread_ = std::thread(&MujocoActuatorTransport::viz_thread_main, this);
+  ground_truth_.start(sim_node_);
 
   return true;
 }
@@ -134,10 +117,7 @@ bool MujocoActuatorTransport::activate()
 void MujocoActuatorTransport::deactivate()
 {
   active_ = false;
-  viz_thread_running_.store(false, std::memory_order_relaxed);
-  if (viz_thread_.joinable()) {
-    viz_thread_.join();
-  }
+  ground_truth_.stop();
 }
 
 // ---------------------------------------------------------------------------
@@ -235,10 +215,10 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     ++deadline_misses_;
   }
 
-  // Hand the pelvis ground-truth pose to the non-real-time viz thread. This
+  // Hand the pelvis ground-truth pose to the non-real-time publisher. This
   // is a plain memory copy into a lock-free buffer: no allocation, no ROS or
   // Zenoh call, no unbounded wait (ADR-001). The actual TF publish happens on
-  // viz_thread_main(), never here.
+  // the publisher's thread, never here.
   if (root_qpos_adr_ >= 0) {
     GroundTruthFrame frame;
     frame.valid = true;
@@ -252,7 +232,7 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     frame.orientation_wxyz[1] = data_->qpos[root_qpos_adr_ + 4];
     frame.orientation_wxyz[2] = data_->qpos[root_qpos_adr_ + 5];
     frame.orientation_wxyz[3] = data_->qpos[root_qpos_adr_ + 6];
-    ground_truth_buffer_.publish(frame);
+    ground_truth_.publish(frame);
   }
 
   // --- Read feedback ---
@@ -361,8 +341,7 @@ bool MujocoActuatorTransport::load_model()
     return fail(std::format("mj_loadXML failed: {}", error_buf));
   }
 
-  viz_node_ = rclcpp::Node::make_shared("mujoco_viz");
-  tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*viz_node_);
+  sim_node_ = rclcpp::Node::make_shared("mujoco_viz");
 
   data_.reset(mj_makeData(model_.get()));
   if (!data_) {
@@ -451,58 +430,6 @@ bool MujocoActuatorTransport::parse_perturbation_params()
     return fail("push body not found in model");
   }
   return true;
-}
-
-// ---------------------------------------------------------------------------
-// non-real-time visualization thread (ADR-001)
-// ---------------------------------------------------------------------------
-
-void MujocoActuatorTransport::viz_thread_main()
-{
-  using namespace std::chrono_literals;
-
-  transport::CycleSequence last_published = 0;
-  bool published_any = false;
-  // Logging lives here, not in exchange(): a stream write is a syscall that
-  // can block on a slow terminal or pipe, which ADR-001 forbids in-cycle.
-  double next_log_time_s = 0.0;
-  while (viz_thread_running_.load(std::memory_order_relaxed)) {
-    // Publish only a new sample: re-sending the last pose under a fresh
-    // stamp would present a stalled simulation as a live one.
-    const auto sample = ground_truth_buffer_.read();
-    if (sample && tf_broadcaster_ &&
-      (!published_any || sample->sequence != last_published))
-    {
-      const GroundTruthFrame & frame = *sample;
-      // Stamp with the sample time, not the publish time. The sample is
-      // 0-50 ms old here; convert its monotonic age into the node clock so
-      // the pose lines up with the joint_states from the same cycle.
-      const auto age = transport::MonotonicStamp::clock::now() - frame.captured;
-      geometry_msgs::msg::TransformStamped t;
-      t.header.stamp = viz_node_->now() - rclcpp::Duration(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(age));
-      t.header.frame_id = kWorldFrame;
-      t.child_frame_id = kGroundTruthRootFrame;
-      t.transform.translation.x = frame.position[0];
-      t.transform.translation.y = frame.position[1];
-      t.transform.translation.z = frame.position[2];
-      t.transform.rotation.w = frame.orientation_wxyz[0];
-      t.transform.rotation.x = frame.orientation_wxyz[1];
-      t.transform.rotation.y = frame.orientation_wxyz[2];
-      t.transform.rotation.z = frame.orientation_wxyz[3];
-      tf_broadcaster_->sendTransform(t);
-      last_published = frame.sequence;
-      published_any = true;
-
-      // pelvis_z is the freejoint height, i.e. the pelvis body origin.
-      if (frame.sim_time_s >= next_log_time_s) {
-        std::cerr << "[MuJoCo] t=" << frame.sim_time_s
-                  << " pelvis_z=" << frame.position[2] << "\n";
-        next_log_time_s = std::floor(frame.sim_time_s) + 1.0;
-      }
-    }
-    std::this_thread::sleep_for(50ms);
-  }
 }
 
 }  // namespace humanoid::transport_mujoco

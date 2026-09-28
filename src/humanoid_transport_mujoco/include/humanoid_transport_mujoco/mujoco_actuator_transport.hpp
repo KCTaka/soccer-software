@@ -15,25 +15,22 @@
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 
-#include <tf2_ros/transform_broadcaster.h>
-
-#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <optional>
-#include <thread>
 #include <vector>
 
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <rclcpp/rclcpp.hpp>
-
 #include "humanoid_transport/actuator_transport.hpp"
-#include "humanoid_transport/latest_value_buffer.hpp"
+#include "humanoid_transport_mujoco/ground_truth_publisher.hpp"
 
 // Forward-declare MuJoCo types to avoid pulling the full header into dependents.
 struct mjModel_;
 struct mjData_;
+
+namespace rclcpp
+{
+class Node;
+}  // namespace rclcpp
 
 namespace humanoid::transport_mujoco
 {
@@ -51,52 +48,6 @@ struct MjDataDeleter
 };
 using MjModelPtr = std::unique_ptr<mjModel_, MjModelDeleter>;
 using MjDataPtr = std::unique_ptr<mjData_, MjDataDeleter>;
-
-// SIL-only ground-truth snapshot, handed from the real-time exchange() thread
-// to the non-real-time visualization thread. Deliberately holds no reference
-// to mjData/mjModel: the viz thread never touches MuJoCo state directly, only
-// this plain copy.
-//
-// Extension point: additional SIL-only ground-truth fields (true CoM,
-// per-foot contact state, ...) can be added here without touching the
-// ActuatorTransport contract or the exchange() signature.
-struct GroundTruthFrame
-{
-  bool valid{false};
-  // Control-cycle sequence of the exchange() that produced this sample. The
-  // viz thread publishes only when it changes, so a stalled or deactivated
-  // simulation never republishes a stale pose under a fresh timestamp.
-  transport::CycleSequence sequence{0};
-  // Monotonic instant the sample was taken (after the physics step). Lets the
-  // viz thread stamp the TF with the sample time, not its own publish time.
-  transport::MonotonicStamp captured{};
-  // MuJoCo simulation time after the step, seconds. Drives the viz thread's
-  // once-per-simulated-second diagnostic log.
-  double sim_time_s{0.0};
-  double position[3]{0.0, 0.0, 0.0};        // sim_world frame, metres
-  double orientation_wxyz[4]{1.0, 0.0, 0.0, 0.0};
-};
-
-// Thin wrapper over humanoid_transport::LatestValueBuffer<GroundTruthFrame>.
-// Producer is the real-time exchange() call, consumer is the non-real-time
-// visualization thread (roles reversed relative to humanoid_mit_controller's
-// ReferenceBuffer, which shares the same underlying template).
-class GroundTruthBuffer
-{
-public:
-  void publish(const GroundTruthFrame & frame) noexcept
-  {
-    buffer_.publish(frame);
-  }
-
-  [[nodiscard]] std::optional<GroundTruthFrame> read() noexcept
-  {
-    return buffer_.read();
-  }
-
-private:
-  transport::LatestValueBuffer<GroundTruthFrame> buffer_;
-};
 
 class MujocoActuatorTransport : public transport::ActuatorTransport
 {
@@ -144,27 +95,6 @@ private:
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
   [[nodiscard]] bool parse_perturbation_params();
 
-  // --- Non-real-time visualization thread body ---
-  void viz_thread_main();
-
-  // --- Constants ---
-  //
-  // Frames: sim_world -> ground_truth/pelvis. Both ends are deliberately
-  // outside the production TF tree:
-  //   - sim_world (the MuJoCo floor) is not odom or map: this is exact,
-  //     noise-free ground truth, not an estimator output (Topic 6 D1).
-  //   - The child is NOT the URDF root "pelvis". tf2 permits one parent per
-  //     frame, and the Tier 0 estimator owns odom -> pelvis (REP-105). Were
-  //     the simulator to also parent "pelvis", the two would fight in the
-  //     tree, and every production consumer resolving odom -> pelvis in SIL
-  //     would see the simulator's truth or a flip-flop between the two.
-  //     That breaks ADR-007-01: SIL would no longer exercise the production
-  //     data path it claims to test.
-  // A second robot_state_publisher with frame_prefix "ground_truth/" hangs
-  // the link tree off ground_truth/pelvis for RViz (see sil_stand.launch.py).
-  static constexpr const char * kWorldFrame = "sim_world";
-  static constexpr const char * kGroundTruthRootFrame = "ground_truth/pelvis";
-
   // --- MuJoCo state ---
   MjModelPtr model_;
   MjDataPtr data_;
@@ -191,16 +121,12 @@ private:
   bool push_started_{false};
   bool push_active_{false};
 
-  // --- Diagnostic-only RViz2 visualization (ADR-001) ---
-  //
-  // exchange() only ever writes a plain snapshot into ground_truth_buffer_.
-  // All ROS/TF work (node, publisher, sendTransform) happens on viz_thread_,
-  // which is not part of the real-time read()/update()/write() path.
-  rclcpp::Node::SharedPtr viz_node_{nullptr};
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_{nullptr};
-  GroundTruthBuffer ground_truth_buffer_;
-  std::thread viz_thread_;
-  std::atomic<bool> viz_thread_running_{false};
+  // --- SIL-only non-real-time side channel ---
+  // Hosts simulator diagnostics. Never touched by exchange().
+  std::shared_ptr<rclcpp::Node> sim_node_;
+  // exchange() hands ground truth over with a lock-free copy; all TF work
+  // happens on the publisher's own thread (ADR-001).
+  GroundTruthPublisher ground_truth_;
 };
 
 }  // namespace humanoid::transport_mujoco

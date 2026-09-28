@@ -14,11 +14,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(humanoid_transport REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(rclcpp REQUIRED)
 
-# ADR-001: the real-time exchange() path stays ROS-free. geometry_msgs/tf2_ros
-# are used only by the non-real-time viz thread (see viz_thread_main()).
-# Full extraction into a standalone visualization node remains a possible
-# follow-up (TODO.md item 1).
+# ADR-001: the real-time exchange() path stays ROS-free. rclcpp, geometry_msgs,
+# and tf2_ros are used only by the non-real-time GroundTruthPublisher thread.
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
@@ -40,6 +39,7 @@ endif()
 
 add_library(${PROJECT_NAME} SHARED
   src/mujoco_actuator_transport.cpp
+  src/ground_truth_publisher.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -49,6 +49,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
   humanoid_transport::humanoid_transport
   pluginlib::pluginlib
+  rclcpp::rclcpp
   geometry_msgs::geometry_msgs
   tf2_ros::tf2_ros
   mujoco::mujoco)
@@ -66,7 +67,6 @@ install(TARGETS ${PROJECT_NAME}
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
-  find_package(rclcpp REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
   # Custom main: configure() creates an rclcpp::Node (mujoco_viz), which
@@ -85,5 +85,5 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(humanoid_transport pluginlib)
+ament_export_dependencies(humanoid_transport pluginlib rclcpp geometry_msgs tf2_ros)
 ament_package()
