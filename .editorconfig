@@ -1,0 +1,32 @@
+# Editor defaults that match the formatters enforced by `colcon test`.
+#
+# C++ style is owned by ament_uncrustify (ament_code_style_0_78.cfg: 2-space indent,
+# 100-column limit), not by clang-format. There is deliberately no .clang-format
+# in this repository: a second formatter would drift from uncrustify and make
+# the lint test fail on freshly formatted code. Fix C++ layout with:
+#   ament_uncrustify --reformat <files>
+# Python follows ament_flake8 / PEP 8 (4 spaces, 99 columns).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{hpp,cpp,h,c}]
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+[{CMakeLists.txt,*.cmake,*.xml,*.yaml,*.yml,*.json,*.launch}]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 99
+
+[*.md]
+trim_trailing_whitespace = false
