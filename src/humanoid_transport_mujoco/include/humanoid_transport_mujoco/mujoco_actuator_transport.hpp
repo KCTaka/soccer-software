@@ -26,15 +26,11 @@
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport_mujoco/ground_truth_publisher.hpp"
 #include "humanoid_transport_mujoco/mujoco_disturbance.hpp"
+#include "humanoid_transport_mujoco/sim_node.hpp"
 
 // Forward-declare MuJoCo types to avoid pulling the full header into dependents.
 struct mjModel_;
 struct mjData_;
-
-namespace rclcpp
-{
-class Node;
-}  // namespace rclcpp
 
 namespace humanoid::transport_mujoco
 {
@@ -131,8 +127,9 @@ private:
   MujocoDisturbance disturbance_;
 
   // --- SIL-only non-real-time side channel ---
-  // Hosts simulator diagnostics. Never touched by exchange().
-  std::shared_ptr<rclcpp::Node> sim_node_;
+  // Simulator parameters and diagnostics, serviced on its own executor
+  // thread. Never touched by exchange().
+  std::unique_ptr<SimNode> sim_node_;
   // exchange() hands ground truth over with a lock-free copy; all TF work
   // happens on the publisher's own thread (ADR-001).
   GroundTruthPublisher ground_truth_;

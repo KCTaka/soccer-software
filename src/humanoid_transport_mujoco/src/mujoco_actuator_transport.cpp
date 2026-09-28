@@ -94,7 +94,7 @@ bool MujocoActuatorTransport::activate()
 
   active_ = true;
 
-  ground_truth_.start(sim_node_);
+  ground_truth_.start(sim_node_->node());
 
   return true;
 }
@@ -286,7 +286,11 @@ MujocoActuatorTransport::declare_parameters()
 {
   // A fresh node per configure(): declare_parameter() throws if a name is
   // declared twice, and reconfigure must re-read the parameter overrides.
-  sim_node_ = rclcpp::Node::make_shared("mujoco_sim");
+  // Destroy any previous node (joining its executor) before the new one
+  // exists, so two "mujoco_sim" nodes are never alive at once.
+  sim_node_.reset();
+  sim_node_ = std::make_unique<SimNode>("mujoco_sim");
+  const auto & node = sim_node_->node();
 
   // Read once here. exchange() never touches parameters, so a runtime change
   // could not take effect; read_only makes `ros2 param set` say so instead
@@ -301,20 +305,20 @@ MujocoActuatorTransport::declare_parameters()
   SimParameters params;
   const PushConfig defaults;
   try {
-    params.mjcf_path = sim_node_->declare_parameter<std::string>(
+    params.mjcf_path = node->declare_parameter<std::string>(
       "mjcf_path", "", describe("Absolute path to the generated MJCF model"));
-    params.push.force_n = sim_node_->declare_parameter<double>(
+    params.push.force_n = node->declare_parameter<double>(
       "disturbance.push.force_n", defaults.force_n,
       describe("Push force magnitude, N. 0 disables the push"));
-    params.push.start_time_s = sim_node_->declare_parameter<double>(
+    params.push.start_time_s = node->declare_parameter<double>(
       "disturbance.push.start_time_s", defaults.start_time_s,
       describe("Simulation time at which the push starts, s"));
-    params.push.duration_s = sim_node_->declare_parameter<double>(
+    params.push.duration_s = node->declare_parameter<double>(
       "disturbance.push.duration_s", defaults.duration_s,
       describe("Push duration, s"));
-    params.push.body = sim_node_->declare_parameter<std::string>(
+    params.push.body = node->declare_parameter<std::string>(
       "disturbance.push.body", defaults.body, describe("MJCF body the push is applied to"));
-    const auto direction = sim_node_->declare_parameter<std::vector<double>>(
+    const auto direction = node->declare_parameter<std::vector<double>>(
       "disturbance.push.direction",
       std::vector<double>(defaults.direction.begin(), defaults.direction.end()),
       describe("World-frame push direction [x, y, z]; normalised"));
@@ -333,6 +337,8 @@ MujocoActuatorTransport::declare_parameters()
     fail("parameter 'mjcf_path' is not set");
     return std::nullopt;
   }
+  // Serviced only once every parameter is declared.
+  sim_node_->spin();
   return params;
 }
 

@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME} SHARED
   src/ground_truth_publisher.cpp
   src/mujoco_disturbance.cpp
   src/mujoco_placement.cpp
+  src/sim_node.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC
