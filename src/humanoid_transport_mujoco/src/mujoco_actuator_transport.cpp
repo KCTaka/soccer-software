@@ -18,6 +18,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include "humanoid_transport/timing.hpp"
+
 #include "pluginlib/class_list_macros.hpp"
 
 namespace
@@ -133,8 +135,10 @@ transport::TransportCapabilities MujocoActuatorTransport::capabilities() const
     caps.implementation_name.size() - 1);
   caps.transport_class = transport::TransportClass::kSimulated;
   caps.joint_count = joint_count_;
-  caps.nominal_cycle_period_us = 5000;
-  caps.worst_case_exchange_us = 5000;  // SIL: bounded by lockstep stepping
+  // Lockstep: one exchange() advances simulated time by exactly one period.
+  caps.nominal_cycle_period_us =
+    static_cast<std::uint32_t>(transport::kControlPeriod.count());
+  caps.worst_case_exchange_us = caps.nominal_cycle_period_us;
   caps.supports_per_joint_disable = false;
   caps.supports_availability_mask = true;
   caps.provides_temperature = false;
@@ -373,11 +377,10 @@ bool MujocoActuatorTransport::load_model(const std::string & mjcf_path)
 
 bool MujocoActuatorTransport::validate_substeps()
 {
-  // Assert integer substep ratio (ADR-007-03).
-  //   control_period = 5 ms = 5000 us.
-  //   dt_physics = model_->opt.timestep (expected 0.001 s = 1 ms).
-  //   n_substeps = control_period / dt_physics must be a positive integer.
-  constexpr double kControlPeriodS = 0.005;
+  // Assert integer substep ratio (ADR-007-03): the physics timestep must
+  // divide the control period exactly, or control and physics clocks beat.
+  constexpr double kControlPeriodS =
+    std::chrono::duration<double>(transport::kControlPeriod).count();
   const double dt = model_->opt.timestep;
   if (dt <= 0.0) {
     return fail(std::format("invalid timestep {}", dt));
@@ -390,8 +393,8 @@ bool MujocoActuatorTransport::validate_substeps()
     std::abs(static_cast<double>(n_substeps_) * dt - kControlPeriodS) > 1e-9)
   {
     return fail(std::format(
-      "timestep {} does not divide 5 ms control period by an integer. ratio={}",
-      dt, ratio));
+      "timestep {} s does not divide the {} s control period by an integer. ratio={}",
+      dt, kControlPeriodS, ratio));
   }
   return true;
 }

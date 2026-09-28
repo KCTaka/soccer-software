@@ -15,6 +15,7 @@
 #include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "humanoid_transport/timing.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace humanoid::actuator_system
@@ -75,6 +76,16 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     accepted_degradation_ = transport::TupleCompleteness::kPositionVelocityOnly;
   } else {
     accepted_degradation_ = transport::TupleCompleteness::kFull;
+  }
+
+  // ADR-001-03: the rate is an invariant, so a mismatched controller_manager
+  // update_rate is a configuration error, not a different operating point.
+  if (info_.rw_rate != transport::kControlRateHz) {
+    RCLCPP_ERROR(logger,
+      "Component read/write rate is %u Hz, but the control cycle is fixed at %u Hz "
+      "(ADR-001-03). Set controller_manager update_rate to %u.",
+      info_.rw_rate, transport::kControlRateHz, transport::kControlRateHz);
+    return hardware_interface::CallbackReturn::ERROR;
   }
 
   // 2. Build joint manifest from URDF info
@@ -173,7 +184,17 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 7. Check tuple capability
+  // 7. The transport must actually exchange at the control rate.
+  const auto caps = transport_->capabilities();
+  if (caps.nominal_cycle_period_us != transport::kControlPeriod.count()) {
+    const std::string msg = std::format(
+      "Transport cycle period is {} us, but the control period is {} us",
+      caps.nominal_cycle_period_us, transport::kControlPeriod.count());
+    RCLCPP_ERROR(logger, "%s", msg.c_str());
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+
+  // 8. Check tuple capability
   if (!check_tuple_capability()) {
     RCLCPP_ERROR(logger,
       "Tuple capability mismatch: controller claims 5 fields but transport "
@@ -181,14 +202,14 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 8. Preallocate batches
+  // 9. Preallocate batches
   command_snapshot_ = transport::CommandBatch{};
   feedback_ = transport::FeedbackBatch{};
   command_snapshot_.joint_count = joint_manifest_.joint_count;
   feedback_.joint_count = joint_manifest_.joint_count;
 
-  RCLCPP_INFO(logger, "Configured: %u joints, transport=%s",
-    joint_manifest_.joint_count, transport_plugin.c_str());
+  RCLCPP_INFO(logger, "Configured: %u joints at %u Hz, transport=%s",
+    joint_manifest_.joint_count, info_.rw_rate, transport_plugin.c_str());
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -417,7 +438,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
 
   if (protective_state_) {
     // In protective state, send damping command
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(5);
+    const auto deadline = std::chrono::steady_clock::now() + transport::kControlPeriod;
     static_cast<void>(exchange_once(deadline));
     return hardware_interface::return_type::OK;
   }
@@ -446,7 +467,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
   //    the resulting state. In production it sends the command and reads
   //    hardware feedback.
   command_snapshot_.sequence = cycle_;
-  auto deadline = now + std::chrono::milliseconds(5);
+  const auto deadline = now + transport::kControlPeriod;
   const auto result = exchange_once(deadline);
 
   if (!result.ok()) {
