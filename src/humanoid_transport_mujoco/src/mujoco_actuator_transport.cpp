@@ -63,7 +63,7 @@ bool MujocoActuatorTransport::configure(
   return load_model() &&
          validate_substeps() &&
          map_joints(joints) &&
-         parse_perturbation_params();
+         configure_disturbance();
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +105,6 @@ bool MujocoActuatorTransport::activate()
   // Settle the contact state.
   mj_forward(model_.get(), data_.get());
 
-  push_started_ = false;
-  push_active_ = false;
   active_ = true;
 
   ground_truth_.start(sim_node_);
@@ -185,24 +183,8 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     data_->qfrc_applied[dof] = tau;
   }
 
-  // Apply a single lateral force pulse before the first step at or after the
-  // configured simulation time. MuJoCo retains xfrc_applied until cleared.
-  constexpr double kPushDurationS = 0.2;
-  const double sim_time = data_->time;
-  if (push_force_n_ > 0.0 && push_body_id_ >= 0) {
-    if (!push_started_ && sim_time >= push_time_s_) {
-      push_started_ = true;
-      push_active_ = true;
-    }
-    if (push_active_) {
-      if (sim_time < push_time_s_ + kPushDurationS) {
-        data_->xfrc_applied[6 * push_body_id_ + push_axis_] = push_force_n_;
-      } else {
-        data_->xfrc_applied[6 * push_body_id_ + push_axis_] = 0.0;
-        push_active_ = false;
-      }
-    }
-  }
+  // SIL scenario control: external push, if one is scheduled.
+  disturbance_.apply(*data_);
 
   // --- Step physics: n_substeps of dt_physics ---
   for (int s = 0; s < n_substeps_; ++s) {
@@ -408,26 +390,23 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
   return true;
 }
 
-bool MujocoActuatorTransport::parse_perturbation_params()
+bool MujocoActuatorTransport::configure_disturbance()
 {
   active_ = false;
 
+  PushConfig config;
   if (const auto force = env_double("HUMANOID_PUSH_FORCE_N")) {
-    push_force_n_ = *force;
+    config.force_n = *force;
   }
   if (const auto time = env_double("HUMANOID_PUSH_TIME_S")) {
-    push_time_s_ = *time;
+    config.start_time_s = *time;
+  }
+  if (const char * body = std::getenv("HUMANOID_PUSH_BODY")) {
+    config.body = body;
   }
 
-  const char * push_body = std::getenv("HUMANOID_PUSH_BODY");
-  if (!push_body && push_force_n_ > 0.0) {
-    push_body = "torso_link";
-  }
-  if (push_body) {
-    push_body_id_ = mj_name2id(model_.get(), mjtObj::mjOBJ_BODY, push_body);
-  }
-  if (push_force_n_ > 0.0 && push_body_id_ < 0) {
-    return fail("push body not found in model");
+  if (const auto error = disturbance_.configure(*model_, config)) {
+    return fail(*error);
   }
   return true;
 }

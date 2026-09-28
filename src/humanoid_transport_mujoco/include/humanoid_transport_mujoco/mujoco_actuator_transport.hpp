@@ -22,6 +22,7 @@
 
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport_mujoco/ground_truth_publisher.hpp"
+#include "humanoid_transport_mujoco/mujoco_disturbance.hpp"
 
 // Forward-declare MuJoCo types to avoid pulling the full header into dependents.
 struct mjModel_;
@@ -93,7 +94,7 @@ private:
   [[nodiscard]] bool load_model();
   [[nodiscard]] bool validate_substeps();
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
-  [[nodiscard]] bool parse_perturbation_params();
+  [[nodiscard]] bool configure_disturbance();
 
   // --- MuJoCo state ---
   MjModelPtr model_;
@@ -113,13 +114,8 @@ private:
   std::chrono::nanoseconds worst_round_trip_{0};
   bool active_{false};
 
-  // --- Perturbation parameters (set via environment or parameters) ---
-  double push_force_n_{0.0};
-  double push_time_s_{0.0};
-  int push_body_id_{-1};
-  int push_axis_{1};  // 1 = lateral (y)
-  bool push_started_{false};
-  bool push_active_{false};
+  // --- SIL scenario control ---
+  MujocoDisturbance disturbance_;
 
   // --- SIL-only non-real-time side channel ---
   // Hosts simulator diagnostics. Never touched by exchange().

@@ -40,6 +40,7 @@ endif()
 add_library(${PROJECT_NAME} SHARED
   src/mujoco_actuator_transport.cpp
   src/ground_truth_publisher.cpp
+  src/mujoco_disturbance.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -82,6 +83,11 @@ if(BUILD_TESTING)
     SKIP_LINKING_MAIN_LIBRARIES
     ENV "HUMANOID_MJCF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
   target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME} rclcpp::rclcpp)
+
+  ament_add_gtest(${PROJECT_NAME}_disturbance_test
+    test/disturbance_test.cpp
+    ENV "HUMANOID_MJCF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
+  target_link_libraries(${PROJECT_NAME}_disturbance_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
