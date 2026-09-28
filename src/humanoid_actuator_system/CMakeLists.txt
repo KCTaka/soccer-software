@@ -63,6 +63,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gmock REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(${PROJECT_NAME}_feedback_validation_test test/feedback_validation_test.cpp)
+  target_include_directories(${PROJECT_NAME}_feedback_validation_test PRIVATE include)
+  target_link_libraries(${PROJECT_NAME}_feedback_validation_test
+    humanoid_transport::humanoid_transport)
 
   # ADR-007: these run against a fault-injection ActuatorTransport, never against a substituted
   # SystemInterface. mock_components::GenericSystem is prohibited in any environment that produces

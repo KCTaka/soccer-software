@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -109,9 +110,6 @@ private:
   /// transport can observe a partially updated tuple.
   void snapshot_commands() noexcept;
 
-  /// Rejects duplicate, out-of-order, structurally invalid, stale, or manifest-mismatched feedback.
-  [[nodiscard]] bool accept_feedback(const transport::FeedbackBatch & candidate) noexcept;
-
   void enter_protective_state(safety::Trigger trigger) noexcept;
 
   /// Non-real-time. Logs stats_; called when a run ends (deactivate or shutdown).
@@ -149,6 +147,12 @@ private:
   // Written only by write() on the real-time thread; read only by lifecycle callbacks, which the
   // controller_manager never runs concurrently with read()/write() of the same component.
   transport::ExchangeStats stats_{};
+
+  // Sequence of the most recent command handed to exchange(), whether or not it succeeded. The
+  // next read() accepts feedback only if it answers this sequence. nullopt until the first send.
+  std::optional<transport::CycleSequence> last_sent_sequence_;
+  // Outcome of that exchange, so read() can report why a cycle was bad.
+  transport::TransportError last_exchange_error_{transport::TransportError::kNone};
 
   transport::CycleSequence cycle_{0U};
   std::uint8_t consecutive_bad_cycles_{0U};

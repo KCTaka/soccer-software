@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
+#include "humanoid_actuator_system/feedback_validation.hpp"
 #include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -226,6 +227,8 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
 
   cycle_ = 0;
   stats_ = transport::ExchangeStats{};
+  last_sent_sequence_.reset();
+  last_exchange_error_ = transport::TransportError::kNone;
   consecutive_bad_cycles_ = 0;
   mit_tuple_claimed_ = false;
   protective_state_ = false;
@@ -408,10 +411,14 @@ hardware_interface::return_type HumanoidActuatorSystem::read(
   // acceptable: the controller sees zero state and uses its fallback
   // reference until the first write() produces real feedback.
 
-  if (!accept_feedback(feedback_)) {
+  // The single judge of each cycle (ADR-002 command-loss counting): feedback that does not answer
+  // the last command -- including one left stale by a failed exchange -- is a bad cycle.
+  if (!answers_command(feedback_, joint_manifest_.joint_count, last_sent_sequence_)) {
     ++consecutive_bad_cycles_;
     if (consecutive_bad_cycles_ >= safety_manifest_.max_consecutive_bad_cycles) {
-      enter_protective_state(safety::Trigger::kSequenceRejected);
+      enter_protective_state(
+        last_exchange_error_ != transport::TransportError::kNone ?
+        safety::Trigger::kTransportError : safety::Trigger::kSequenceRejected);
       return hardware_interface::return_type::ERROR;
     }
     return hardware_interface::return_type::OK;
@@ -468,17 +475,9 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
   //    hardware feedback.
   command_snapshot_.sequence = cycle_;
   const auto deadline = now + transport::kControlPeriod;
-  const auto result = exchange_once(deadline);
-
-  if (!result.ok()) {
-    ++consecutive_bad_cycles_;
-    if (consecutive_bad_cycles_ >= safety_manifest_.max_consecutive_bad_cycles) {
-      enter_protective_state(safety::Trigger::kTransportError);
-      return hardware_interface::return_type::ERROR;
-    }
-  } else {
-    consecutive_bad_cycles_ = 0;
-  }
+  // A failed exchange is not counted here: it leaves feedback_ unanswered, and the next read()
+  // counts it. Counting in both places made every failure count twice.
+  static_cast<void>(exchange_once(deadline));
 
   ++cycle_;
   return hardware_interface::return_type::OK;
@@ -503,29 +502,6 @@ void HumanoidActuatorSystem::snapshot_commands() noexcept
   }
 }
 
-bool HumanoidActuatorSystem::accept_feedback(
-  const transport::FeedbackBatch & candidate) noexcept
-{
-  // Reject wrong joint count.
-  if (candidate.joint_count != joint_manifest_.joint_count) {
-    return false;
-  }
-
-  // Reject if all joints report not-fresh (no exchange has happened yet).
-  bool any_fresh = false;
-  for (std::uint8_t i = 0; i < candidate.joint_count; ++i) {
-    if (candidate.joints[i].fresh) {
-      any_fresh = true;
-      break;
-    }
-  }
-  if (!any_fresh) {
-    return false;
-  }
-
-  return true;
-}
-
 void HumanoidActuatorSystem::log_exchange_stats() const
 {
   // Until the ADR-008 in-cycle record exists, this is where a run's exchange accounting becomes
@@ -543,8 +519,10 @@ transport::ExchangeResult HumanoidActuatorSystem::exchange_once(
   transport::MonotonicStamp deadline) noexcept
 {
   const auto start = std::chrono::steady_clock::now();
+  last_sent_sequence_ = command_snapshot_.sequence;
   const auto result = transport_->exchange(command_snapshot_, feedback_, deadline);
   const auto end = std::chrono::steady_clock::now();
+  last_exchange_error_ = result.error;
   stats_.record(
     command_snapshot_.sequence, result,
     std::chrono::duration_cast<std::chrono::nanoseconds>(end - start), end > deadline);
