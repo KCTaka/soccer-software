@@ -108,3 +108,27 @@ TEST_F(ConformanceTest, C6_CommandBatchApplied_SignFlipTest)
 
   EXPECT_GT(fb.joints[0].position_rad, initial_pos);
 }
+
+TEST_F(ConformanceTest, C7_HealthReportsActiveOnlyWhileActive)
+{
+  ASSERT_TRUE(transport->configure(manifest, safety));
+  EXPECT_FALSE(transport->health_snapshot().active);
+
+  ASSERT_TRUE(transport->activate());
+  EXPECT_TRUE(transport->health_snapshot().active);
+
+  transport->deactivate();
+  EXPECT_FALSE(transport->health_snapshot().active);
+}
+
+TEST_F(ConformanceTest, C8_ExchangeWhileInactiveFailsWithNotActive)
+{
+  ASSERT_TRUE(transport->configure(manifest, safety));
+
+  humanoid::transport::CommandBatch cmd{};
+  humanoid::transport::FeedbackBatch fb{};
+  cmd.joint_count = manifest.joint_count;
+  const auto res = transport->exchange(
+    cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
+  EXPECT_EQ(res.error, humanoid::transport::TransportError::kNotActive);
+}

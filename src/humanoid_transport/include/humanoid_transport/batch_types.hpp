@@ -100,19 +100,22 @@ struct ExchangeResult
 };
 static_assert(std::is_trivially_copyable_v<ExchangeResult>);
 
-/// Copied out by a non-real-time thread. Never read inside the cycle for control decisions.
+/// State only the transport itself can observe. Per-exchange accounting (attempts, failures,
+/// deadline misses, durations, last sequence) is derivable from each exchange() call and is kept
+/// once by the caller in ExchangeStats, not re-implemented here by every transport.
+///
+/// Plain values, unsynchronised: read it from the thread that calls exchange(), or through a
+/// hand-off, never directly from another thread. Never used for control decisions in-cycle.
 struct HealthSnapshot
 {
-  CycleSequence last_sequence{0U};
-  std::uint64_t exchanges_attempted{0U};
-  std::uint64_t exchanges_failed{0U};
-  std::uint64_t deadline_misses{0U};
+  /// Frames or packets the transport discarded as corrupt before they became a batch.
   std::uint64_t framing_errors{0U};
+  /// Batches the transport rejected as duplicate, stale, or out of order.
   std::uint64_t sequence_rejections{0U};
-  std::chrono::nanoseconds worst_round_trip{0};
   std::uint32_t availability_epoch{0U};
   bool active{false};
 };
+static_assert(std::is_trivially_copyable_v<HealthSnapshot>);
 
 }  // namespace humanoid::transport
 

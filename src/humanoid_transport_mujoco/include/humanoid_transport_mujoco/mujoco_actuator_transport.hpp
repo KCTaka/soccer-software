@@ -17,7 +17,6 @@
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 
-#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -118,12 +117,9 @@ private:
   // exchange() never does a string-based MuJoCo lookup on the real-time path.
   int root_qpos_adr_{-1};
 
-  // --- Health counters ---
-  transport::CycleSequence last_sequence_{0};
-  std::uint64_t exchanges_attempted_{0};
-  std::uint64_t exchanges_failed_{0};
-  std::uint64_t deadline_misses_{0};
-  std::chrono::nanoseconds worst_round_trip_{0};
+  // --- Lifecycle ---
+  // Per-exchange accounting is the caller's (ExchangeStats); this is all the
+  // health the simulator can observe that the caller cannot.
   bool active_{false};
 
   // --- SIL scenario control ---

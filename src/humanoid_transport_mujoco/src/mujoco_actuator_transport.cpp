@@ -151,16 +151,16 @@ transport::TransportCapabilities MujocoActuatorTransport::capabilities() const
 transport::ExchangeResult MujocoActuatorTransport::exchange(
   const transport::CommandBatch & command,
   transport::FeedbackBatch & feedback,
-  transport::MonotonicStamp deadline) noexcept
+  transport::MonotonicStamp /*deadline*/) noexcept
 {
+  // The deadline is not enforced here: a lockstep step cannot be abandoned
+  // halfway without corrupting simulator state, and SIL timing is not
+  // evidence anyway (ADR-007-05). The caller measures any miss.
   transport::ExchangeResult result{};
   const auto t_start = std::chrono::steady_clock::now();
 
-  ++exchanges_attempted_;
-
   if (!active_ || !model_ || !data_) {
     result.error = transport::TransportError::kNotActive;
-    ++exchanges_failed_;
     return result;
   }
 
@@ -193,11 +193,7 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     mj_step(model_.get(), data_.get());
   }
 
-  // --- Check deadline ---
   const auto t_end = std::chrono::steady_clock::now();
-  if (t_end > deadline) {
-    ++deadline_misses_;
-  }
 
   // Hand the pelvis ground-truth pose to the non-real-time publisher. This
   // is a plain memory copy into a lock-free buffer: no allocation, no ROS or
@@ -247,14 +243,8 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     fb.fault_bits = 0;
   }
 
-  // --- Update health ---
-  last_sequence_ = command.sequence;
   const auto round_trip = std::chrono::duration_cast<std::chrono::nanoseconds>(
     t_end - t_start);
-  if (round_trip > worst_round_trip_) {
-    worst_round_trip_ = round_trip;
-  }
-
   result.error = transport::TransportError::kNone;
   result.joints_reported = joint_count_;
   result.round_trip = round_trip;
@@ -292,14 +282,6 @@ bool MujocoActuatorTransport::request_all_disable() noexcept
 transport::HealthSnapshot MujocoActuatorTransport::health_snapshot() const noexcept
 {
   transport::HealthSnapshot snap{};
-  snap.last_sequence = last_sequence_;
-  snap.exchanges_attempted = exchanges_attempted_;
-  snap.exchanges_failed = exchanges_failed_;
-  snap.deadline_misses = deadline_misses_;
-  snap.framing_errors = 0;
-  snap.sequence_rejections = 0;
-  snap.worst_round_trip = worst_round_trip_;
-  snap.availability_epoch = 0;
   snap.active = active_;
   return snap;
 }
