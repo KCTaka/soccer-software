@@ -112,6 +112,19 @@ public:
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
+  // --- Types ---
+
+  /// Everything this component is configured with, read once in on_init().
+  struct Parameters
+  {
+    std::string transport_plugin;
+    transport::TupleCompleteness accepted_degradation{transport::TupleCompleteness::kFull};
+    /// Absolute.
+    std::string safety_manifest_path;
+  };
+
+  // --- Member functions ---
+
   /// Copies all five fields for all joints into one immutable cycle snapshot. Taken BEFORE
   /// validation, so that safety projection and transport both consume the same object and no
   /// transport can observe a partially updated tuple.
@@ -127,10 +140,17 @@ private:
   [[nodiscard]] transport::ExchangeResult exchange_once(
     transport::MonotonicStamp deadline) noexcept;
 
+  /// Declares the node's parameters and resolves the description's. Logs why on failure.
+  [[nodiscard]] std::optional<Parameters> read_parameters() const;
+
   /// Called from on_configure. Returns false (configuration error) if the transport cannot deliver
   /// the five-field tuple and degradation has not been explicitly accepted. The tuple is the only
   /// claim prepare_command_mode_switch() accepts, so this needs no knowledge of the claim.
   [[nodiscard]] bool check_tuple_capability() noexcept;
+
+  // --- Data ---
+
+  Parameters parameters_{};
 
   // Declaration order is load-bearing. Members are destroyed in reverse declaration order, so the
   // loader declared first is destroyed last -- after the instance whose deleter it owns. Reversing
@@ -173,8 +193,6 @@ private:
   // write(). Not a LatestValueBuffer: that is single-producer, and a switch is a read-modify-write
   // that must land as one step, or a hand-over between controllers is seen half done.
   std::atomic<JointMask> owned_joints_{0U};
-
-  transport::TupleCompleteness accepted_degradation_{transport::TupleCompleteness::kFull};
 };
 
 }  // namespace humanoid::actuator_system

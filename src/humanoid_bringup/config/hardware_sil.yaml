@@ -5,9 +5,15 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
     humanoid_mit_controller:
       type: humanoid_mit_controller/MitImpedanceController
-humanoid_mit_controller:
+# The HumanoidActuatorSystem hardware component's node. ros2_control names it after the robot
+# description's <ros2_control name>, lower-cased. These choose the deployment, not the robot, so
+# the generated description does not carry them and the component has no defaults for them.
+humanoidactuatorsystem:
   ros__parameters:
     transport_plugin: "humanoid_transport_mujoco/MujocoActuatorTransport"
+    accepted_degradation: "none"
+humanoid_mit_controller:
+  ros__parameters:
     default_kp: 20.0
     default_kd: 1.0
     joints:

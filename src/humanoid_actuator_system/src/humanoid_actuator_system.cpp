@@ -7,13 +7,15 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
-#include <fstream>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "humanoid_actuator_system/feedback_validation.hpp"
+#include "humanoid_actuator_system/hardware_contract.hpp"
 #include "humanoid_actuator_system/safety_manifest_parser.hpp"
 #include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "pluginlib/class_list_macros.hpp"
@@ -27,15 +29,16 @@ namespace humanoid::actuator_system
 namespace
 {
 constexpr char kLogName[] = "HumanoidActuatorSystem";
+// ROS parameters of the component's own node, which ros2_control names after the description's
+// <ros2_control name>, lower-cased. They choose the deployment, so they have no defaults.
 constexpr char kTransportPluginParam[] = "transport_plugin";
-constexpr char kTransportPluginDefault[] =
-  "humanoid_transport_mujoco/MujocoActuatorTransport";
-constexpr char kSafetyManifestParam[] = "safety_manifest_path";
-constexpr char kSafetyManifestPackageParam[] = "safety_manifest_package";
 constexpr char kAcceptedDegradationParam[] = "accepted_degradation";
+constexpr std::string_view kNoDegradation = "none";
+constexpr std::string_view kPositionVelocityOnly = "position_velocity_only";
 
 // File-local helpers. Declared here, defined at the end of this file.
 std::vector<std::string> joint_names_from_info(const hardware_interface::HardwareInfo & info);
+std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value);
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -46,40 +49,24 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
   const hardware_interface::HardwareComponentInterfaceParams & params)
 {
   info_ = params.hardware_info;
+  if (const auto violation = hardware_contract_violation(info_)) {
+    RCLCPP_ERROR(rclcpp::get_logger(kLogName), "Robot description: %s", violation->c_str());
+    return hardware_interface::CallbackReturn::ERROR;
+  }
   joint_names_ = joint_names_from_info(info_);
+
+  auto parameters = read_parameters();
+  if (!parameters) {
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+  parameters_ = std::move(*parameters);
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  auto logger = rclcpp::get_logger(kLogName);
-
-  // 1. Read parameters
-  std::string transport_plugin = kTransportPluginDefault;
-  std::string safety_manifest_rel_path = "config/safety_manifest.yaml";
-  std::string safety_manifest_package = "humanoid_bringup";
-  std::string degradation_str;
-
-  if (info_.hardware_parameters.count(kTransportPluginParam)) {
-    transport_plugin = info_.hardware_parameters.at(kTransportPluginParam);
-  }
-  if (info_.hardware_parameters.count(kSafetyManifestParam)) {
-    safety_manifest_rel_path = info_.hardware_parameters.at(kSafetyManifestParam);
-  }
-  if (info_.hardware_parameters.count(kSafetyManifestPackageParam)) {
-    safety_manifest_package = info_.hardware_parameters.at(kSafetyManifestPackageParam);
-  }
-  if (info_.hardware_parameters.count(kAcceptedDegradationParam)) {
-    degradation_str = info_.hardware_parameters.at(kAcceptedDegradationParam);
-  }
-
-  // Parse accepted degradation
-  if (degradation_str == "position_velocity_only") {
-    accepted_degradation_ = transport::TupleCompleteness::kPositionVelocityOnly;
-  } else {
-    accepted_degradation_ = transport::TupleCompleteness::kFull;
-  }
+  const auto logger = rclcpp::get_logger(kLogName);
 
   // ADR-001-03: the rate is an invariant, so a mismatched controller_manager
   // update_rate is a configuration error, not a different operating point.
@@ -91,8 +78,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 2. Build joint manifest from URDF info
-  joint_names_ = joint_names_from_info(info_);
+  // 1. Build joint manifest from URDF info
   if (joint_names_.empty()) {
     RCLCPP_ERROR(logger, "No joints declared in ros2_control config");
     return hardware_interface::CallbackReturn::ERROR;
@@ -112,60 +98,47 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       joint_names_[i].c_str());
   }
 
-  // 3. Build safety manifest
-  std::string safety_manifest_path;
-  if (!safety_manifest_rel_path.empty() && safety_manifest_rel_path[0] == '/') {
-    safety_manifest_path = safety_manifest_rel_path;
-  } else {
-    std::string package_share_dir;
-    try {
-      package_share_dir = ament_index_cpp::get_package_share_directory(safety_manifest_package);
-    } catch (const ament_index_cpp::PackageNotFoundError & e) {
-      RCLCPP_ERROR(logger, "Package '%s' not found: %s", safety_manifest_package.c_str(), e.what());
-      return hardware_interface::CallbackReturn::ERROR;
-    }
-    safety_manifest_path = package_share_dir + "/" + safety_manifest_rel_path;
-  }
+  // 2. Load the safety manifest
   YAML::Node manifest_yaml;
   try {
-    manifest_yaml = YAML::LoadFile(safety_manifest_path);
+    manifest_yaml = YAML::LoadFile(parameters_.safety_manifest_path);
   } catch (const YAML::Exception & e) {
-    RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s", safety_manifest_path.c_str(),
-      e.what());
+    RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s",
+      parameters_.safety_manifest_path.c_str(), e.what());
     return hardware_interface::CallbackReturn::ERROR;
   }
   auto parsed = parse_safety_manifest(manifest_yaml, joint_names_);
   if (const auto * error = std::get_if<std::string>(&parsed)) {
-    RCLCPP_ERROR(logger, "Safety manifest '%s': %s", safety_manifest_path.c_str(),
-      error->c_str());
+    RCLCPP_ERROR(logger, "Safety manifest '%s': %s",
+      parameters_.safety_manifest_path.c_str(), error->c_str());
     return hardware_interface::CallbackReturn::ERROR;
   }
   safety_manifest_ = std::get<transport::SafetyManifest>(parsed);
 
-  // 4. Configure safety kernel
+  // 3. Configure safety kernel
   if (!safety_kernel_.configure(joint_manifest_, safety_manifest_)) {
     RCLCPP_ERROR(logger, "SafetyKernel configuration failed");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 5. Load transport via pluginlib
+  // 4. Load transport via pluginlib
   try {
     loader_ = std::make_unique<pluginlib::ClassLoader<transport::ActuatorTransport>>(
       "humanoid_transport", "humanoid::transport::ActuatorTransport");
-    transport_ = loader_->createUniqueInstance(transport_plugin);
+    transport_ = loader_->createUniqueInstance(parameters_.transport_plugin);
   } catch (const pluginlib::PluginlibException & e) {
     RCLCPP_ERROR(logger, "Failed to load transport '%s': %s",
-      transport_plugin.c_str(), e.what());
+      parameters_.transport_plugin.c_str(), e.what());
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 6. Configure transport
+  // 5. Configure transport
   if (!transport_->configure(joint_manifest_, safety_manifest_)) {
     RCLCPP_ERROR(logger, "Transport configure() failed");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 7. The transport must actually exchange at the control rate.
+  // 6. The transport must actually exchange at the control rate.
   const auto caps = transport_->capabilities();
   if (caps.nominal_cycle_period_us != transport::kControlPeriod.count()) {
     const std::string msg = std::format(
@@ -175,7 +148,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 8. Check tuple capability
+  // 7. Check tuple capability
   if (!check_tuple_capability()) {
     RCLCPP_ERROR(logger,
       "Tuple capability mismatch: the transport cannot deliver the five-field MIT tuple, the only "
@@ -183,18 +156,18 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // 9. Preallocate batches
+  // 8. Preallocate batches
   command_snapshot_ = transport::CommandBatch{};
   feedback_ = transport::FeedbackBatch{};
   command_snapshot_.joint_count = joint_manifest_.joint_count;
   feedback_.joint_count = joint_manifest_.joint_count;
 
-  // 10. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
-  //     switched in again, which perform_command_mode_switch() records.
+  // 9. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
+  //    switched in again, which perform_command_mode_switch() records.
   owned_joints_.store(0U, std::memory_order_release);
 
   RCLCPP_INFO(logger, "Configured: %u joints at %u Hz, transport=%s",
-    joint_manifest_.joint_count, info_.rw_rate, transport_plugin.c_str());
+    joint_manifest_.joint_count, info_.rw_rate, parameters_.transport_plugin.c_str());
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -202,7 +175,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  auto logger = rclcpp::get_logger(kLogName);
+  const auto logger = rclcpp::get_logger(kLogName);
 
   if (!transport_->activate()) {
     RCLCPP_ERROR(logger, "Transport activate() failed");
@@ -502,6 +475,73 @@ void HumanoidActuatorSystem::enter_protective_state(
   authority_ = CommandAuthority::kProtective;
 }
 
+std::optional<HumanoidActuatorSystem::Parameters> HumanoidActuatorSystem::read_parameters() const
+{
+  const auto logger = rclcpp::get_logger(kLogName);
+  const auto node = get_node();
+  if (!node) {
+    RCLCPP_ERROR(logger, "ros2_control created no node for this component; cannot declare its "
+      "parameters");
+    return std::nullopt;
+  }
+  // Read once. Nothing re-reads them, so read_only makes `ros2 param set` fail instead of
+  // appearing to work.
+  const auto describe = [](const char * text) {
+      rcl_interfaces::msg::ParameterDescriptor d;
+      d.description = text;
+      d.read_only = true;
+      return d;
+    };
+
+  Parameters parameters;
+  std::string degradation;
+  try {
+    parameters.transport_plugin = node->declare_parameter<std::string>(
+      kTransportPluginParam,
+      describe("ActuatorTransport plugin, e.g. humanoid_transport_mujoco/MujocoActuatorTransport"));
+    degradation = node->declare_parameter<std::string>(
+      kAcceptedDegradationParam,
+      describe("Tuple degradation accepted from the transport: 'none', or "
+      "'position_velocity_only' to run without stiffness, damping, and feed-forward torque"));
+  } catch (const rclcpp::exceptions::UninitializedStaticallyTypedParameterException & e) {
+    RCLCPP_ERROR(logger, "%s. Set it under '%s' in the controller_manager parameter file.",
+      e.what(), node->get_fully_qualified_name());
+    return std::nullopt;
+  } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
+    RCLCPP_ERROR(logger, "Parameter type mismatch: %s", e.what());
+    return std::nullopt;
+  }
+  if (parameters.transport_plugin.empty()) {
+    RCLCPP_ERROR(logger, "Parameter '%s' is empty", kTransportPluginParam);
+    return std::nullopt;
+  }
+  const auto accepted = accepted_degradation_from(degradation);
+  if (!accepted) {
+    RCLCPP_ERROR(logger, "Parameter '%s' is '%s'; expected '%s' or '%s'",
+      kAcceptedDegradationParam, degradation.c_str(), kNoDegradation.data(),
+      kPositionVelocityOnly.data());
+    return std::nullopt;
+  }
+  parameters.accepted_degradation = *accepted;
+
+  // The manifest location is part of the generated description; hardware_contract_violation()
+  // has already required both entries.
+  const auto & path = info_.hardware_parameters.at(std::string{kSafetyManifestPathParam});
+  if (path.front() == '/') {
+    parameters.safety_manifest_path = path;
+  } else {
+    const auto & package = info_.hardware_parameters.at(std::string{kSafetyManifestPackageParam});
+    try {
+      parameters.safety_manifest_path =
+        ament_index_cpp::get_package_share_directory(package) + "/" + path;
+    } catch (const ament_index_cpp::PackageNotFoundError & e) {
+      RCLCPP_ERROR(logger, "Package '%s' not found: %s", package.c_str(), e.what());
+      return std::nullopt;
+    }
+  }
+  return parameters;
+}
+
 bool HumanoidActuatorSystem::check_tuple_capability() noexcept
 {
   if (!transport_) {
@@ -509,7 +549,7 @@ bool HumanoidActuatorSystem::check_tuple_capability() noexcept
   }
   const auto caps = transport_->capabilities();
   if (caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
-    accepted_degradation_ != transport::TupleCompleteness::kPositionVelocityOnly)
+    parameters_.accepted_degradation != transport::TupleCompleteness::kPositionVelocityOnly)
   {
     return false;
   }
@@ -530,6 +570,17 @@ std::vector<std::string> joint_names_from_info(
     names.push_back(j.name);
   }
   return names;
+}
+
+std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value)
+{
+  if (value == kNoDegradation) {
+    return transport::TupleCompleteness::kFull;
+  }
+  if (value == kPositionVelocityOnly) {
+    return transport::TupleCompleteness::kPositionVelocityOnly;
+  }
+  return std::nullopt;
 }
 
 }  // namespace

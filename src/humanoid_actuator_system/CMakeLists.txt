@@ -28,6 +28,7 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
 endforeach()
 
 add_library(${PROJECT_NAME} SHARED
+  src/hardware_contract.cpp
   src/humanoid_actuator_system.cpp
   src/safety_manifest_parser.cpp
 )
@@ -73,7 +74,7 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_tuple_ownership_test
     humanoid_transport::humanoid_transport)
 
-  # This reads the generated artifact in place, so an emitter change that this package does not
+  # These read the generated artifacts in place, so an emitter change that this package does not
   # accept fails here rather than at launch.
   set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated")
 
@@ -82,6 +83,11 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_safety_manifest_parser_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_safety_manifest_parser_test PRIVATE
     HUMANOID_TEST_SAFETY_MANIFEST_PATH="${GENERATED_DIR}/safety_manifest.yaml")
+
+  ament_add_gtest(${PROJECT_NAME}_hardware_contract_test test/hardware_contract_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_hardware_contract_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_hardware_contract_test PRIVATE
+    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf")
 
   # ADR-007: these run against a fault-injection ActuatorTransport, never against a substituted
   # SystemInterface. mock_components::GenericSystem is prohibited in any environment that produces
