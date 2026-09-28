@@ -6,14 +6,15 @@
 
 #include <format>
 
+#include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <cstring>
 #include <chrono>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -25,7 +26,6 @@ namespace
 // File-local helpers. Declared here, defined at the end of this file, so the
 // class implementation reads first.
 bool fail(std::string_view msg);
-std::optional<double> env_double(const char * name);
 
 }  // namespace
 
@@ -60,10 +60,12 @@ bool MujocoActuatorTransport::configure(
   const transport::JointManifest & joints,
   const transport::SafetyManifest & /*safety*/)
 {
-  return load_model() &&
+  const auto params = declare_parameters();
+  return params &&
+         load_model(params->mjcf_path) &&
          validate_substeps() &&
          map_joints(joints) &&
-         configure_disturbance();
+         configure_disturbance(params->push);
 }
 
 // ---------------------------------------------------------------------------
@@ -310,20 +312,68 @@ transport::HealthSnapshot MujocoActuatorTransport::health_snapshot() const noexc
 // configure() steps, in call order
 // ---------------------------------------------------------------------------
 
-bool MujocoActuatorTransport::load_model()
+std::optional<MujocoActuatorTransport::SimParameters>
+MujocoActuatorTransport::declare_parameters()
 {
-  const char * mjcf_path = std::getenv("HUMANOID_MJCF_PATH");
-  if (!mjcf_path || mjcf_path[0] == '\0') {
-    return fail("HUMANOID_MJCF_PATH not set");
+  // A fresh node per configure(): declare_parameter() throws if a name is
+  // declared twice, and reconfigure must re-read the parameter overrides.
+  sim_node_ = rclcpp::Node::make_shared("mujoco_sim");
+
+  // Read once here. exchange() never touches parameters, so a runtime change
+  // could not take effect; read_only makes `ros2 param set` say so instead
+  // of silently doing nothing.
+  const auto describe = [](const char * text) {
+      rcl_interfaces::msg::ParameterDescriptor d;
+      d.description = text;
+      d.read_only = true;
+      return d;
+    };
+
+  SimParameters params;
+  const PushConfig defaults;
+  try {
+    params.mjcf_path = sim_node_->declare_parameter<std::string>(
+      "mjcf_path", "", describe("Absolute path to the generated MJCF model"));
+    params.push.force_n = sim_node_->declare_parameter<double>(
+      "disturbance.push.force_n", defaults.force_n,
+      describe("Push force magnitude, N. 0 disables the push"));
+    params.push.start_time_s = sim_node_->declare_parameter<double>(
+      "disturbance.push.start_time_s", defaults.start_time_s,
+      describe("Simulation time at which the push starts, s"));
+    params.push.duration_s = sim_node_->declare_parameter<double>(
+      "disturbance.push.duration_s", defaults.duration_s,
+      describe("Push duration, s"));
+    params.push.body = sim_node_->declare_parameter<std::string>(
+      "disturbance.push.body", defaults.body, describe("MJCF body the push is applied to"));
+    const auto direction = sim_node_->declare_parameter<std::vector<double>>(
+      "disturbance.push.direction",
+      std::vector<double>(defaults.direction.begin(), defaults.direction.end()),
+      describe("World-frame push direction [x, y, z]; normalised"));
+    if (direction.size() != params.push.direction.size()) {
+      fail("disturbance.push.direction must have exactly 3 elements");
+      return std::nullopt;
+    }
+    std::copy(direction.begin(), direction.end(), params.push.direction.begin());
+  } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
+    // Typical cause: an integer literal in YAML (50) where a double (50.0) is expected.
+    fail(std::format("parameter type mismatch: {}", e.what()));
+    return std::nullopt;
   }
 
+  if (params.mjcf_path.empty()) {
+    fail("parameter 'mjcf_path' is not set");
+    return std::nullopt;
+  }
+  return params;
+}
+
+bool MujocoActuatorTransport::load_model(const std::string & mjcf_path)
+{
   char error_buf[1024] = {};
-  model_.reset(mj_loadXML(mjcf_path, nullptr, error_buf, sizeof(error_buf)));
+  model_.reset(mj_loadXML(mjcf_path.c_str(), nullptr, error_buf, sizeof(error_buf)));
   if (!model_) {
     return fail(std::format("mj_loadXML failed: {}", error_buf));
   }
-
-  sim_node_ = rclcpp::Node::make_shared("mujoco_viz");
 
   data_.reset(mj_makeData(model_.get()));
   if (!data_) {
@@ -390,23 +440,18 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
   return true;
 }
 
-bool MujocoActuatorTransport::configure_disturbance()
+bool MujocoActuatorTransport::configure_disturbance(const PushConfig & config)
 {
   active_ = false;
 
-  PushConfig config;
-  if (const auto force = env_double("HUMANOID_PUSH_FORCE_N")) {
-    config.force_n = *force;
-  }
-  if (const auto time = env_double("HUMANOID_PUSH_TIME_S")) {
-    config.start_time_s = *time;
-  }
-  if (const char * body = std::getenv("HUMANOID_PUSH_BODY")) {
-    config.body = body;
-  }
-
   if (const auto error = disturbance_.configure(*model_, config)) {
     return fail(*error);
+  }
+  if (config.force_n > 0.0) {
+    std::cerr << std::format(
+      "MujocoActuatorTransport: push {} N on '{}' at t={} s for {} s, direction [{}, {}, {}]\n",
+      config.force_n, config.body, config.start_time_s, config.duration_s,
+      config.direction[0], config.direction[1], config.direction[2]);
   }
   return true;
 }
@@ -420,22 +465,6 @@ bool fail(std::string_view msg)
 {
   std::cerr << "MujocoActuatorTransport: " << msg << "\n";
   return false;
-}
-
-// Parses an environment variable as a double. Returns nullopt if unset,
-// empty, or not parseable as a number (mirrors std::atof's tolerance for
-// garbage input, but distinguishes "unset" from "zero").
-std::optional<double> env_double(const char * name)
-{
-  const char * val = std::getenv(name);
-  if (!val || val[0] == '\0') {
-    return std::nullopt;
-  }
-  try {
-    return std::stod(val);
-  } catch (const std::exception &) {
-    return std::nullopt;
-  }
 }
 
 }  // namespace

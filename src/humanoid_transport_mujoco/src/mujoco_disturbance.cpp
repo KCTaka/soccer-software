@@ -16,7 +16,10 @@ std::optional<std::string> MujocoDisturbance::configure(
   const mjModel_ & model, const PushConfig & config)
 {
   body_id_ = -1;
-  if (config.force_n <= 0.0) {
+  if (!(config.force_n >= 0.0) || !std::isfinite(config.force_n)) {
+    return std::format("push force must be finite and >= 0, got {} N", config.force_n);
+  }
+  if (config.force_n == 0.0) {
     return std::nullopt;  // disabled
   }
   if (!(config.duration_s > 0.0) || !(config.start_time_s >= 0.0)) {

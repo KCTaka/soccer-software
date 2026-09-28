@@ -11,13 +11,17 @@
 // control period, where n = control_period / dt_physics is asserted integer at
 // configure (ADR-007-03). For the unitree_g1 model: dt_physics = 1 ms, n = 5.
 //
-// Model path is read from the HUMANOID_MJCF_PATH environment variable.
+// Configuration comes from ROS 2 parameters on the SIL-only "mujoco_sim" node,
+// read once in configure(): mjcf_path, and disturbance.push.* (see
+// MujocoDisturbance). Set them in the ros2_control_node parameter file.
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_ACTUATOR_TRANSPORT_HPP_
 
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "humanoid_transport/actuator_transport.hpp"
@@ -90,11 +94,19 @@ private:
     int dof_adr{-1};   // index into d->qvel, d->qfrc_applied
   };
 
+  // Everything configure() reads from ROS parameters, as plain values.
+  struct SimParameters
+  {
+    std::string mjcf_path;
+    PushConfig push;
+  };
+
   // --- configure() steps, in order ---
-  [[nodiscard]] bool load_model();
+  [[nodiscard]] std::optional<SimParameters> declare_parameters();
+  [[nodiscard]] bool load_model(const std::string & mjcf_path);
   [[nodiscard]] bool validate_substeps();
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
-  [[nodiscard]] bool configure_disturbance();
+  [[nodiscard]] bool configure_disturbance(const PushConfig & config);
 
   // --- MuJoCo state ---
   MjModelPtr model_;

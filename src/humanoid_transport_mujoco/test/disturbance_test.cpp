@@ -3,7 +3,6 @@
 #include <mujoco/mujoco.h>
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <memory>
 
 #include "humanoid_transport_mujoco/mujoco_disturbance.hpp"
@@ -19,12 +18,8 @@ class DisturbanceTest : public ::testing::Test
 protected:
   void SetUp() override
   {
-    const char * path = std::getenv("HUMANOID_MJCF_PATH");
-    if (!path) {
-      GTEST_SKIP() << "HUMANOID_MJCF_PATH not set";
-    }
     char error[1024] = {};
-    model_.reset(mj_loadXML(path, nullptr, error, sizeof(error)));
+    model_.reset(mj_loadXML(HUMANOID_TEST_MJCF_PATH, nullptr, error, sizeof(error)));
     ASSERT_NE(model_, nullptr) << error;
     data_.reset(mj_makeData(model_.get()));
     body_ = mj_name2id(model_.get(), mjtObj::mjOBJ_BODY, "torso_link");
@@ -92,6 +87,7 @@ TEST_F(DisturbanceTest, RejectsInvalidConfig)
     .has_value());
   EXPECT_TRUE(
     disturbance.configure(*model_, PushConfig{.force_n = 1.0, .duration_s = 0.0}).has_value());
+  EXPECT_TRUE(disturbance.configure(*model_, PushConfig{.force_n = -5.0}).has_value());
 }
 
 }  // namespace

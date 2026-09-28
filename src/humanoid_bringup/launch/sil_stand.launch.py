@@ -1,17 +1,34 @@
-import os
-
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
-from launch.substitutions import Command, PathJoinSubstitution
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
-    workspace_root = os.environ.get('HUMANOID_WORKSPACE')
-    if workspace_root:
-        os.environ.setdefault(
-            'HUMANOID_MJCF_PATH',
-            os.path.join(workspace_root, 'model', 'generated', 'robot.mjcf'))
+    launch_args = [
+        DeclareLaunchArgument(
+            'mjcf_path',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('humanoid_bringup'),
+                'model', 'generated', 'robot.mjcf']),
+            description='MJCF model loaded by MujocoActuatorTransport'),
+        DeclareLaunchArgument(
+            'push_force_n', default_value='0.0',
+            description='SIL push force in N; 0 disables the push'),
+        DeclareLaunchArgument(
+            'push_start_time_s', default_value='0.0',
+            description='Simulation time at which the SIL push starts, s'),
+    ]
+    # Consumed by the mujoco_sim node that the transport creates inside
+    # ros2_control_node. value_type=float keeps "50" from arriving as an int.
+    sim_params = {
+        'mjcf_path': LaunchConfiguration('mjcf_path'),
+        'disturbance.push.force_n': ParameterValue(
+            LaunchConfiguration('push_force_n'), value_type=float),
+        'disturbance.push.start_time_s': ParameterValue(
+            LaunchConfiguration('push_start_time_s'), value_type=float),
+    }
 
     robot_description_path = PathJoinSubstitution([
         FindPackageShare('humanoid_bringup'), 'config', 'robot_description.urdf'
@@ -19,7 +36,7 @@ def generate_launch_description():
     robot_description = ParameterValue(
         Command(['cat ', robot_description_path]), value_type=str)
 
-    return LaunchDescription([
+    return LaunchDescription(launch_args + [
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -55,6 +72,7 @@ def generate_launch_description():
                     FindPackageShare('humanoid_bringup'),
                     'config', 'hardware_sil.yaml'
                 ]),
+                sim_params,
             ],
             output='screen',
         ),

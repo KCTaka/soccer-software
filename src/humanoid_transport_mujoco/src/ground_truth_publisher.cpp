@@ -25,10 +25,10 @@ GroundTruthPublisher::~GroundTruthPublisher()
 void GroundTruthPublisher::start(std::shared_ptr<rclcpp::Node> node)
 {
   stop();
+  // Rebuilt on every start: a reconfigure hands us a fresh node, and the
+  // broadcaster must publish on that node, not the one it was first built on.
   node_ = std::move(node);
-  if (!broadcaster_) {
-    broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*node_);
-  }
+  broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*node_);
   // No producer runs while we are stopped (exchange() is inactive), so the
   // consumer-side reset is safe here.
   buffer_.reset();

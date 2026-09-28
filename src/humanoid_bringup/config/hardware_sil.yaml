@@ -42,3 +42,16 @@ humanoid_mit_controller:
       - right_wrist_yaw_joint
     default_stiffness: 0.0
     default_damping: 0.0
+
+# SIL-only simulator node, created inside ros2_control_node by
+# MujocoActuatorTransport and read once at configure (parameters are
+# read-only). mjcf_path, disturbance.push.force_n, and
+# disturbance.push.start_time_s are launch arguments; see sil_stand.launch.py.
+# Use float literals for doubles (0.2, not 0): an integer is a type error.
+mujoco_sim:
+  ros__parameters:
+    disturbance:
+      push:
+        duration_s: 0.2
+        body: torso_link
+        direction: [0.0, 1.0, 0.0]  # world frame, normalised

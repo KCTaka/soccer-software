@@ -3,7 +3,6 @@
 #include <mujoco/mujoco.h>
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -15,11 +14,6 @@ class ConformanceTest : public ::testing::Test
 protected:
   void SetUp() override
   {
-    const char * mjcf_path = std::getenv("HUMANOID_MJCF_PATH");
-    if (!mjcf_path) {
-      GTEST_SKIP() << "HUMANOID_MJCF_PATH not set";
-    }
-
     std::vector<std::string> joint_names = {
       "left_hip_pitch_joint", "left_hip_roll_joint", "left_hip_yaw_joint",
       "left_knee_joint", "left_ankle_pitch_joint", "left_ankle_roll_joint",

@@ -70,24 +70,25 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  # Custom main: configure() creates an rclcpp::Node (mujoco_viz), which
-  # requires rclcpp::init() to have been called. The default gtest_main
-  # never calls it, so we supply our own and skip linking gtest's.
-  #
-  # ENV supplies HUMANOID_MJCF_PATH so this test exercises the real MuJoCo
-  # path under `colcon test` rather than silently GTEST_SKIP()-ing: colcon's
-  # test subprocess does not inherit the developer's shell environment.
+  # The generated model lives in the source tree; tests get its path at compile
+  # time, so no environment variable is involved and the tests never skip.
+  set(TEST_MJCF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
+
+  # Custom main: configure() creates an rclcpp::Node (mujoco_sim), which
+  # requires rclcpp::init(). The main also hands the transport its mjcf_path
+  # parameter, exactly as ros2_control_node does from its parameter file.
   ament_add_gtest(${PROJECT_NAME}_conformance_test
     test/conformance_test.cpp
     test/conformance_test_main.cpp
-    SKIP_LINKING_MAIN_LIBRARIES
-    ENV "HUMANOID_MJCF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
+    SKIP_LINKING_MAIN_LIBRARIES)
   target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME} rclcpp::rclcpp)
+  target_compile_definitions(${PROJECT_NAME}_conformance_test PRIVATE
+    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
 
-  ament_add_gtest(${PROJECT_NAME}_disturbance_test
-    test/disturbance_test.cpp
-    ENV "HUMANOID_MJCF_PATH=${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf")
+  ament_add_gtest(${PROJECT_NAME}_disturbance_test test/disturbance_test.cpp)
   target_link_libraries(${PROJECT_NAME}_disturbance_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_disturbance_test PRIVATE
+    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
