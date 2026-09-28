@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstring>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -49,52 +48,37 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
 {
   info_ = params.hardware_info;
   if (const auto violation = hardware_contract_violation(info_)) {
-    RCLCPP_ERROR(get_logger(), "Robot description: %s", violation->c_str());
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail(std::format("Robot description: {}", *violation));
   }
   joint_names_ = joint_names_from_info(info_);
 
   auto parameters = read_parameters();
-  if (!parameters) {
-    return hardware_interface::CallbackReturn::ERROR;
+  if (const auto * error = std::get_if<std::string>(&parameters)) {
+    return fail(*error);
   }
-  parameters_ = std::move(*parameters);
+  parameters_ = std::move(std::get<Parameters>(parameters));
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  const auto logger = get_logger();
-
   // ADR-001-03: the rate is an invariant, so a mismatched controller_manager
   // update_rate is a configuration error, not a different operating point.
   if (info_.rw_rate != transport::kControlRateHz) {
-    RCLCPP_ERROR(logger,
-      "Component read/write rate is %u Hz, but the control cycle is fixed at %u Hz "
-      "(ADR-001-03). Set controller_manager update_rate to %u.",
-      info_.rw_rate, transport::kControlRateHz, transport::kControlRateHz);
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail(std::format(
+      "Component read/write rate is {} Hz, but the control cycle is fixed at {} Hz "
+      "(ADR-001-03). Set controller_manager update_rate to {}.",
+      info_.rw_rate, transport::kControlRateHz, transport::kControlRateHz));
   }
 
-  // 1. Build joint manifest from URDF info
-  if (joint_names_.empty()) {
-    RCLCPP_ERROR(logger, "No joints declared in ros2_control config");
-    return hardware_interface::CallbackReturn::ERROR;
-  }
-  if (joint_names_.size() > transport::kMaxJoints) {
-    RCLCPP_ERROR(logger, "Joint count %zu exceeds kMaxJoints=%zu",
-      joint_names_.size(), transport::kMaxJoints);
-    return hardware_interface::CallbackReturn::ERROR;
-  }
-
-  joint_manifest_.joint_count = static_cast<std::uint8_t>(joint_names_.size());
-  for (std::size_t i = 0; i < joint_names_.size(); ++i) {
-    std::snprintf(
-      joint_manifest_.joints[i].name.data(),
-      joint_manifest_.joints[i].name.size(),
-      "%s",
-      joint_names_[i].c_str());
+  // 1. Build joint manifest from URDF info. hardware_contract_violation() has bounded the joint
+  //    count and each name's length, so every name fits its zeroed entry with the terminator.
+  const auto joint_count = static_cast<std::uint8_t>(joint_names_.size());
+  joint_manifest_ = transport::JointManifest{};
+  joint_manifest_.joint_count = joint_count;
+  for (std::size_t i = 0; i < joint_count; ++i) {
+    std::ranges::copy(joint_names_[i], joint_manifest_.joints[i].name.begin());
   }
 
   // 2. Load the safety manifest
@@ -102,22 +86,18 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   try {
     manifest_yaml = YAML::LoadFile(parameters_.safety_manifest_path);
   } catch (const YAML::Exception & e) {
-    RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s",
-      parameters_.safety_manifest_path.c_str(), e.what());
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail(std::format(
+      "Failed to load safety manifest '{}': {}", parameters_.safety_manifest_path, e.what()));
   }
   auto parsed = parse_safety_manifest(manifest_yaml, joint_names_);
   if (const auto * error = std::get_if<std::string>(&parsed)) {
-    RCLCPP_ERROR(logger, "Safety manifest '%s': %s",
-      parameters_.safety_manifest_path.c_str(), error->c_str());
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail(std::format("Safety manifest '{}': {}", parameters_.safety_manifest_path, *error));
   }
   safety_manifest_ = std::get<transport::SafetyManifest>(parsed);
 
   // 3. Configure safety kernel
   if (!safety_kernel_.configure(joint_manifest_, safety_manifest_)) {
-    RCLCPP_ERROR(logger, "SafetyKernel configuration failed");
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail("SafetyKernel configuration failed");
   }
 
   // 4. Load transport via pluginlib
@@ -126,47 +106,42 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       "humanoid_transport", "humanoid::transport::ActuatorTransport");
     transport_ = loader_->createUniqueInstance(parameters_.transport_plugin);
   } catch (const pluginlib::PluginlibException & e) {
-    RCLCPP_ERROR(logger, "Failed to load transport '%s': %s",
-      parameters_.transport_plugin.c_str(), e.what());
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail(std::format(
+      "Failed to load transport '{}': {}", parameters_.transport_plugin, e.what()));
   }
 
   // 5. Configure transport
   if (!transport_->configure(joint_manifest_, safety_manifest_)) {
-    RCLCPP_ERROR(logger, "Transport configure() failed");
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail("Transport configure() failed");
   }
 
   // 6. The transport must actually exchange at the control rate.
   const auto caps = transport_->capabilities();
   if (caps.nominal_cycle_period_us != transport::kControlPeriod.count()) {
-    const std::string msg = std::format(
+    return fail(std::format(
       "Transport cycle period is {} us, but the control period is {} us",
-      caps.nominal_cycle_period_us, transport::kControlPeriod.count());
-    RCLCPP_ERROR(logger, "%s", msg.c_str());
-    return hardware_interface::CallbackReturn::ERROR;
+      caps.nominal_cycle_period_us, transport::kControlPeriod.count()));
   }
 
   // 7. Check tuple capability
   if (!check_tuple_capability()) {
-    RCLCPP_ERROR(logger,
+    return fail(
       "Tuple capability mismatch: the transport cannot deliver the five-field MIT tuple, the only "
       "claim a controller may make, and degradation was not accepted");
-    return hardware_interface::CallbackReturn::ERROR;
   }
 
   // 8. Preallocate batches
   command_snapshot_ = transport::CommandBatch{};
   feedback_ = transport::FeedbackBatch{};
-  command_snapshot_.joint_count = joint_manifest_.joint_count;
-  feedback_.joint_count = joint_manifest_.joint_count;
+  command_snapshot_.joint_count = joint_count;
+  feedback_.joint_count = joint_count;
 
   // 9. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
   //    switched in again, which perform_command_mode_switch() records.
   owned_joints_.store(0U, std::memory_order_release);
 
-  RCLCPP_INFO(logger, "Configured: %u joints at %u Hz, transport=%s",
-    joint_manifest_.joint_count, info_.rw_rate, parameters_.transport_plugin.c_str());
+  RCLCPP_INFO(get_logger(), "Configured: %u joints at %u Hz, transport=%s",
+    joint_count, info_.rw_rate, parameters_.transport_plugin.c_str());
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -174,11 +149,8 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  const auto logger = get_logger();
-
   if (!transport_->activate()) {
-    RCLCPP_ERROR(logger, "Transport activate() failed");
-    return hardware_interface::CallbackReturn::ERROR;
+    return fail("Transport activate() failed");
   }
 
   cycle_ = 0;
@@ -190,13 +162,10 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   // tuple regains authority after one damping cycle.
   authority_ = CommandAuthority::kAwaitingClaim;
 
-  // Zero out command snapshot
-  for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    command_snapshot_.joints[i] = transport::JointCommand{};
-    feedback_.joints[i] = transport::JointFeedback{};
-  }
+  command_snapshot_.joints.fill(transport::JointCommand{});
+  feedback_.joints.fill(transport::JointFeedback{});
 
-  RCLCPP_INFO(logger, "Activated");
+  RCLCPP_INFO(get_logger(), "Activated");
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
@@ -474,14 +443,12 @@ void HumanoidActuatorSystem::enter_protective_state(
   authority_ = CommandAuthority::kProtective;
 }
 
-std::optional<HumanoidActuatorSystem::Parameters> HumanoidActuatorSystem::read_parameters() const
+HumanoidActuatorSystem::ParametersOrError HumanoidActuatorSystem::read_parameters() const
 {
-  const auto logger = get_logger();
   const auto node = get_node();
   if (!node) {
-    RCLCPP_ERROR(logger, "ros2_control created no node for this component; cannot declare its "
-      "parameters");
-    return std::nullopt;
+    return std::string{"ros2_control created no node for this component; cannot declare its "
+      "parameters"};
   }
   // Read once. Nothing re-reads them, so read_only makes `ros2 param set` fail instead of
   // appearing to work.
@@ -503,23 +470,20 @@ std::optional<HumanoidActuatorSystem::Parameters> HumanoidActuatorSystem::read_p
       describe("Tuple degradation accepted from the transport: 'none', or "
       "'position_velocity_only' to run without stiffness, damping, and feed-forward torque"));
   } catch (const rclcpp::exceptions::UninitializedStaticallyTypedParameterException & e) {
-    RCLCPP_ERROR(logger, "%s. Set it under '%s' in the controller_manager parameter file.",
-      e.what(), node->get_fully_qualified_name());
-    return std::nullopt;
+    return std::format(
+      "{}. Set it under '{}' in the controller_manager parameter file.", e.what(),
+      node->get_fully_qualified_name());
   } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
-    RCLCPP_ERROR(logger, "Parameter type mismatch: %s", e.what());
-    return std::nullopt;
+    return std::format("Parameter type mismatch: {}", e.what());
   }
   if (parameters.transport_plugin.empty()) {
-    RCLCPP_ERROR(logger, "Parameter '%s' is empty", kTransportPluginParam);
-    return std::nullopt;
+    return std::format("Parameter '{}' is empty", kTransportPluginParam);
   }
   const auto accepted = accepted_degradation_from(degradation);
   if (!accepted) {
-    RCLCPP_ERROR(logger, "Parameter '%s' is '%s'; expected '%s' or '%s'",
-      kAcceptedDegradationParam, degradation.c_str(), kNoDegradation.data(),
-      kPositionVelocityOnly.data());
-    return std::nullopt;
+    return std::format(
+      "Parameter '{}' is '{}'; expected '{}' or '{}'", kAcceptedDegradationParam, degradation,
+      kNoDegradation, kPositionVelocityOnly);
   }
   parameters.accepted_degradation = *accepted;
 
@@ -534,11 +498,16 @@ std::optional<HumanoidActuatorSystem::Parameters> HumanoidActuatorSystem::read_p
       parameters.safety_manifest_path =
         ament_index_cpp::get_package_share_directory(package) + "/" + path;
     } catch (const ament_index_cpp::PackageNotFoundError & e) {
-      RCLCPP_ERROR(logger, "Package '%s' not found: %s", package.c_str(), e.what());
-      return std::nullopt;
+      return std::format("Package '{}' not found: {}", package, e.what());
     }
   }
   return parameters;
+}
+
+hardware_interface::CallbackReturn HumanoidActuatorSystem::fail(std::string_view reason) const
+{
+  RCLCPP_ERROR(get_logger(), "%.*s", static_cast<int>(reason.size()), reason.data());
+  return hardware_interface::CallbackReturn::ERROR;
 }
 
 bool HumanoidActuatorSystem::check_tuple_capability() noexcept

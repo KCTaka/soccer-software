@@ -30,6 +30,9 @@ inline constexpr std::array<std::string_view, 2> kHardwareParams{
 
 /// Why `info` breaks the contract, or nullopt if it holds:
 ///   - it sets exactly kHardwareParams, none of them empty;
+///   - it declares between 1 and kMaxJoints joints;
+///   - every joint name fits a transport::JointEntry with its terminator. Transports find joints
+///     by that name, so a truncated one would address the wrong joint, or none;
 ///   - every joint declares exactly the kMitFields command interfaces and the kJointStateFields
 ///     state interfaces. The resource manager filters mode switches by these declarations, so a
 ///     missing one would make every claim look partial.

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "humanoid_transport/batch_types.hpp"
+#include "humanoid_transport/joint_manifest.hpp"
 
 namespace humanoid::actuator_system
 {
@@ -35,7 +36,17 @@ std::optional<std::string> hardware_contract_violation(
       return std::format("required <hardware> parameter '{}' is not set", name);
     }
   }
+  if (info.joints.empty() || info.joints.size() > transport::kMaxJoints) {
+    return std::format(
+      "{} joints declared; between 1 and {} are supported", info.joints.size(),
+      transport::kMaxJoints);
+  }
   for (const auto & joint : info.joints) {
+    if (joint.name.empty() || joint.name.size() >= transport::kMaxNameLength) {
+      return std::format(
+        "joint name '{}' has {} characters; between 1 and {} are supported", joint.name,
+        joint.name.size(), transport::kMaxNameLength - 1U);
+    }
     if (auto v = interfaces_violation(
         joint.name, "command", joint.command_interfaces, transport::kMitFields))
     {

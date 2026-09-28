@@ -10,6 +10,7 @@
 #include "hardware_interface/component_parser.hpp"
 #include "humanoid_actuator_system/hardware_contract.hpp"
 #include "humanoid_transport/batch_types.hpp"
+#include "humanoid_transport/joint_manifest.hpp"
 
 namespace
 {
@@ -75,6 +76,33 @@ TEST(HardwareContract, RequiresEveryParameter)
   auto empty = valid_info();
   empty.hardware_parameters[std::string{kSafetyManifestPathParam}] = "";
   EXPECT_TRUE(hardware_contract_violation(empty));
+}
+
+TEST(HardwareContract, RejectsAJointNameThatWouldBeTruncated)
+{
+  constexpr auto kLongest = humanoid::transport::kMaxNameLength - 1U;
+  auto fits = valid_info();
+  fits.joints.front().name = std::string(kLongest, 'j');
+  EXPECT_EQ(hardware_contract_violation(fits).value_or(""), "");
+
+  auto too_long = valid_info();
+  too_long.joints.front().name = std::string(kLongest + 1U, 'j');
+  EXPECT_TRUE(hardware_contract_violation(too_long));
+}
+
+TEST(HardwareContract, RequiresBetweenOneAndMaxJoints)
+{
+  auto none = valid_info();
+  none.joints.clear();
+  EXPECT_TRUE(hardware_contract_violation(none));
+
+  auto too_many = valid_info();
+  for (std::size_t i = 1U; i <= humanoid::transport::kMaxJoints; ++i) {
+    auto joint = too_many.joints.front();
+    joint.name += std::to_string(i);
+    too_many.joints.push_back(joint);
+  }
+  EXPECT_TRUE(hardware_contract_violation(too_many));
 }
 
 TEST(HardwareContract, RequiresEveryMitCommandInterface)

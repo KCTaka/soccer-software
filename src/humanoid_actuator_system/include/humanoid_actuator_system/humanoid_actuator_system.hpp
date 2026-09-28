@@ -24,6 +24,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <variant>
 #include <vector>
 
 #include "hardware_interface/handle.hpp"
@@ -122,6 +124,8 @@ private:
     /// Absolute.
     std::string safety_manifest_path;
   };
+  /// The parameters, or why they were rejected. (std::expected is C++23.)
+  using ParametersOrError = std::variant<Parameters, std::string>;
 
   // --- Member functions ---
 
@@ -140,8 +144,11 @@ private:
   [[nodiscard]] transport::ExchangeResult exchange_once(
     transport::MonotonicStamp deadline) noexcept;
 
-  /// Declares the node's parameters and resolves the description's. Logs why on failure.
-  [[nodiscard]] std::optional<Parameters> read_parameters() const;
+  /// Declares the node's parameters and resolves the description's.
+  [[nodiscard]] ParametersOrError read_parameters() const;
+
+  /// Logs `reason` and returns the failure, for a lifecycle callback to return.
+  [[nodiscard]] hardware_interface::CallbackReturn fail(std::string_view reason) const;
 
   /// Called from on_configure. Returns false (configuration error) if the transport cannot deliver
   /// the five-field tuple and degradation has not been explicitly accepted. The tuple is the only
