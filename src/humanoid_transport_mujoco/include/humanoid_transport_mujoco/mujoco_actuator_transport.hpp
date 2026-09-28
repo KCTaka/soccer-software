@@ -105,6 +105,7 @@ private:
   [[nodiscard]] bool load_model(const std::string & mjcf_path);
   [[nodiscard]] bool validate_substeps();
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
+  [[nodiscard]] bool resolve_initial_placement();
   [[nodiscard]] bool configure_disturbance(const PushConfig & config);
 
   // --- MuJoCo state ---
@@ -113,9 +114,13 @@ private:
   std::vector<JointMapping> joint_map_;
   std::uint8_t joint_count_{0};
   int n_substeps_{0};
-  // qpos offset of the pelvis freejoint, resolved once at load time so
-  // exchange() never does a string-based MuJoCo lookup on the real-time path.
+  // Root body of the kinematic tree holding the commanded joints.
+  int robot_root_body_{-1};
+  // qpos offset of that tree's free joint, or -1 for a fixed base. Resolved
+  // at configure so exchange() never searches the model in-cycle.
   int root_qpos_adr_{-1};
+  // Root height that puts the lowest collision geom on the ground plane.
+  double initial_root_z_{0.0};
 
   // --- Lifecycle ---
   // Per-exchange accounting is the caller's (ExchangeStats); this is all the

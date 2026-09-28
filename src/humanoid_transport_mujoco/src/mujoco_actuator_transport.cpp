@@ -19,6 +19,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "humanoid_transport/timing.hpp"
+#include "humanoid_transport_mujoco/mujoco_placement.hpp"
 
 #include "pluginlib/class_list_macros.hpp"
 
@@ -67,6 +68,7 @@ bool MujocoActuatorTransport::configure(
          load_model(params->mjcf_path) &&
          validate_substeps() &&
          map_joints(joints) &&
+         resolve_initial_placement() &&
          configure_disturbance(params->push);
 }
 
@@ -81,29 +83,10 @@ bool MujocoActuatorTransport::activate()
   }
   mj_resetData(model_.get(), data_.get());
 
-  // Set the freejoint height so feet rest on the ground plane.
-  // The freejoint qpos layout is [x, y, z, qw, qx, qy, qz].
-  // Compute the pelvis height needed for the lowest foot contact
-  // sphere to sit on the z=0 ground plane.
+  // Start with the lowest collision geom on the ground plane. The height is
+  // derived from the model in resolve_initial_placement(), not hardcoded.
   if (root_qpos_adr_ >= 0) {
-    const int qpos_adr = root_qpos_adr_;
-
-    // Compute pelvis height from the leg chain geometry.
-    // Sum the z-offsets from pelvis to ankle_roll, plus the
-    // contact sphere offset and radius.
-    //
-    // hip_pitch z: -0.1027
-    // hip_roll  z: -0.030465
-    // hip_yaw   z: -0.12412
-    // knee      z: -0.17734
-    // ankle_pitch z: -0.30001
-    // ankle_roll  z: -0.017558
-    // contact sphere z offset: -0.03, radius: 0.005
-    // Total leg length: ~0.787 m
-    constexpr double kPelvisHeight = 0.793;
-
-    data_->qpos[qpos_adr + 2] = kPelvisHeight;  // z
-    data_->qpos[qpos_adr + 3] = 1.0;            // qw (identity quaternion)
+    data_->qpos[root_qpos_adr_ + 2] = initial_root_z_;
   }
 
   // Settle the contact state.
@@ -366,12 +349,6 @@ bool MujocoActuatorTransport::load_model(const std::string & mjcf_path)
     return fail("mj_makeData failed");
   }
 
-  // Resolve the pelvis freejoint's qpos offset once here, non-real-time, so
-  // exchange() never does a string-based MuJoCo lookup on the real-time path.
-  const int root_jnt = mj_name2id(model_.get(), mjtObj::mjOBJ_JOINT, "root");
-  if (root_jnt >= 0 && model_->jnt_type[root_jnt] == mjtJoint::mjJNT_FREE) {
-    root_qpos_adr_ = model_->jnt_qposadr[root_jnt];
-  }
   return true;
 }
 
@@ -421,7 +398,43 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
       .qpos_adr = model_->jnt_qposadr[jnt_id],
       .dof_adr = model_->jnt_dofadr[jnt_id],
     };
+
+    // The robot is the kinematic tree the commanded joints belong to; a
+    // manifest spanning two trees would mean two robots.
+    const int root = model_->body_rootid[model_->jnt_bodyid[jnt_id]];
+    if (i == 0) {
+      robot_root_body_ = root;
+    } else if (root != robot_root_body_) {
+      return fail(std::format("joint '{}' is not in the same kinematic tree as '{}'",
+        name, joints.joints[0].name.data()));
+    }
   }
+  return true;
+}
+
+bool MujocoActuatorTransport::resolve_initial_placement()
+{
+  root_qpos_adr_ = free_joint_qpos_adr(*model_, robot_root_body_).value_or(-1);
+  if (root_qpos_adr_ < 0) {
+    return true;  // fixed-base: nothing to place, no ground truth to publish
+  }
+
+  // Kinematics at the model's reference configuration (qpos0), which is the
+  // configuration activate() resets to.
+  mj_resetData(model_.get(), data_.get());
+  mj_kinematics(model_.get(), data_.get());
+  const auto ground = ground_plane_z(*model_, *data_);
+  if (!ground) {
+    return fail("floating-base robot but no horizontal ground plane in the model");
+  }
+  const auto lowest = lowest_collision_z(*model_, *data_, robot_root_body_);
+  if (!lowest) {
+    return fail("floating-base robot has no collidable geometry to stand on");
+  }
+  initial_root_z_ = data_->qpos[root_qpos_adr_ + 2] + (*ground - *lowest);
+  std::cerr << std::format(
+    "MujocoActuatorTransport: initial root height {:.4f} m, derived from collision geometry\n",
+    initial_root_z_);
   return true;
 }
 
