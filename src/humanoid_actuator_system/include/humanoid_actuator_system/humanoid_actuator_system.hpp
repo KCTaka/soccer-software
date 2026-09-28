@@ -32,6 +32,7 @@
 #include "humanoid_safety/safety_kernel.hpp"
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport/batch_types.hpp"
+#include "humanoid_transport/exchange_stats.hpp"
 #include "humanoid_transport/joint_manifest.hpp"
 #include "humanoid_transport/safety_manifest.hpp"
 
@@ -113,6 +114,14 @@ private:
 
   void enter_protective_state(safety::Trigger trigger) noexcept;
 
+  /// Non-real-time. Logs stats_; called when a run ends (deactivate or shutdown).
+  void log_exchange_stats() const;
+
+  /// The only call site of transport_->exchange(). Times the call and accounts for it in stats_,
+  /// so no path -- normal or protective -- can exchange without being counted.
+  [[nodiscard]] transport::ExchangeResult exchange_once(
+    transport::MonotonicStamp deadline) noexcept;
+
   /// Called from on_configure. Returns false (configuration error) if the claimed interface set
   /// requires fields the transport cannot deliver and degradation has not been explicitly accepted.
   [[nodiscard]] bool check_tuple_capability() noexcept;
@@ -136,6 +145,10 @@ private:
   // Preallocated. Nothing in the cycle may allocate.
   transport::CommandBatch command_snapshot_{};
   transport::FeedbackBatch feedback_{};
+
+  // Written only by write() on the real-time thread; read only by lifecycle callbacks, which the
+  // controller_manager never runs concurrently with read()/write() of the same component.
+  transport::ExchangeStats stats_{};
 
   transport::CycleSequence cycle_{0U};
   std::uint8_t consecutive_bad_cycles_{0U};

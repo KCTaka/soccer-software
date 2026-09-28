@@ -2,6 +2,8 @@
 
 #include "humanoid_actuator_system/humanoid_actuator_system.hpp"
 
+#include <format>
+
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -10,6 +12,7 @@
 #include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
+#include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "yaml-cpp/yaml.h"
@@ -201,6 +204,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   }
 
   cycle_ = 0;
+  stats_ = transport::ExchangeStats{};
   consecutive_bad_cycles_ = 0;
   mit_tuple_claimed_ = false;
   protective_state_ = false;
@@ -222,6 +226,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_deactivate(
   if (transport_) {
     transport_->deactivate();
   }
+  log_exchange_stats();
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
@@ -244,11 +249,15 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_error(
 }
 
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_shutdown(
-  const rclcpp_lifecycle::State & /*previous_state*/)
+  const rclcpp_lifecycle::State & previous_state)
 {
   enter_protective_state(safety::Trigger::kOperatorStop);
   if (transport_) {
     transport_->deactivate();
+  }
+  // From INACTIVE, on_deactivate() has already reported this run.
+  if (previous_state.label() == hardware_interface::lifecycle_state_names::ACTIVE) {
+    log_exchange_stats();
   }
   transport_.reset();
   loader_.reset();
@@ -409,7 +418,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
   if (protective_state_) {
     // In protective state, send damping command
     auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(5);
-    transport_->exchange(command_snapshot_, feedback_, deadline);
+    static_cast<void>(exchange_once(deadline));
     return hardware_interface::return_type::OK;
   }
 
@@ -438,7 +447,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
   //    hardware feedback.
   command_snapshot_.sequence = cycle_;
   auto deadline = now + std::chrono::milliseconds(5);
-  auto result = transport_->exchange(command_snapshot_, feedback_, deadline);
+  const auto result = exchange_once(deadline);
 
   if (!result.ok()) {
     ++consecutive_bad_cycles_;
@@ -494,6 +503,31 @@ bool HumanoidActuatorSystem::accept_feedback(
   }
 
   return true;
+}
+
+void HumanoidActuatorSystem::log_exchange_stats() const
+{
+  // Until the ADR-008 in-cycle record exists, this is where a run's exchange accounting becomes
+  // visible.
+  const std::string summary = std::format(
+    "Exchange stats: attempted={} failed={} deadline_misses={} worst_exchange={:.1f} us "
+    "last_sequence={}",
+    stats_.attempted, stats_.failed, stats_.deadline_misses,
+    std::chrono::duration<double, std::micro>(stats_.worst_exchange).count(),
+    stats_.last_sequence);
+  RCLCPP_INFO(rclcpp::get_logger(kLogName), "%s", summary.c_str());
+}
+
+transport::ExchangeResult HumanoidActuatorSystem::exchange_once(
+  transport::MonotonicStamp deadline) noexcept
+{
+  const auto start = std::chrono::steady_clock::now();
+  const auto result = transport_->exchange(command_snapshot_, feedback_, deadline);
+  const auto end = std::chrono::steady_clock::now();
+  stats_.record(
+    command_snapshot_.sequence, result,
+    std::chrono::duration_cast<std::chrono::nanoseconds>(end - start), end > deadline);
+  return result;
 }
 
 void HumanoidActuatorSystem::enter_protective_state(
