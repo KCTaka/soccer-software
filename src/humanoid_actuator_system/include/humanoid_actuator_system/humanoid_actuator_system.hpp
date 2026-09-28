@@ -10,12 +10,16 @@
 //     on_export_command_interfaces() instead, which return ConstSharedPtr / SharedPtr vectors.
 //   * on_init(const HardwareInfo &) is DEPRECATED. Override
 //     on_init(const HardwareComponentInterfaceParams &).
-//   * prepare_command_mode_switch is documented upstream as "a non-realtime evaluation";
-//     perform_command_mode_switch is documented as "part of the realtime update loop, and should
-//     be fast". The MIT tuple-ownership check therefore belongs in prepare, not perform.
+//   * prepare_command_mode_switch is documented upstream as "a non-realtime evaluation" and
+//     perform_command_mode_switch as "part of the realtime update loop". Neither holds in
+//     general: the controller manager calls both from its real-time thread when a read, update,
+//     or write fails (perform_hardware_command_mode_change), and calls perform from the service
+//     thread when a switch is not requested as soon as possible (the spawner's default). Both
+//     hooks are therefore allocation-free, and neither assumes which thread it is on.
 #ifndef HUMANOID_ACTUATOR_SYSTEM__HUMANOID_ACTUATOR_SYSTEM_HPP_
 #define HUMANOID_ACTUATOR_SYSTEM__HUMANOID_ACTUATOR_SYSTEM_HPP_
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -30,6 +34,7 @@
 #include "rclcpp/time.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
+#include "humanoid_actuator_system/tuple_ownership.hpp"
 #include "humanoid_safety/safety_kernel.hpp"
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport/batch_types.hpp"
@@ -84,14 +89,16 @@ public:
 
   // --- Mode switching. ---
 
-  /// Non-real-time. Rejects partial claims, mixed ownership, and partial release of the five-field
-  /// MIT tuple. A controller that claims `position` alone would silently leave stiffness, damping,
-  /// and feed-forward torque owned by nobody, which is not a weaker command but an undefined one.
+  /// Vetoes a switch that starts or stops part of any joint's five-field MIT tuple (ADR-001). A
+  /// controller that claims `position` alone would leave stiffness, damping, and feed-forward
+  /// torque owned by nobody, which is not a weaker command but an undefined one. Changes no state:
+  /// a switch this accepts can still be abandoned, and nothing tells the hardware.
   hardware_interface::return_type prepare_command_mode_switch(
     const std::vector<std::string> & start_interfaces,
     const std::vector<std::string> & stop_interfaces) override;
 
-  /// Real-time. Applies the decision already validated in prepare. Must be fast.
+  /// Records which joints' tuples are owned once the switch happens. write() sends a controller's
+  /// command only while every joint is owned.
   hardware_interface::return_type perform_command_mode_switch(
     const std::vector<std::string> & start_interfaces,
     const std::vector<std::string> & stop_interfaces) override;
@@ -120,8 +127,9 @@ private:
   [[nodiscard]] transport::ExchangeResult exchange_once(
     transport::MonotonicStamp deadline) noexcept;
 
-  /// Called from on_configure. Returns false (configuration error) if the claimed interface set
-  /// requires fields the transport cannot deliver and degradation has not been explicitly accepted.
+  /// Called from on_configure. Returns false (configuration error) if the transport cannot deliver
+  /// the five-field tuple and degradation has not been explicitly accepted. The tuple is the only
+  /// claim prepare_command_mode_switch() accepts, so this needs no knowledge of the claim.
   [[nodiscard]] bool check_tuple_capability() noexcept;
 
   // Declaration order is load-bearing. Members are destroyed in reverse declaration order, so the
@@ -156,8 +164,15 @@ private:
 
   transport::CycleSequence cycle_{0U};
   std::uint8_t consecutive_bad_cycles_{0U};
-  bool mit_tuple_claimed_{false};
-  bool protective_state_{false};
+  // Written by write() and by lifecycle callbacks, which never run concurrently with it (as for
+  // stats_). on_activate() is the one exit from kProtective.
+  CommandAuthority authority_{CommandAuthority::kAwaitingClaim};
+
+  // Joints whose tuples a controller owns. Written by perform_command_mode_switch(), which the
+  // controller manager may call from the service thread or the real-time thread, and read by
+  // write(). Not a LatestValueBuffer: that is single-producer, and a switch is a read-modify-write
+  // that must land as one step, or a hand-over between controllers is seen half done.
+  std::atomic<JointMask> owned_joints_{0U};
 
   transport::TupleCompleteness accepted_degradation_{transport::TupleCompleteness::kFull};
 };

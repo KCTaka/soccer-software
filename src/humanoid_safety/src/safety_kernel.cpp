@@ -90,7 +90,7 @@ Verdict SafetyKernel::project(
   return Verdict{Trigger::kNone, 0U, 0U, false, false};
 }
 
-void SafetyKernel::enter_protective(Trigger trigger, transport::CommandBatch & command) noexcept
+void SafetyKernel::apply_damping(transport::CommandBatch & command) const noexcept
 {
   // ADR-002 protective damping: zero everything except a small damping term.
   // In the POC, damping is zero because we have no qualified profile yet.
@@ -102,6 +102,11 @@ void SafetyKernel::enter_protective(Trigger trigger, transport::CommandBatch & c
     joint.stiffness_nm_rad = 0.0;
     joint.damping_nm_s_rad = 0.0;
   }
+}
+
+void SafetyKernel::enter_protective(Trigger trigger, transport::CommandBatch & command) noexcept
+{
+  apply_damping(command);
   last_trigger_ = trigger;
 }
 

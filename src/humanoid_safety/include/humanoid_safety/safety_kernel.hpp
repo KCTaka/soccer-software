@@ -65,6 +65,11 @@ public:
 
   /// Real-time. Overwrites the batch with the qualified local damping action of ADR-002:
   /// zero position and velocity targets, zero feed-forward torque, zero stiffness, damping only.
+  /// Records no trigger: it is also what the robot receives while no controller owns the tuple,
+  /// which is not a fault.
+  void apply_damping(transport::CommandBatch & command) const noexcept;
+
+  /// Real-time. apply_damping(), recording `trigger` as the reason.
   void enter_protective(Trigger trigger, transport::CommandBatch & command) noexcept;
 
   [[nodiscard]] Trigger last_trigger() const noexcept {return last_trigger_;}

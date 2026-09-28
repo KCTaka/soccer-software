@@ -198,8 +198,8 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   // 8. Check tuple capability
   if (!check_tuple_capability()) {
     RCLCPP_ERROR(logger,
-      "Tuple capability mismatch: controller claims 5 fields but transport "
-      "cannot deliver them and degradation was not accepted");
+      "Tuple capability mismatch: the transport cannot deliver the five-field MIT tuple, the only "
+      "claim a controller may make, and degradation was not accepted");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
@@ -208,6 +208,10 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   feedback_ = transport::FeedbackBatch{};
   command_snapshot_.joint_count = joint_manifest_.joint_count;
   feedback_.joint_count = joint_manifest_.joint_count;
+
+  // 10. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
+  //     switched in again, which perform_command_mode_switch() records.
+  owned_joints_.store(0U, std::memory_order_release);
 
   RCLCPP_INFO(logger, "Configured: %u joints at %u Hz, transport=%s",
     joint_manifest_.joint_count, info_.rw_rate, transport_plugin.c_str());
@@ -230,8 +234,9 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_activate(
   last_sent_sequence_.reset();
   last_exchange_error_ = transport::TransportError::kNone;
   consecutive_bad_cycles_ = 0;
-  mit_tuple_claimed_ = false;
-  protective_state_ = false;
+  // Claims persist across INACTIVE, so owned_joints_ is kept. A controller that still owns every
+  // tuple regains authority after one damping cycle.
+  authority_ = CommandAuthority::kAwaitingClaim;
 
   // Zero out command snapshot
   for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
@@ -316,22 +321,17 @@ std::vector<hardware_interface::CommandInterface::SharedPtr>
 HumanoidActuatorSystem::on_export_command_interfaces()
 {
   std::vector<hardware_interface::CommandInterface::SharedPtr> interfaces;
-  // 5 command interfaces per joint
-  interfaces.reserve(joint_names_.size() * 5);
+  // 5 command interfaces per joint, named by kMitFields so the claim rules check these names
+  interfaces.reserve(joint_names_.size() * kMitFields.size());
 
-  command_storage_.resize(joint_names_.size() * 5, 0.0);
+  command_storage_.resize(joint_names_.size() * kMitFields.size(), 0.0);
 
   for (std::size_t j = 0; j < joint_names_.size(); ++j) {
-    interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-      joint_names_[j], "position", &command_storage_[j * 5 + 0]));
-    interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-      joint_names_[j], "velocity", &command_storage_[j * 5 + 1]));
-    interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-      joint_names_[j], "effort", &command_storage_[j * 5 + 2]));
-    interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-      joint_names_[j], "stiffness", &command_storage_[j * 5 + 3]));
-    interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-      joint_names_[j], "damping", &command_storage_[j * 5 + 4]));
+    for (std::size_t f = 0; f < kMitFields.size(); ++f) {
+      interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
+        joint_names_[j], std::string{kMitFields[f]},
+        &command_storage_[j * kMitFields.size() + f]));
+    }
   }
   return interfaces;
 }
@@ -344,52 +344,26 @@ hardware_interface::return_type HumanoidActuatorSystem::prepare_command_mode_swi
   const std::vector<std::string> & start_interfaces,
   const std::vector<std::string> & stop_interfaces)
 {
-  // ADR-001: all-or-none. Count how many of our interfaces are being started/stopped.
-  std::size_t our_start = 0;
-  std::size_t our_stop = 0;
-  const std::size_t total = joint_names_.size() * 5;
-
-  for (const auto & name : start_interfaces) {
-    // Check if any of our command interfaces match
-    for (const auto & joint : joint_names_) {
-      if (name.find(joint + "/") == 0) {
-        ++our_start;
-        break;
-      }
-    }
-  }
-  for (const auto & name : stop_interfaces) {
-    for (const auto & joint : joint_names_) {
-      if (name.find(joint + "/") == 0) {
-        ++our_stop;
-        break;
-      }
-    }
-  }
-
-  // Reject partial claims
-  if (our_start > 0 && our_start < total) {
-    return hardware_interface::return_type::ERROR;
-  }
-  if (our_stop > 0 && our_stop < total) {
-    return hardware_interface::return_type::ERROR;
-  }
-
-  if (our_start == total) {
-    mit_tuple_claimed_ = true;
-  }
-  if (our_stop == total) {
-    mit_tuple_claimed_ = false;
-  }
-
-  return hardware_interface::return_type::OK;
+  // No logging: this can run on the real-time thread. The resource manager reports the rejection.
+  return tuple_claims(start_interfaces, stop_interfaces, joint_names_) ?
+         hardware_interface::return_type::OK : hardware_interface::return_type::ERROR;
 }
 
 hardware_interface::return_type HumanoidActuatorSystem::perform_command_mode_switch(
-  const std::vector<std::string> & /*start_interfaces*/,
-  const std::vector<std::string> & /*stop_interfaces*/)
+  const std::vector<std::string> & start_interfaces,
+  const std::vector<std::string> & stop_interfaces)
 {
-  // Decision already made in prepare. Nothing to do here.
+  // Parsed again rather than cached from prepare: a prepared switch can be abandoned, and the
+  // real-time error path calls prepare and perform back to back with lists of its own.
+  const auto claims = tuple_claims(start_interfaces, stop_interfaces, joint_names_);
+  if (!claims) {
+    return hardware_interface::return_type::ERROR;
+  }
+  JointMask owned = owned_joints_.load(std::memory_order_relaxed);
+  while (!owned_joints_.compare_exchange_weak(
+      owned, apply_claims(owned, *claims), std::memory_order_acq_rel, std::memory_order_relaxed))
+  {
+  }
   return hardware_interface::return_type::OK;
 }
 
@@ -443,7 +417,17 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
     return hardware_interface::return_type::ERROR;
   }
 
-  if (protective_state_) {
+  const bool all_owned = owned_joints_.load(std::memory_order_acquire) ==
+    all_joints(joint_manifest_.joint_count);
+  const CommandAuthority previous = authority_;
+  authority_ = next_authority(previous, all_owned);
+  if (previous == CommandAuthority::kController && authority_ == CommandAuthority::kProtective) {
+    // ADR-002: the owner released the tuple, so nothing commands the robot. That is command loss;
+    // holding the last command indefinitely is prohibited.
+    enter_protective_state(safety::Trigger::kCommandLoss);
+  }
+
+  if (authority_ == CommandAuthority::kProtective) {
     // In protective state, send damping command
     const auto deadline = std::chrono::steady_clock::now() + transport::kControlPeriod;
     static_cast<void>(exchange_once(deadline));
@@ -452,21 +436,26 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
 
   // 1. Snapshot commands from interface storage
   snapshot_commands();
+  auto now = std::chrono::steady_clock::now();
 
-  // 2. Validate finiteness
-  for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    if (!transport::is_finite(command_snapshot_.joints[i])) {
-      enter_protective_state(safety::Trigger::kNonFiniteCommand);
+  if (authority_ == CommandAuthority::kController) {
+    // 2. Validate finiteness
+    for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
+      if (!transport::is_finite(command_snapshot_.joints[i])) {
+        enter_protective_state(safety::Trigger::kNonFiniteCommand);
+        return hardware_interface::return_type::ERROR;
+      }
+    }
+
+    // 3. Safety kernel projection
+    auto verdict = safety_kernel_.project(feedback_, command_snapshot_, now);
+    if (verdict.protective_state_required) {
+      enter_protective_state(verdict.trigger);
       return hardware_interface::return_type::ERROR;
     }
-  }
-
-  // 3. Safety kernel projection
-  auto now = std::chrono::steady_clock::now();
-  auto verdict = safety_kernel_.project(feedback_, command_snapshot_, now);
-  if (verdict.protective_state_required) {
-    enter_protective_state(verdict.trigger);
-    return hardware_interface::return_type::ERROR;
+  } else {
+    // No controller has written every tuple yet: send damping, not what the storage last held.
+    safety_kernel_.apply_damping(command_snapshot_);
   }
 
   // 4. Single exchange with transport. This is the ONLY call to exchange()
@@ -533,7 +522,7 @@ void HumanoidActuatorSystem::enter_protective_state(
   safety::Trigger trigger) noexcept
 {
   safety_kernel_.enter_protective(trigger, command_snapshot_);
-  protective_state_ = true;
+  authority_ = CommandAuthority::kProtective;
 }
 
 bool HumanoidActuatorSystem::check_tuple_capability() noexcept
@@ -542,8 +531,7 @@ bool HumanoidActuatorSystem::check_tuple_capability() noexcept
     return false;
   }
   const auto caps = transport_->capabilities();
-  if (mit_tuple_claimed_ &&
-    caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
+  if (caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
     accepted_degradation_ != transport::TupleCompleteness::kPositionVelocityOnly)
   {
     return false;

@@ -2,8 +2,9 @@
 // MitImpedanceController: the sole owner of the five-field MIT tuple (ADR-001-02).
 //
 // Claims all five command interfaces for every controlled joint.
-// prepare_command_mode_switch rejects partial claims, mixed ownership,
-// and partial release.
+// HumanoidActuatorSystem::prepare_command_mode_switch rejects a switch that
+// starts or stops part of any joint's tuple, and its write() sends this
+// controller's command only while every joint's tuple is owned.
 //
 // update() reads one reference from the SPSC buffer and writes all five
 // fields for all joints. No ROS, no allocation, no logging, no filesystem.
