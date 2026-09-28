@@ -77,25 +77,27 @@ public:
   ReferenceBuffer & reference_buffer() noexcept {return reference_buffer_;}
 
 private:
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr ref_sub_;
-  transport::CycleSequence ref_sequence_{0};
-  double default_kp_{0.0};
-  double default_kd_{0.0};
-
   /// Builds the full interface name: "joint_name/suffix".
   static std::string interface_name(
     const std::string & joint, const char * suffix);
 
-  // Parameters
+  // --- Parameters ---
   std::vector<std::string> joint_names_;
+  double default_kp_{0.0};
+  double default_kd_{0.0};
 
   // Interface handles, ordered: [joint0/pos, joint0/vel, ..., jointN/damping]
   // The framework assigns them in the order returned by
   // command_interface_configuration(). We store indices for fast access.
   std::size_t num_joints_{0U};
 
-  // Reference buffer
+  // --- Non-real-time reference ingress ---
+  transport::CycleSequence ref_sequence_{0};
   ReferenceBuffer reference_buffer_;
+  // Declared after everything its callback captures (gains, joint count,
+  // ref_sequence_, reference_buffer_): members are destroyed in reverse
+  // order, so the subscription is torn down before the state it writes.
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr ref_sub_;
 
   // Fallback reference used until the first valid reference arrives.
   // Holds the last measured position with zero velocity, zero effort,

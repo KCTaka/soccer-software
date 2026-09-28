@@ -12,21 +12,6 @@ namespace humanoid::control
 {
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-std::string MitImpedanceController::interface_name(
-  const std::string & joint, const char * suffix)
-{
-  std::string s;
-  s.reserve(joint.size() + 1U + std::char_traits<char>::length(suffix));
-  s += joint;
-  s += '/';
-  s += suffix;
-  return s;
-}
-
-// ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
@@ -255,6 +240,21 @@ void MitImpedanceController::publish_reference(
   const ReferenceFrame & frame) noexcept
 {
   reference_buffer_.publish(frame);
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+std::string MitImpedanceController::interface_name(
+  const std::string & joint, const char * suffix)
+{
+  std::string s;
+  s.reserve(joint.size() + 1U + std::char_traits<char>::length(suffix));
+  s += joint;
+  s += '/';
+  s += suffix;
+  return s;
 }
 
 }  // namespace humanoid::control

@@ -27,18 +27,8 @@ constexpr char kSafetyManifestParam[] = "safety_manifest_path";
 constexpr char kSafetyManifestPackageParam[] = "safety_manifest_package";
 constexpr char kAcceptedDegradationParam[] = "accepted_degradation";
 
-// Parse joint names from the ros2_control URDF <joint> tags.
-// The framework provides them via info_.joints.
-std::vector<std::string> joint_names_from_info(
-  const hardware_interface::HardwareInfo & info)
-{
-  std::vector<std::string> names;
-  names.reserve(info.joints.size());
-  for (const auto & j : info.joints) {
-    names.push_back(j.name);
-  }
-  return names;
-}
+// File-local helpers. Declared here, defined at the end of this file.
+std::vector<std::string> joint_names_from_info(const hardware_interface::HardwareInfo & info);
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -527,6 +517,24 @@ bool HumanoidActuatorSystem::check_tuple_capability() noexcept
   }
   return true;
 }
+
+namespace
+{
+
+// Parse joint names from the ros2_control URDF <joint> tags.
+// The framework provides them via info_.joints.
+std::vector<std::string> joint_names_from_info(
+  const hardware_interface::HardwareInfo & info)
+{
+  std::vector<std::string> names;
+  names.reserve(info.joints.size());
+  for (const auto & j : info.joints) {
+    names.push_back(j.name);
+  }
+  return names;
+}
+
+}  // namespace
 
 }  // namespace humanoid::actuator_system
 
