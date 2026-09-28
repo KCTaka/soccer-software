@@ -40,6 +40,16 @@ public:
 
   /// Exchange one cycle. Must return by `deadline` whether or not the hardware answered;
   /// a transport that waits indefinitely converts a bus fault into a missed control cycle.
+  ///
+  /// `feedback` is a caller-owned, preallocated batch that the transport fills, not a return
+  /// value: FeedbackBatch is a fixed array of PODs (~1.3 KB) reused every cycle, which is the
+  /// out-parameter exception of C++ Core Guidelines F.20, and ADR-001 requires cycle data to be
+  /// preallocated.
+  ///
+  /// On success, `feedback` is this cycle's sample and feedback.sequence == command.sequence.
+  /// On failure its contents are unspecified -- a transport may leave the previous cycle's sample
+  /// in place -- so callers must never treat a batch as current unless its sequence answers the
+  /// command they just sent.
   [[nodiscard]] virtual ExchangeResult exchange(
     const CommandBatch & command, FeedbackBatch & feedback, MonotonicStamp deadline) noexcept = 0;
 
