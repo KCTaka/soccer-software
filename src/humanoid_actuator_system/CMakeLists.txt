@@ -29,6 +29,7 @@ endforeach()
 
 add_library(${PROJECT_NAME} SHARED
   src/humanoid_actuator_system.cpp
+  src/safety_manifest_parser.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -54,9 +55,6 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
-install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/safety_manifest.yaml"
-    DESTINATION share/${PROJECT_NAME}/config)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -74,6 +72,16 @@ if(BUILD_TESTING)
   target_include_directories(${PROJECT_NAME}_tuple_ownership_test PRIVATE include)
   target_link_libraries(${PROJECT_NAME}_tuple_ownership_test
     humanoid_transport::humanoid_transport)
+
+  # This reads the generated artifact in place, so an emitter change that this package does not
+  # accept fails here rather than at launch.
+  set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated")
+
+  ament_add_gtest(${PROJECT_NAME}_safety_manifest_parser_test
+    test/safety_manifest_parser_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_safety_manifest_parser_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_safety_manifest_parser_test PRIVATE
+    HUMANOID_TEST_SAFETY_MANIFEST_PATH="${GENERATED_DIR}/safety_manifest.yaml")
 
   # ADR-007: these run against a fault-injection ActuatorTransport, never against a substituted
   # SystemInterface. mock_components::GenericSystem is prohibited in any environment that produces

@@ -1,10 +1,13 @@
 // Copyright 2026 Humanoid Robotics Team
-// The ADR-002 command envelope, as data. Generated from model/robot_model.yaml; never hand-edited.
+// The ADR-002 command envelope, as data. Hand-written: the key names below are the contract with
+// the manifest that model/generators/emit.py writes, and humanoid_actuator_system's
+// safety_manifest_parser_test reads the generated file to hold both sides to it.
 #ifndef HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_
 #define HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 
 #include "humanoid_transport/batch_types.hpp"
 #include "humanoid_transport/joint_manifest.hpp"
@@ -27,6 +30,26 @@ struct JointEnvelope
   double torque_slew_max_nm_s{0.0};
   double power_max_w{0.0};
 };
+
+/// Manifest key of each envelope field. Every key is required and no other is accepted.
+inline constexpr std::array<NamedField<JointEnvelope>, 10> kEnvelopeFields{{
+  {"position_min_rad", &JointEnvelope::position_min_rad},
+  {"position_max_rad", &JointEnvelope::position_max_rad},
+  {"velocity_max_rad_s", &JointEnvelope::velocity_max_rad_s},
+  {"torque_continuous_nm", &JointEnvelope::torque_continuous_nm},
+  {"torque_peak_nm", &JointEnvelope::torque_peak_nm},
+  {"torque_peak_duration_s", &JointEnvelope::torque_peak_duration_s},
+  {"stiffness_max_nm_rad", &JointEnvelope::stiffness_max_nm_rad},
+  {"damping_max_nm_s_rad", &JointEnvelope::damping_max_nm_s_rad},
+  {"torque_slew_max_nm_s", &JointEnvelope::torque_slew_max_nm_s},
+  {"power_max_w", &JointEnvelope::power_max_w},
+}};
+static_assert(
+  kEnvelopeFields.size() * sizeof(double) == sizeof(JointEnvelope), "a field has no key");
+
+/// The manifest format this build reads. ADR-001: compatibility is explicit, never guessed, so
+/// any other version is rejected rather than read as if it were this one.
+inline constexpr std::string_view kSafetyManifestSchemaVersion = "0.1.0-provisional";
 
 struct SafetyManifest
 {

@@ -9,10 +9,12 @@
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "humanoid_actuator_system/feedback_validation.hpp"
+#include "humanoid_actuator_system/safety_manifest_parser.hpp"
 #include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -124,43 +126,21 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     }
     safety_manifest_path = package_share_dir + "/" + safety_manifest_rel_path;
   }
+  YAML::Node manifest_yaml;
   try {
-    const YAML::Node manifest = YAML::LoadFile(safety_manifest_path);
-    const auto manifest_joint_count = manifest["joint_count"].as<std::size_t>();
-    if (manifest_joint_count != joint_manifest_.joint_count) {
-      RCLCPP_ERROR(logger, "Safety manifest joint_count=%zu, URDF joint_count=%u",
-        manifest_joint_count, joint_manifest_.joint_count);
-      return hardware_interface::CallbackReturn::ERROR;
-    }
-
-    safety_manifest_.joint_count = joint_manifest_.joint_count;
-    safety_manifest_.max_consecutive_bad_cycles =
-      manifest["max_consecutive_bad_cycles"].as<std::uint8_t>();
-    safety_manifest_.feedback_max_age_us = manifest["feedback_max_age_us"].as<std::uint32_t>();
-    const YAML::Node envelopes = manifest["envelopes"];
-    for (std::uint8_t i = 0; i < safety_manifest_.joint_count; ++i) {
-      const YAML::Node node = envelopes[joint_names_[i]];
-      if (!node) {
-        RCLCPP_ERROR(logger, "Safety manifest has no envelope for '%s'", joint_names_[i].c_str());
-        return hardware_interface::CallbackReturn::ERROR;
-      }
-      auto & env = safety_manifest_.envelopes[i];
-      env.position_min_rad = node["position_min_rad"].as<double>();
-      env.position_max_rad = node["position_max_rad"].as<double>();
-      env.velocity_max_rad_s = node["velocity_max_rad_s"].as<double>();
-      env.torque_continuous_nm = node["torque_continuous_nm"].as<double>();
-      env.torque_peak_nm = node["torque_peak_nm"].as<double>();
-      env.torque_peak_duration_s = node["torque_peak_duration_s"].as<double>();
-      env.stiffness_max_nm_rad = node["stiffness_max_nm_rad"].as<double>();
-      env.damping_max_nm_s_rad = node["damping_max_nm_s_rad"].as<double>();
-      env.torque_slew_max_nm_s = node["torque_slew_max_nm_s"].as<double>();
-      env.power_max_w = node["power_max_w"].as<double>();
-    }
+    manifest_yaml = YAML::LoadFile(safety_manifest_path);
   } catch (const YAML::Exception & e) {
     RCLCPP_ERROR(logger, "Failed to load safety manifest '%s': %s", safety_manifest_path.c_str(),
-        e.what());
+      e.what());
     return hardware_interface::CallbackReturn::ERROR;
   }
+  auto parsed = parse_safety_manifest(manifest_yaml, joint_names_);
+  if (const auto * error = std::get_if<std::string>(&parsed)) {
+    RCLCPP_ERROR(logger, "Safety manifest '%s': %s", safety_manifest_path.c_str(),
+      error->c_str());
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+  safety_manifest_ = std::get<transport::SafetyManifest>(parsed);
 
   // 4. Configure safety kernel
   if (!safety_kernel_.configure(joint_manifest_, safety_manifest_)) {
