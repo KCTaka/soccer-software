@@ -4,11 +4,13 @@
 #ifndef HUMANOID_TRANSPORT__BATCH_TYPES_HPP_
 #define HUMANOID_TRANSPORT__BATCH_TYPES_HPP_
 
+#include <algorithm>
 #include <array>
 #include <bitset>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <string_view>
 #include <type_traits>
 
 namespace humanoid::transport
@@ -23,6 +25,16 @@ using CycleSequence = std::uint64_t;
 /// ADR-001 requires monotonic timestamps. steady_clock cannot step; system_clock can.
 using MonotonicStamp = std::chrono::steady_clock::time_point;
 
+/// A named scalar field of `Owner`: the name an interface or a manifest key carries, bound to the
+/// member that stores it. A table of these spells each name once and cannot pair it with the
+/// wrong member, which parallel lists of names and indices can.
+template<typename Owner>
+struct NamedField
+{
+  std::string_view name;
+  double Owner::* member;
+};
+
 /// The five MIT fields. One controller owns all five for every joint it controls (ADR-001).
 struct JointCommand
 {
@@ -34,13 +46,23 @@ struct JointCommand
 };
 static_assert(std::is_trivially_copyable_v<JointCommand>);
 
+/// ADR-001: the five command interfaces every controlled joint exports, in storage order.
+inline constexpr std::array<NamedField<JointCommand>, 5> kMitFields{{
+  {"position", &JointCommand::position_rad},
+  {"velocity", &JointCommand::velocity_rad_s},
+  {"effort", &JointCommand::effort_nm},
+  {"stiffness", &JointCommand::stiffness_nm_rad},
+  {"damping", &JointCommand::damping_nm_s_rad},
+}};
+static_assert(kMitFields.size() * sizeof(double) == sizeof(JointCommand), "a field has no name");
+
 /// True when all five MIT fields are finite. A single NaN or Inf field makes the whole tuple
 /// undefined, so callers must reject the tuple, not patch the field.
 [[nodiscard]] inline bool is_finite(const JointCommand & c) noexcept
 {
-  return std::isfinite(c.position_rad) && std::isfinite(c.velocity_rad_s) &&
-         std::isfinite(c.effort_nm) && std::isfinite(c.stiffness_nm_rad) &&
-         std::isfinite(c.damping_nm_s_rad);
+  return std::all_of(
+    kMitFields.begin(), kMitFields.end(),
+    [&c](const NamedField<JointCommand> & field) {return std::isfinite(c.*field.member);});
 }
 
 struct JointFeedback
@@ -55,6 +77,13 @@ struct JointFeedback
   bool fresh{false};
 };
 static_assert(std::is_trivially_copyable_v<JointFeedback>);
+
+/// ADR-001: the state interfaces every joint exports at minimum, in storage order.
+inline constexpr std::array<NamedField<JointFeedback>, 3> kJointStateFields{{
+  {"position", &JointFeedback::position_rad},
+  {"velocity", &JointFeedback::velocity_rad_s},
+  {"effort", &JointFeedback::effort_nm},
+}};
 
 struct CommandBatch
 {

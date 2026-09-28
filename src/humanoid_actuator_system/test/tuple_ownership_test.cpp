@@ -16,10 +16,10 @@ using humanoid::actuator_system::all_joints;
 using humanoid::actuator_system::apply_claims;
 using humanoid::actuator_system::CommandAuthority;
 using humanoid::actuator_system::JointMask;
-using humanoid::actuator_system::kMitFields;
 using humanoid::actuator_system::next_authority;
 using humanoid::actuator_system::TupleClaims;
 using humanoid::actuator_system::tuple_claims;
+using humanoid::transport::kMitFields;
 
 const std::vector<std::string> kJoints{"left_knee_joint", "right_knee_joint", "waist_yaw_joint"};
 
@@ -28,8 +28,8 @@ std::vector<std::string> tuples(const std::vector<std::string> & joints)
 {
   std::vector<std::string> names;
   for (const auto & joint : joints) {
-    for (const std::string_view field : kMitFields) {
-      names.push_back(joint + "/" + std::string{field});
+    for (const auto & field : kMitFields) {
+      names.push_back(joint + "/" + std::string{field.name});
     }
   }
   return names;
@@ -63,7 +63,7 @@ TEST(TupleClaims, RejectsOneFieldShortOfATuple)
   for (std::size_t missing = 0U; missing < kMitFields.size(); ++missing) {
     auto names = tuples(kJoints);
     names.erase(names.begin() + static_cast<std::ptrdiff_t>(missing));
-    EXPECT_FALSE(tuple_claims(names, {}, kJoints)) << "missing " << kMitFields[missing];
+    EXPECT_FALSE(tuple_claims(names, {}, kJoints)) << "missing " << kMitFields[missing].name;
   }
 }
 

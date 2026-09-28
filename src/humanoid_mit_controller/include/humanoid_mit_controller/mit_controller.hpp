@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <rclcpp/subscription.hpp>
@@ -33,10 +34,6 @@
 
 namespace humanoid::control
 {
-
-/// The five interface suffixes claimed per joint, in fixed order.
-inline constexpr std::array<const char *, 5> kMitInterfaceNames = {
-  "position", "velocity", "effort", "stiffness", "damping"};
 
 class MitImpedanceController : public controller_interface::ControllerInterface
 {
@@ -80,7 +77,7 @@ public:
 private:
   /// Builds the full interface name: "joint_name/suffix".
   static std::string interface_name(
-    const std::string & joint, const char * suffix);
+    const std::string & joint, std::string_view suffix);
 
   // --- Parameters ---
   std::vector<std::string> joint_names_;

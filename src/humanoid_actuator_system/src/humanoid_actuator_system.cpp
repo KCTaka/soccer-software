@@ -300,19 +300,17 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_shutdown(
 std::vector<hardware_interface::StateInterface::ConstSharedPtr>
 HumanoidActuatorSystem::on_export_state_interfaces()
 {
+  constexpr auto & kFields = transport::kJointStateFields;
   std::vector<hardware_interface::StateInterface::ConstSharedPtr> interfaces;
-  // 3 state interfaces per joint: position, velocity, effort
-  interfaces.reserve(joint_names_.size() * 3);
+  interfaces.reserve(joint_names_.size() * kFields.size());
 
-  state_storage_.resize(joint_names_.size() * 3, 0.0);
+  state_storage_.resize(joint_names_.size() * kFields.size(), 0.0);
 
   for (std::size_t j = 0; j < joint_names_.size(); ++j) {
-    interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
-      joint_names_[j], "position", &state_storage_[j * 3 + 0]));
-    interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
-      joint_names_[j], "velocity", &state_storage_[j * 3 + 1]));
-    interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
-      joint_names_[j], "effort", &state_storage_[j * 3 + 2]));
+    for (std::size_t f = 0; f < kFields.size(); ++f) {
+      interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
+        joint_names_[j], std::string{kFields[f].name}, &state_storage_[j * kFields.size() + f]));
+    }
   }
   return interfaces;
 }
@@ -320,17 +318,16 @@ HumanoidActuatorSystem::on_export_state_interfaces()
 std::vector<hardware_interface::CommandInterface::SharedPtr>
 HumanoidActuatorSystem::on_export_command_interfaces()
 {
+  constexpr auto & kFields = transport::kMitFields;
   std::vector<hardware_interface::CommandInterface::SharedPtr> interfaces;
-  // 5 command interfaces per joint, named by kMitFields so the claim rules check these names
-  interfaces.reserve(joint_names_.size() * kMitFields.size());
+  interfaces.reserve(joint_names_.size() * kFields.size());
 
-  command_storage_.resize(joint_names_.size() * kMitFields.size(), 0.0);
+  command_storage_.resize(joint_names_.size() * kFields.size(), 0.0);
 
   for (std::size_t j = 0; j < joint_names_.size(); ++j) {
-    for (std::size_t f = 0; f < kMitFields.size(); ++f) {
+    for (std::size_t f = 0; f < kFields.size(); ++f) {
       interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-        joint_names_[j], std::string{kMitFields[f]},
-        &command_storage_[j * kMitFields.size() + f]));
+        joint_names_[j], std::string{kFields[f].name}, &command_storage_[j * kFields.size() + f]));
     }
   }
   return interfaces;
@@ -401,10 +398,11 @@ hardware_interface::return_type HumanoidActuatorSystem::read(
   consecutive_bad_cycles_ = 0;
 
   // Write feedback to state interfaces
-  for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    state_storage_[i * 3 + 0] = feedback_.joints[i].position_rad;
-    state_storage_[i * 3 + 1] = feedback_.joints[i].velocity_rad_s;
-    state_storage_[i * 3 + 2] = feedback_.joints[i].effort_nm;
+  constexpr auto & kFields = transport::kJointStateFields;
+  for (std::size_t i = 0; i < joint_manifest_.joint_count; ++i) {
+    for (std::size_t f = 0; f < kFields.size(); ++f) {
+      state_storage_[i * kFields.size() + f] = feedback_.joints[i].*kFields[f].member;
+    }
   }
 
   return hardware_interface::return_type::OK;
@@ -482,12 +480,11 @@ void HumanoidActuatorSystem::snapshot_commands() noexcept
   command_snapshot_.sequence = cycle_;
   command_snapshot_.stamp = std::chrono::steady_clock::now();
 
-  for (std::uint8_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    command_snapshot_.joints[i].position_rad = command_storage_[i * 5 + 0];
-    command_snapshot_.joints[i].velocity_rad_s = command_storage_[i * 5 + 1];
-    command_snapshot_.joints[i].effort_nm = command_storage_[i * 5 + 2];
-    command_snapshot_.joints[i].stiffness_nm_rad = command_storage_[i * 5 + 3];
-    command_snapshot_.joints[i].damping_nm_s_rad = command_storage_[i * 5 + 4];
+  constexpr auto & kFields = transport::kMitFields;
+  for (std::size_t i = 0; i < joint_manifest_.joint_count; ++i) {
+    for (std::size_t f = 0; f < kFields.size(); ++f) {
+      command_snapshot_.joints[i].*kFields[f].member = command_storage_[i * kFields.size() + f];
+    }
   }
 }
 

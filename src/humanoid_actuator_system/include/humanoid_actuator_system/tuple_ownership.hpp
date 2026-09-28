@@ -23,10 +23,6 @@
 namespace humanoid::actuator_system
 {
 
-/// The five command fields of one joint's MIT tuple, in command-storage order.
-inline constexpr std::array<std::string_view, 5> kMitFields{
-  "position", "velocity", "effort", "stiffness", "damping"};
-
 /// One bit per manifest joint, bit j for joint j.
 using JointMask = std::uint32_t;
 static_assert(transport::kMaxJoints <= 32U, "JointMask must hold one bit per joint");
@@ -59,19 +55,23 @@ struct TupleClaims
     if (slash == std::string_view::npos) {
       return std::nullopt;
     }
-    const auto field = std::find(kMitFields.begin(), kMitFields.end(), name.substr(slash + 1U));
+    const auto suffix = name.substr(slash + 1U);
+    const auto field = std::find_if(
+      transport::kMitFields.begin(), transport::kMitFields.end(),
+      [suffix](const auto & f) {return f.name == suffix;});
     const auto joint = std::find(joint_names.begin(), joint_names.end(), name.substr(0U, slash));
-    if (field == kMitFields.end() || joint == joint_names.end()) {
+    if (field == transport::kMitFields.end() || joint == joint_names.end()) {
       return std::nullopt;
     }
     const auto j = static_cast<std::size_t>(joint - joint_names.begin());
     if (j >= fields.size()) {
       return std::nullopt;
     }
-    fields[j] = static_cast<std::uint8_t>(fields[j] | (1U << (field - kMitFields.begin())));
+    fields[j] =
+      static_cast<std::uint8_t>(fields[j] | (1U << (field - transport::kMitFields.begin())));
   }
 
-  constexpr std::uint8_t kWholeTuple = (1U << kMitFields.size()) - 1U;
+  constexpr std::uint8_t kWholeTuple = (1U << transport::kMitFields.size()) - 1U;
   JointMask joints{0U};
   for (std::size_t j = 0U; j < std::min(joint_names.size(), fields.size()); ++j) {
     if (fields[j] == 0U) {

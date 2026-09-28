@@ -78,7 +78,7 @@ controller_interface::CallbackReturn MitImpedanceController::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
   // Verify we received the expected number of command interfaces.
-  const std::size_t expected = num_joints_ * kMitInterfaceNames.size();
+  const std::size_t expected = num_joints_ * transport::kMitFields.size();
   if (command_interfaces_.size() != expected) {
     RCLCPP_ERROR(
       get_node()->get_logger(),
@@ -89,7 +89,7 @@ controller_interface::CallbackReturn MitImpedanceController::on_activate(
 
   // Build the fallback reference from the current measured state.
   // Read the state interfaces to get current positions.
-  // State interfaces are ordered: [joint0/pos, joint0/vel, joint0/effort, joint1/pos, ...]
+  // State interfaces are ordered as state_interface_configuration() lists them.
   fallback_reference_.joint_count = static_cast<std::uint8_t>(num_joints_);
   fallback_reference_.valid = true;
   fallback_reference_.sequence = 0U;
@@ -97,8 +97,7 @@ controller_interface::CallbackReturn MitImpedanceController::on_activate(
 
   for (std::size_t j = 0U; j < num_joints_; ++j) {
     auto & cmd = fallback_reference_.joints[j];
-    // Read current position from state interfaces (3 per joint: pos, vel, effort)
-    const std::size_t state_idx = j * 3U;
+    const std::size_t state_idx = j * transport::kJointStateFields.size();
     if (state_idx < state_interfaces_.size()) {
       cmd.position_rad = state_interfaces_[state_idx].get_optional().value_or(0.0);
     } else {
@@ -158,10 +157,10 @@ MitImpedanceController::command_interface_configuration() const
 {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  config.names.reserve(num_joints_ * kMitInterfaceNames.size());
+  config.names.reserve(num_joints_ * transport::kMitFields.size());
   for (const auto & joint : joint_names_) {
-    for (const char * suffix : kMitInterfaceNames) {
-      config.names.push_back(interface_name(joint, suffix));
+    for (const auto & field : transport::kMitFields) {
+      config.names.push_back(interface_name(joint, field.name));
     }
   }
   return config;
@@ -174,11 +173,11 @@ MitImpedanceController::state_interface_configuration() const
   // These are used to build the fallback reference on activation.
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
-  config.names.reserve(num_joints_ * 3U);
+  config.names.reserve(num_joints_ * transport::kJointStateFields.size());
   for (const auto & joint : joint_names_) {
-    config.names.push_back(interface_name(joint, "position"));
-    config.names.push_back(interface_name(joint, "velocity"));
-    config.names.push_back(interface_name(joint, "effort"));
+    for (const auto & field : transport::kJointStateFields) {
+      config.names.push_back(interface_name(joint, field.name));
+    }
   }
   return config;
 }
@@ -195,14 +194,8 @@ controller_interface::return_type MitImpedanceController::update(
   if (!latest) {
     if (!have_fallback_) {
       // No reference and no fallback. Write zeros to prevent uncommanded motion.
-      for (std::size_t j = 0U; j < num_joints_; ++j) {
-        const std::size_t base = j * kMitInterfaceNames.size();
-        if (!command_interfaces_[base + 0U].set_value(0.0) ||
-          !command_interfaces_[base + 1U].set_value(0.0) ||
-          !command_interfaces_[base + 2U].set_value(0.0) ||
-          !command_interfaces_[base + 3U].set_value(0.0) ||
-          !command_interfaces_[base + 4U].set_value(0.0))
-        {
+      for (auto & interface : command_interfaces_) {
+        if (!interface.set_value(0.0)) {
           return controller_interface::return_type::ERROR;
         }
       }
@@ -216,15 +209,12 @@ controller_interface::return_type MitImpedanceController::update(
   // Write all five fields for all joints from the reference.
   // Command interfaces are ordered: [joint0/pos, joint0/vel, ..., jointN/damping]
   for (std::size_t j = 0U; j < num_joints_; ++j) {
-    const std::size_t base = j * kMitInterfaceNames.size();
-    const auto & jc = ref.joints[j];
-    if (!command_interfaces_[base + 0U].set_value(jc.position_rad) ||
-      !command_interfaces_[base + 1U].set_value(jc.velocity_rad_s) ||
-      !command_interfaces_[base + 2U].set_value(jc.effort_nm) ||
-      !command_interfaces_[base + 3U].set_value(jc.stiffness_nm_rad) ||
-      !command_interfaces_[base + 4U].set_value(jc.damping_nm_s_rad))
-    {
-      return controller_interface::return_type::ERROR;
+    const std::size_t base = j * transport::kMitFields.size();
+    for (std::size_t f = 0U; f < transport::kMitFields.size(); ++f) {
+      const double value = ref.joints[j].*transport::kMitFields[f].member;
+      if (!command_interfaces_[base + f].set_value(value)) {
+        return controller_interface::return_type::ERROR;
+      }
     }
   }
 
@@ -247,10 +237,10 @@ void MitImpedanceController::publish_reference(
 // ---------------------------------------------------------------------------
 
 std::string MitImpedanceController::interface_name(
-  const std::string & joint, const char * suffix)
+  const std::string & joint, std::string_view suffix)
 {
   std::string s;
-  s.reserve(joint.size() + 1U + std::char_traits<char>::length(suffix));
+  s.reserve(joint.size() + 1U + suffix.size());
   s += joint;
   s += '/';
   s += suffix;
