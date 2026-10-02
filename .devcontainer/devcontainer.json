@@ -7,26 +7,39 @@
   "workspaceFolder": "/ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/ws,type=bind",
 
+  // Host-specific facts (which X display, which X11 cookies) are discovered here, so this file is
+  // the same on WSL and on the Jetson. See the header of initialize.sh.
+  "initializeCommand": "bash \"${localWorkspaceFolder}/.devcontainer/initialize.sh\"",
+
   "runArgs": [
-      "--ipc=host",
-      "--net=host",
-      "--cap-add=SYS_NICE",
-      "--ulimit", "rtprio=99:99"
+    "--ipc=host",
+    "--net=host",
+    "--cap-add=SYS_NICE",
+    "--ulimit", "rtprio=99:99",
+    "--env-file=${localWorkspaceFolder}/.devcontainer/.generated/host.env"
   ],
 
   "containerEnv": {
     "HUMANOID_WORKSPACE": "/ws",
-    "DISPLAY": "${localEnv:DISPLAY::0}",
-    "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY:wayland-0}",
-    "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR:/mnt/wslg/runtime-dir}",
-    "PULSE_SERVER": "${localEnv:PULSE_SERVER:unix:/mnt/wslg/PulseServer}",
-    "QT_X11_NO_MITSHM": "1"
+    "XAUTHORITY": "${containerWorkspaceFolder}/.devcontainer/.generated/Xauthority",
+    "XDG_RUNTIME_DIR": "/tmp/runtime-root",
+    "QT_X11_NO_MITSHM": "1",
+    // rmw_zenoh waits this many 1 s attempts for the router at node start-up; the Jetson needs
+    // longer than the default after the router is launched alongside the nodes.
+    "ZENOH_ROUTER_CHECK_ATTEMPTS": "20"
   },
 
-    "mounts": [
-      "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-      "source=/mnt/wslg,target=/mnt/wslg,type=bind"
-    ],
+  // /tmp/.X11-unix exists on every host that has ever run X (on WSL it points at WSLg's socket).
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
+
+  // foxglove_bridge listens here; with --net=host Remote-SSH forwards it to the laptop, so Foxglove
+  // connects to ws://localhost:8765 from either machine.
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": { "label": "Foxglove bridge", "onAutoForward": "silent" }
+  },
 
   "postCreateCommand": "echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc && echo '[ -f /ws/install/setup.bash ] && source /ws/install/setup.bash' >> ~/.bashrc",
 
