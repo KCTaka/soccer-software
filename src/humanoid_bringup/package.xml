@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>controller_manager</exec_depend>
+  <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>humanoid_actuator_system</exec_depend>
   <exec_depend>humanoid_mit_controller</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>

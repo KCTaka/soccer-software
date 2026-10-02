@@ -52,6 +52,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-ament-cmake \
       ros-jazzy-mujoco-vendor \
       ros-jazzy-rviz2 \
+      ros-jazzy-foxglove-bridge \
       python3-colcon-ros \
       python3-rosdep \
  && rm -rf /var/lib/apt/lists/*

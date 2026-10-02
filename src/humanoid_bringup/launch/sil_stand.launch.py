@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.parameter_descriptions import ParameterValue
@@ -19,6 +20,13 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'push_start_time_s', default_value='0.0',
             description='Simulation time at which the SIL push starts, s'),
+        DeclareLaunchArgument(
+            'rviz', default_value='true',
+            description='Start RViz2 (needs an X display on this host)'),
+        DeclareLaunchArgument(
+            'foxglove', default_value='false',
+            description='Start foxglove_bridge on ws://<host>:8765 for a remote Foxglove viewer; '
+                        'needs no display or GPU on this host'),
     ]
     # Consumed by the mujoco_sim node that the transport creates inside
     # ros2_control_node. value_type=float keeps "50" from arriving as an int.
@@ -101,5 +109,23 @@ def generate_launch_description():
                 FindPackageShare('humanoid_bringup'), 'config', 'sil_stand.rviz'
             ])],
             output='screen',
+            condition=IfCondition(LaunchConfiguration('rviz')),
+        ),
+        # Viewer-only: no client publishing, services or parameter access, so anything that can
+        # reach the port can watch the robot but not command it.
+        Node(
+            package='foxglove_bridge',
+            executable='foxglove_bridge',
+            parameters=[{
+                'capabilities': ['connectionGraph', 'assets'],
+                # robot.urdf references its meshes as file:// URIs under model/source (the
+                # bridge's default only serves package://). No dots in the directory part, so
+                # ".." cannot escape.
+                'asset_uri_allowlist': [
+                    r'^file:///(?:[-\w]+/)*model/source/(?:[-\w]+/)*[-\w]+\.stl$',
+                ],
+            }],
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('foxglove')),
         ),
     ])

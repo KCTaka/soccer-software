@@ -15,7 +15,9 @@ python3 -m model.generators.cli check         # after any change under model/
 ```
 
 SIL launch (`ros2 launch humanoid_bringup sil_stand.launch.py`) needs a Zenoh router first:
-`ros2 run rmw_zenoh_cpp rmw_zenohd`.
+`ros2 run rmw_zenoh_cpp rmw_zenohd`. It starts RViz2 by default; on a host without a usable X
+display (the Jetson over Remote-SSH) use `rviz:=false foxglove:=true` and open Foxglove at
+`ws://localhost:8765`. See [docs/dev-container.md](docs/dev-container.md).
 
 ## Non-negotiables
 
