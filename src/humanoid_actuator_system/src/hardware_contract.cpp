@@ -25,8 +25,8 @@ std::optional<std::string> interfaces_violation(
 std::optional<std::string> hardware_contract_violation(
   const hardware_interface::HardwareInfo & info)
 {
-  for (const auto & [name, value] : info.hardware_parameters) {
-    if (std::find(kHardwareParams.begin(), kHardwareParams.end(), name) == kHardwareParams.end()) {
+  for (const auto & [name, _] : info.hardware_parameters) {
+    if (std::ranges::find(kHardwareParams, name) == std::ranges::end(kHardwareParams)) {
       return std::format("unknown <hardware> parameter '{}'", name);
     }
   }

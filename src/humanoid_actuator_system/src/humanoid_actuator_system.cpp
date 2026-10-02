@@ -534,8 +534,8 @@ std::vector<std::string> joint_names_from_info(
 {
   std::vector<std::string> names;
   names.reserve(info.joints.size());
-  for (const auto & j : info.joints) {
-    names.push_back(j.name);
+  for (const auto & joint : info.joints) {
+    names.push_back(joint.name);
   }
   return names;
 }
