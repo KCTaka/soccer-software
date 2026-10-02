@@ -116,15 +116,9 @@ def generate_launch_description():
         Node(
             package='foxglove_bridge',
             executable='foxglove_bridge',
-            parameters=[{
-                'capabilities': ['connectionGraph', 'assets'],
-                # robot.urdf references its meshes as file:// URIs under model/source (the
-                # bridge's default only serves package://). No dots in the directory part, so
-                # ".." cannot escape.
-                'asset_uri_allowlist': [
-                    r'^file:///(?:[-\w]+/)*model/source/(?:[-\w]+/)*[-\w]+\.stl$',
-                ],
-            }],
+            # The default asset allow-list already serves the package:// meshes that robot.urdf
+            # references.
+            parameters=[{'capabilities': ['connectionGraph', 'assets']}],
             output='screen',
             condition=IfCondition(LaunchConfiguration('foxglove')),
         ),

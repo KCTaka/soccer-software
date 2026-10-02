@@ -41,6 +41,6 @@ client publishing, services or parameters).
 The bridge side is tested (topics advertised, mesh served). The Foxglove UI steps above were written
 from the documented UI and not exercised against a running viewer; adjust them if the menus differ.
 
-The URDF refers to meshes as `file:///ws/model/source/...stl`; the bridge serves those through its
-asset allow-list in `sil_stand.launch.py`. If the robot shows without meshes, that allow-list or the
-viewer's asset fetch is the place to look.
+`robot.urdf` refers to its meshes as `package://humanoid_bringup/model/source/...`. Foxglove fetches
+only `package://` meshes over the bridge (`file://` is read from the viewer's own disk), and the
+bridge's default allow-list serves them from the installed `humanoid_bringup` share directory.
