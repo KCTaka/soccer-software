@@ -54,7 +54,10 @@ def emit_urdf(model, out_path, assets_dir):
 
     # Index actual files on disk (case-insensitive mapping)
     disk_assets = os.listdir(assets_dir) if os.path.exists(assets_dir) else []
-    abs_assets_dir = os.path.abspath(assets_dir).replace("\\", "/")
+    # package:// rather than file://: the URI must not depend on where this ran (/ws, a laptop),
+    # and Foxglove only fetches package:// meshes over its bridge. humanoid_bringup installs the
+    # assets under the same repo-relative path (see its CMakeLists.txt).
+    assets_uri = "package://humanoid_bringup/" + os.path.relpath(assets_dir).replace("\\", "/")
 
     for l in model["links"]:
         le = ET.SubElement(robot, "link", name=l["name"])
@@ -93,7 +96,7 @@ def emit_urdf(model, out_path, assets_dir):
             if not mesh_file:
                 mesh_file = mesh if "." in mesh else f"{mesh}.STL"
 
-            mesh_uri = f"file://{abs_assets_dir}/{mesh_file}"
+            mesh_uri = f"{assets_uri}/{mesh_file}"
 
             for tag in ("visual", "collision"):
                 ve = ET.SubElement(le, tag)
@@ -327,7 +330,7 @@ def generate(src, overlay_path, out_dir, assets_dir):
         "\\", "/"
     )
 
-    # URDF gets assets_dir to build absolute file:// URIs with .STL extensions
+    # URDF gets assets_dir to build package:// URIs with .STL extensions
     emit_urdf(model, os.path.join(out_dir, "robot.urdf"), assets_dir)
 
     # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
