@@ -28,6 +28,7 @@ install(DIRECTORY
 install(PROGRAMS
   nodes/trajectory_player.py
   nodes/sil_stand_verifier.py
+  nodes/bench_player.py
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

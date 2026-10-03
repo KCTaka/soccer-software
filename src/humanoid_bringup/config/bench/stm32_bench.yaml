@@ -1,0 +1,103 @@
+# The STM32 bench: controller_manager, the hardware component, the transport's wiring, the
+# controller, and the bench reference node. See docs/transport-stm32.md, "Bench".
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    humanoid_mit_controller:
+      type: humanoid_mit_controller/MitImpedanceController
+humanoidactuatorsystem:
+  ros__parameters:
+    transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
+    accepted_degradation: "none"
+# The transport's node, created inside ros2_control_node. serial_device is a launch argument.
+# Chain = slave, motor = index in that slave's robot_legs configuration. Sign +1 and offset 0: on
+# a bench the joint angle is the drive's home-frame angle.
+stm32_serial:
+  ros__parameters:
+    joints:
+      L_hip_pitch:
+        chain: 0
+        motor: 0
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      L_hip_roll:
+        chain: 0
+        motor: 1
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      L_hip_yaw:
+        chain: 0
+        motor: 2
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      L_knee:
+        chain: 0
+        motor: 3
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      L_ankle:
+        chain: 0
+        motor: 4
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      R_hip_pitch:
+        chain: 1
+        motor: 0
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      R_hip_roll:
+        chain: 1
+        motor: 1
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      R_hip_yaw:
+        chain: 1
+        motor: 2
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      R_knee:
+        chain: 1
+        motor: 3
+        direction_sign: 1
+        zero_offset_rad: 0.0
+      R_ankle:
+        chain: 1
+        motor: 4
+        direction_sign: 1
+        zero_offset_rad: 0.0
+# Soft enough to be safe by hand, inside every drive's Kp and Kd span.
+humanoid_mit_controller:
+  ros__parameters:
+    default_kp: 5.0
+    default_kd: 0.2
+    joints:
+      - L_hip_pitch
+      - L_hip_roll
+      - L_hip_yaw
+      - L_knee
+      - L_ankle
+      - R_hip_pitch
+      - R_hip_roll
+      - R_hip_yaw
+      - R_knee
+      - R_ankle
+bench_player:
+  ros__parameters:
+    joints:
+      - L_hip_pitch
+      - L_hip_roll
+      - L_hip_yaw
+      - L_knee
+      - L_ankle
+      - R_hip_pitch
+      - R_hip_roll
+      - R_hip_yaw
+      - R_knee
+      - R_ankle
+    # The left leg swings positive first, the right negative.
+    swing_signs: [1, 1, 1, 1, 1, -1, -1, -1, -1, -1]
+    amplitude_rad: 0.3
+    ease_in_s: 3.0
+    swing_s: 2.0

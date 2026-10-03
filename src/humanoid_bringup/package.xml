@@ -13,6 +13,7 @@
   <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>humanoid_actuator_system</exec_depend>
   <exec_depend>humanoid_mit_controller</exec_depend>
+  <exec_depend>humanoid_transport_stm32</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

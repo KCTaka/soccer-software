@@ -1,0 +1,124 @@
+# Safety manifest for the STM32 bench (config/bench/stm32_bench.urdf). Hand-written for free drives,
+# not derived from the robot model.
+#
+# The position range is wide because a free drive rests wherever it was last turned: the controller
+# holds the measured position until the first reference, and the SafetyKernel stops the run if that
+# position is outside the envelope. It stays inside the wire's home-frame range of +-pi. The slaves'
+# own +-0.79 rad soft limits still apply: a drive outside them can be held or brought back, never
+# moved further out. Torque, stiffness and damping sit far inside every drive's span.
+schema_version: 0.1.0-provisional
+source_digest_note: hand-written bench manifest for ten free drives
+joint_count: 10
+max_consecutive_bad_cycles: 3
+feedback_max_age_us: 15000
+envelopes:
+  L_hip_pitch:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  L_hip_roll:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  L_hip_yaw:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  L_knee:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  L_ankle:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  R_hip_pitch:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  R_hip_roll:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  R_hip_yaw:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  R_knee:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0
+  R_ankle:
+    position_min_rad: -1.8
+    position_max_rad: 1.8
+    velocity_max_rad_s: 5.0
+    torque_continuous_nm: 2.0
+    torque_peak_nm: 2.0
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 20.0
+    damping_max_nm_s_rad: 2.0
+    torque_slew_max_nm_s: 100.0
+    power_max_w: 20.0

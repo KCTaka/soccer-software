@@ -1,0 +1,196 @@
+<?xml version="1.0"?>
+<!-- Bench fixture for the STM32 transport: ten free RobStride drives on the robot's master and
+     both slaves, named after the firmware's robot_legs configuration (soccer-firmware
+     configs/robot_legs). Hand-written on purpose: it describes a bench, not the robot, so it is not
+     generated from model/ and carries no robot geometry. Each drive is one revolute joint on a
+     massless link. See docs/transport-stm32.md, "Bench". -->
+<robot name="stm32_bench">
+  <link name="base_link"/>
+  <link name="L_hip_pitch_rotor"/>
+  <joint name="L_hip_pitch" type="revolute">
+    <parent link="base_link"/>
+    <child link="L_hip_pitch_rotor"/>
+    <origin xyz="0.0 0.0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="L_hip_roll_rotor"/>
+  <joint name="L_hip_roll" type="revolute">
+    <parent link="base_link"/>
+    <child link="L_hip_roll_rotor"/>
+    <origin xyz="0.1 0.0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="L_hip_yaw_rotor"/>
+  <joint name="L_hip_yaw" type="revolute">
+    <parent link="base_link"/>
+    <child link="L_hip_yaw_rotor"/>
+    <origin xyz="0.2 0.0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="L_knee_rotor"/>
+  <joint name="L_knee" type="revolute">
+    <parent link="base_link"/>
+    <child link="L_knee_rotor"/>
+    <origin xyz="0.3 0.0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="L_ankle_rotor"/>
+  <joint name="L_ankle" type="revolute">
+    <parent link="base_link"/>
+    <child link="L_ankle_rotor"/>
+    <origin xyz="0.4 0.0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="R_hip_pitch_rotor"/>
+  <joint name="R_hip_pitch" type="revolute">
+    <parent link="base_link"/>
+    <child link="R_hip_pitch_rotor"/>
+    <origin xyz="0.0 0.2 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="R_hip_roll_rotor"/>
+  <joint name="R_hip_roll" type="revolute">
+    <parent link="base_link"/>
+    <child link="R_hip_roll_rotor"/>
+    <origin xyz="0.1 0.2 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="R_hip_yaw_rotor"/>
+  <joint name="R_hip_yaw" type="revolute">
+    <parent link="base_link"/>
+    <child link="R_hip_yaw_rotor"/>
+    <origin xyz="0.2 0.2 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="R_knee_rotor"/>
+  <joint name="R_knee" type="revolute">
+    <parent link="base_link"/>
+    <child link="R_knee_rotor"/>
+    <origin xyz="0.3 0.2 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <link name="R_ankle_rotor"/>
+  <joint name="R_ankle" type="revolute">
+    <parent link="base_link"/>
+    <child link="R_ankle_rotor"/>
+    <origin xyz="0.4 0.2 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.8" upper="1.8" effort="2.0" velocity="5.0"/>
+  </joint>
+  <ros2_control name="HumanoidActuatorSystem" type="system">
+    <hardware>
+      <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
+      <param name="safety_manifest_path">config/bench/stm32_bench_safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_bringup</param>
+    </hardware>
+    <joint name="L_hip_pitch">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="L_hip_roll">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="L_hip_yaw">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="L_knee">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="L_ankle">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="R_hip_pitch">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="R_hip_roll">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="R_hip_yaw">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="R_knee">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="R_ankle">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="stiffness"/>
+      <command_interface name="damping"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+</robot>
