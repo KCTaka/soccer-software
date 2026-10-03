@@ -310,13 +310,13 @@ std::optional<Stm32SerialTransport::Parameters> Stm32SerialTransport::declare_pa
       describe("How long configure waits for the master to answer, s")));
     parameters.arming_timeout = to_milliseconds(node->declare_parameter<double>(
       "arming_timeout_s", std::chrono::duration<double>(defaults.arming_timeout).count(),
-      describe("How long activate waits for every motor to report HOLD, s")));
+      describe("How long activate waits for every motor to clear to IDLE, then report HOLD, s")));
     parameters.release_timeout = to_milliseconds(node->declare_parameter<double>(
       "release_timeout_s", std::chrono::duration<double>(defaults.release_timeout).count(),
       describe("How long deactivate waits for every motor to report IDLE, s")));
     parameters.fault_grace = to_milliseconds(node->declare_parameter<double>(
       "fault_grace_s", std::chrono::duration<double>(defaults.fault_grace).count(),
-      describe("How long a motor may stay faulted while arming before arming fails, s")));
+      describe("How long a motor may stay faulted after its fault reset is sent, s")));
 
     // Per joint. Chain, motor, sign and offset have no usable default: a value that merely looks
     // plausible would go unnoticed until the joint ran the wrong way. -1 and NaN are rejected by
@@ -499,25 +499,43 @@ bool Stm32SerialTransport::check_master(const Parameters & parameters)
 
 bool Stm32SerialTransport::arm_motors()
 {
+  // Two steps, never merged into one request: see plan_request. One timeout covers both.
   const auto start = std::chrono::steady_clock::now();
   const auto give_up = start + parameters_.arming_timeout;
+  if (!run_activation_step(Phase::kClearing, start, give_up) ||
+    !run_activation_step(Phase::kArming, start, give_up))
+  {
+    return false;
+  }
+  availability_.reset();
+  for (std::uint8_t j = 0; j < joint_count_; ++j) {
+    availability_.set(j);
+  }
+  return true;
+}
+
+bool Stm32SerialTransport::run_activation_step(
+  Phase phase, MonotonicStamp start, MonotonicStamp give_up)
+{
+  const char * const step = phase == Phase::kClearing ? "clearing faults" : "arming";
   std::uint64_t seen = link_.frame_count();
   std::uint16_t cycle = last_cycle_;
+  std::optional<TelemetryFrame> last_frame;
   std::uint8_t waiting_on = 0;
 
   for (;; ) {
     if (std::chrono::steady_clock::now() >= give_up) {
       return fail(std::format(
-          "timed out after {} ms arming: joint '{}' never reported HOLD",
-          parameters_.arming_timeout.count(), joint_name(waiting_on)));
+          "timed out after {} ms {}: {}", parameters_.arming_timeout.count(), step,
+          explain_waiting(phase, waiting_on, last_frame)));
     }
     if (link_.failed()) {
-      return fail("the serial link failed while arming");
+      return fail(std::format("the serial link failed while {}", step));
     }
-    // Every request carries a fault reset (see plan_request), and goes out at least every
-    // kFrameWait, so the master's host-death watchdog never trips on a slow frame.
-    if (!send_phase_frame(Phase::kArming, cycle)) {
-      return fail("cannot write to the master while arming");
+    // A request goes out at least every kFrameWait, so the master's host-death watchdog never
+    // trips on a slow frame.
+    if (!send_phase_frame(phase, cycle)) {
+      return fail(std::format("cannot write to the master while {}", step));
     }
 
     const auto frame = link_.wait_for_frame(seen, kFrameWait);
@@ -526,33 +544,68 @@ bool Stm32SerialTransport::arm_motors()
     }
     seen = link_.frame_count();
     cycle = frame->robot.header.cycle_id;
+    last_frame = frame;
 
-    const auto elapsed = std::chrono::steady_clock::now() - start;
-    const ArmingVerdict verdict = judge_arming(frame->robot, layout_, elapsed,
-        parameters_.fault_grace);
+    const ArmingVerdict verdict = phase == Phase::kClearing ?
+      judge_clearing(frame->robot, layout_, feedback_max_age_,
+        std::chrono::steady_clock::now() - start, parameters_.fault_grace) :
+      judge_arming(frame->robot, layout_, feedback_max_age_);
     waiting_on = verdict.joint;
     switch (verdict.status) {
-      case ArmingVerdict::Status::kArmed:
+      case ArmingVerdict::Status::kReached:
         last_cycle_ = cycle;
-        availability_.reset();
-        for (std::uint8_t j = 0; j < joint_count_; ++j) {
-          availability_.set(j);
-        }
         return true;
       case ArmingVerdict::Status::kFailed:
         {
           const JointWiring & wiring = layout_.joints[verdict.joint];
           const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
+          const bool wound =
+            motor && motor->cause == static_cast<std::uint8_t>(wire::FaultCause::kWound);
           return fail(std::format(
-              "joint '{}' refused to arm: its motor is faulted (cause {}){}",
-              joint_name(verdict.joint), motor ? static_cast<int>(motor->cause) : -1,
-              motor && motor->cause == static_cast<std::uint8_t>(wire::FaultCause::kWound) ?
-              ": the shaft is wound beyond a single turn and must be re-zeroed offline" : ""));
+              "joint '{}' failed while {}: its motor is faulted (cause {}){}",
+              joint_name(verdict.joint), step, motor ? wire::cause_name(motor->cause) : "?",
+              wound ? ": the shaft is wound beyond a single turn and must be re-zeroed offline" :
+              ""));
         }
       case ArmingVerdict::Status::kWaiting:
         break;
     }
   }
+}
+
+std::string Stm32SerialTransport::explain_waiting(
+  Phase phase, std::uint8_t joint, const std::optional<TelemetryFrame> & frame) const
+{
+  const char * const target = phase == Phase::kClearing ? "IDLE" : "HOLD";
+  const auto max_age_ms = std::chrono::duration<double, std::milli>(feedback_max_age_).count();
+  const std::string head = std::format(
+    "joint '{}' never reported {} with feedback fresher than {} ms", joint_name(joint), target,
+    max_age_ms);
+  if (!frame) {
+    return head + "; no telemetry arrived";
+  }
+  const JointWiring & wiring = layout_.joints[joint];
+  const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
+  if (!motor) {
+    return std::format("{}; chain {} is not reporting", head, wiring.chain);
+  }
+  std::string text = std::format(
+    "{} (last seen {}, cause {}, feedback age {} ms)", head, wire::lifecycle_name(motor->state),
+    wire::cause_name(motor->cause), motor->fb_age_ms);
+  // The slave rejects HOLD on an IDLE motor only when it did not discover that motor at boot. It
+  // never rediscovers one, so a drive powered after its slave can only be armed after a slave
+  // reset.
+  const bool hold_rejected = phase == Phase::kArming &&
+    motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kIdle) &&
+    (motor->flags & wire::kTeleFlagRequestRejected) != 0;
+  if (!reports_within(*motor, feedback_max_age_)) {
+    text += ": its drive is not answering on CAN. Is it powered, and on the bus?";
+  } else if (hold_rejected) {
+    text += std::format(
+      ": slave {} rejected HOLD because it did not discover this motor when it booted. With the "
+      "drive powered, reset that slave", wiring.chain);
+  }
+  return text;
 }
 
 std::optional<std::uint8_t> Stm32SerialTransport::release_motors(std::chrono::milliseconds timeout)

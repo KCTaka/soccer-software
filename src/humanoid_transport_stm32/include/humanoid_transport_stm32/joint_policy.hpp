@@ -18,9 +18,11 @@
 namespace humanoid::transport_stm32
 {
 
-/// What the transport is doing with the motors. exchange() runs only in kRunning.
+/// What the transport is doing with the motors. activate() runs kClearing then kArming;
+/// exchange() runs only in kRunning.
 enum class Phase : std::uint8_t
 {
+  kClearing,
   kArming,
   kRunning,
   kReleasing,
@@ -40,10 +42,17 @@ struct JointRequest
 
 /// The request for a motor.
 ///
-///   kArming     HOLD with fault reset. HOLD is the only request that arms a motor from IDLE, and
-///               it captures the current position, so arming never steps. The fault reset is
-///               what lets a motor latched by the previous session, or a master latched in
-///               HOST_LOST, arm: activation is the operator's acknowledgement (ADR-002).
+///   kClearing   IDLE with fault reset. The reset clears what the previous session left latched,
+///               in a motor or in a master stuck in HOST_LOST: activation is the operator's
+///               acknowledgement (ADR-002). IDLE is what makes it safe. The slave polls an IDLE
+///               motor every tick, but not a FAULT one, so only once the motor is IDLE does its
+///               reported position become current again.
+///   kArming     HOLD, never with a fault reset. HOLD from IDLE arms at the captured position, so
+///               arming does not step, but only when that capture is current. HOLD with a reset
+///               on a FAULT motor arms in the same request from the position it had when it
+///               faulted. It also skips the slave's checks that the motor was discovered at boot
+///               and that its shaft is not wound. The slave applies those checks only to a motor
+///               that is already IDLE.
 ///   kRunning    MIT with the tuple. Never HOLD: a motor that dropped to IDLE or FAULT stays
 ///               there, because auto-rearm is prohibited. An isolated motor is asked for IDLE. A
 ///               tuple the wire cannot carry is replaced by DAMPED rather than clamped.
@@ -52,8 +61,10 @@ struct JointRequest
   Phase phase, bool isolated, bool tuple_representable) noexcept
 {
   switch (phase) {
+    case Phase::kClearing:
+      return {wire::ModeRequest::kIdle, false, true, false};
     case Phase::kArming:
-      return {wire::ModeRequest::kHold, false, true, false};
+      return {wire::ModeRequest::kHold, false, false, false};
     case Phase::kReleasing:
       return {wire::ModeRequest::kIdle, false, false, false};
     case Phase::kRunning:
@@ -99,6 +110,11 @@ struct JointReading
   const JointWiring & wiring, const std::optional<wire::TeleMotor> & motor,
   std::chrono::microseconds max_age) noexcept;
 
+/// The drive last reported within `max_age`. The wire saturates the age at 255 ms, which also
+/// means "never heard from", so `max_age` must be below that.
+[[nodiscard]] bool reports_within(
+  const wire::TeleMotor & motor, std::chrono::microseconds max_age) noexcept;
+
 /// The telemetry for (chain, motor), or nothing if the master did not report that chain or the
 /// chain reports fewer motors. Chains are matched by id, not position: the master omits a dead
 /// slave's chain, so position in the frame does not identify it.
@@ -111,28 +127,42 @@ struct JointReading
 [[nodiscard]] std::optional<std::uint8_t> chain_motor_count(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain) noexcept;
 
-/// How arming is going, judged from one telemetry frame.
+/// How one step of activation is going, judged from one telemetry frame.
 struct ArmingVerdict
 {
   enum class Status : std::uint8_t
   {
     kWaiting,
-    kArmed,
+    /// Every joint reached the step's target.
+    kReached,
     kFailed,
   };
   Status status{Status::kWaiting};
-  /// The joint holding arming up (kWaiting) or the one that failed it (kFailed).
+  /// The joint holding the step up (kWaiting) or the one that failed it (kFailed).
   std::uint8_t joint{0};
 };
 
-/// kArmed once every joint reports HOLD. kFailed for a wound shaft, which the firmware refuses to
-/// arm and which no retry fixes, and for a faulted joint that stays faulted past `fault_grace`
-/// after arming began (a latched fault from a previous session clears on the first reset, which the
-/// firmware applies a few cycles after it is sent). Everything else is kWaiting: the activation
-/// timeout, not this function, bounds a slave that is still booting.
+/// The kClearing step. kReached once every joint reports IDLE with feedback no older than
+/// `max_age`. Fresh feedback is what proves the slave is polling the motor again. Until then the
+/// position HOLD would capture is the one the motor had when it faulted, or zero for a motor that
+/// has never answered. kFailed for a joint still FAULT after `fault_grace`: the fault reset lands
+/// a few cycles after it is sent, so a fault that outlives the grace means the requests are not
+/// landing. Everything else is kWaiting, and the activation timeout bounds a drive that never
+/// answers.
+[[nodiscard]] ArmingVerdict judge_clearing(
+  const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
+  std::chrono::microseconds max_age, std::chrono::nanoseconds elapsed,
+  std::chrono::nanoseconds fault_grace) noexcept;
+
+/// The kArming step, which starts only once clearing reached IDLE everywhere. kReached once every
+/// joint reports HOLD with feedback no older than `max_age`. A motor with no drive behind it
+/// reports HOLD for the slave's 100 ms CAN-timeout grace before it faults, so HOLD alone proves
+/// nothing. kFailed for any FAULT, which from IDLE can only be this arming's own: a wound shaft,
+/// or a drive that did not answer the enable. A slave that rejects HOLD leaves the motor IDLE, and
+/// that is kWaiting until the timeout.
 [[nodiscard]] ArmingVerdict judge_arming(
   const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
-  std::chrono::nanoseconds elapsed, std::chrono::nanoseconds fault_grace) noexcept;
+  std::chrono::microseconds max_age) noexcept;
 
 }  // namespace humanoid::transport_stm32
 

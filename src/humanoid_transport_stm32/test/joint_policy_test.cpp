@@ -63,12 +63,36 @@ WiringLayout layout_of(const std::vector<JointWiring> & joints)
 // plan_request
 // ---------------------------------------------------------------------------
 
-TEST(PlanRequest, ArmingHoldsWithFaultResetAndNoTuple)
+TEST(PlanRequest, ClearingIdlesWithFaultReset)
 {
-  const auto r = plan_request(Phase::kArming, false, true);
-  EXPECT_EQ(r.mode, ModeRequest::kHold);
+  const auto r = plan_request(Phase::kClearing, false, true);
+  EXPECT_EQ(r.mode, ModeRequest::kIdle);
   EXPECT_TRUE(r.fault_reset);
   EXPECT_FALSE(r.send_tuple);
+}
+
+TEST(PlanRequest, ArmingHoldsWithoutFaultResetAndNoTuple)
+{
+  // HOLD with a fault reset arms a FAULT motor at the position it had when it faulted, past the
+  // slave's discovery and wound checks.
+  const auto r = plan_request(Phase::kArming, false, true);
+  EXPECT_EQ(r.mode, ModeRequest::kHold);
+  EXPECT_FALSE(r.fault_reset);
+  EXPECT_FALSE(r.send_tuple);
+}
+
+TEST(PlanRequest, NoPhaseEverSendsHoldWithAFaultReset)
+{
+  for (const Phase phase :
+    {Phase::kClearing, Phase::kArming, Phase::kRunning, Phase::kReleasing})
+  {
+    for (const bool isolated : {false, true}) {
+      for (const bool representable : {false, true}) {
+        const auto r = plan_request(phase, isolated, representable);
+        EXPECT_FALSE(r.mode == ModeRequest::kHold && r.fault_reset);
+      }
+    }
+  }
 }
 
 TEST(PlanRequest, RunningSendsTheTupleAsMitAndNeverFaultResets)
@@ -218,26 +242,112 @@ TEST(ChainMotorCount, SeparatesAnAbsentChainFromOneReportingFewerMotors)
 }
 
 // ---------------------------------------------------------------------------
-// judge_arming
+// judge_clearing
 // ---------------------------------------------------------------------------
 
 constexpr auto kGrace = std::chrono::milliseconds{500};
+constexpr auto kMaxAge = std::chrono::microseconds{15000};
 
-TEST(JudgeArming, ArmedOnceEveryJointHolds)
+wire::TeleMotor aged(wire::TeleMotor motor, std::uint8_t age_ms)
+{
+  motor.fb_age_ms = age_ms;
+  return motor;
+}
+
+TEST(JudgeClearing, ReachedOnceEveryJointIsIdleAndFresh)
+{
+  const auto layout = layout_of({wiring(0, 0), wiring(0, 1), wiring(1, 0)});
+  const auto t = telemetry_of({
+      {0, {motor_in(Lifecycle::kIdle), motor_in(Lifecycle::kIdle)}},
+      {1, {motor_in(Lifecycle::kIdle)}}});
+  EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
+    ArmingVerdict::Status::kReached);
+}
+
+TEST(JudgeClearing, AnIdleMotorWithStaleFeedbackIsNotYetCleared)
+{
+  // Its reported position is not current yet, and HOLD would capture it.
+  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto t = telemetry_of({
+      {0, {motor_in(Lifecycle::kIdle), aged(motor_in(Lifecycle::kIdle), 40)}}});
+  const auto verdict = judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace);
+  EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
+  EXPECT_EQ(verdict.joint, 1);
+}
+
+TEST(JudgeClearing, AMotorThatNeverAnsweredIsNotCleared)
+{
+  // The slave's own signature for a motor it did not discover at boot.
+  const auto layout = layout_of({wiring(0, 0)});
+  const auto t = telemetry_of({{0, {aged(motor_in(Lifecycle::kIdle), 255)}}});
+  EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
+    ArmingVerdict::Status::kWaiting);
+}
+
+TEST(JudgeClearing, AnArmedMotorIsNotYetCleared)
+{
+  const auto layout = layout_of({wiring(0, 0)});
+  const auto t = telemetry_of({{0, {motor_in(Lifecycle::kMit)}}});
+  EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
+    ArmingVerdict::Status::kWaiting);
+}
+
+TEST(JudgeClearing, WaitsForAChainThatIsNotReportingYet)
+{
+  const auto layout = layout_of({wiring(0, 0), wiring(1, 0)});
+  const auto t = telemetry_of({{0, {motor_in(Lifecycle::kIdle)}}});
+  const auto verdict = judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace);
+  EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
+  EXPECT_EQ(verdict.joint, 1);
+}
+
+TEST(JudgeClearing, AFaultGetsAGraceForTheResetToLand)
+{
+  const auto layout = layout_of({wiring(0, 0)});
+  const auto t = telemetry_of({{0, {motor_in(Lifecycle::kFault, FaultCause::kOvertorque)}}});
+  EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
+    ArmingVerdict::Status::kWaiting);
+}
+
+TEST(JudgeClearing, AFaultThatSurvivesTheGraceFails)
+{
+  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto t = telemetry_of({
+      {0, {motor_in(Lifecycle::kIdle), motor_in(Lifecycle::kFault, FaultCause::kMotorFault)}}});
+  const auto verdict = judge_clearing(t, layout, kMaxAge, milliseconds{600}, kGrace);
+  EXPECT_EQ(verdict.status, ArmingVerdict::Status::kFailed);
+  EXPECT_EQ(verdict.joint, 1);
+}
+
+// ---------------------------------------------------------------------------
+// judge_arming
+// ---------------------------------------------------------------------------
+
+TEST(JudgeArming, ReachedOnceEveryJointHoldsWithFreshFeedback)
 {
   const auto layout = layout_of({wiring(0, 0), wiring(0, 1), wiring(1, 0)});
   const auto t = telemetry_of({
       {0, {motor_in(Lifecycle::kHold), motor_in(Lifecycle::kHold)}},
       {1, {motor_in(Lifecycle::kHold)}}});
-  EXPECT_EQ(judge_arming(t, layout, milliseconds{100}, kGrace).status,
-    ArmingVerdict::Status::kArmed);
+  EXPECT_EQ(judge_arming(t, layout, kMaxAge).status, ArmingVerdict::Status::kReached);
+}
+
+TEST(JudgeArming, HoldWithoutFreshFeedbackIsNotArmed)
+{
+  // A motor with no drive behind it reports HOLD for the slave's 100 ms CAN-timeout grace.
+  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto t = telemetry_of({
+      {0, {motor_in(Lifecycle::kHold), aged(motor_in(Lifecycle::kHold), 255)}}});
+  const auto verdict = judge_arming(t, layout, kMaxAge);
+  EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
+  EXPECT_EQ(verdict.joint, 1);
 }
 
 TEST(JudgeArming, WaitsAndNamesTheJointThatIsStillIdle)
 {
   const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
   const auto t = telemetry_of({{0, {motor_in(Lifecycle::kHold), motor_in(Lifecycle::kIdle)}}});
-  const auto verdict = judge_arming(t, layout, milliseconds{100}, kGrace);
+  const auto verdict = judge_arming(t, layout, kMaxAge);
   EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
   EXPECT_EQ(verdict.joint, 1);
 }
@@ -248,43 +358,28 @@ TEST(JudgeArming, AMotorAlreadyInMitIsNotYetHolding)
   // position. A motor left armed by an earlier session has not done that.
   const auto layout = layout_of({wiring(0, 0)});
   const auto t = telemetry_of({{0, {motor_in(Lifecycle::kMit)}}});
-  EXPECT_EQ(judge_arming(t, layout, milliseconds{100}, kGrace).status,
-    ArmingVerdict::Status::kWaiting);
+  EXPECT_EQ(judge_arming(t, layout, kMaxAge).status, ArmingVerdict::Status::kWaiting);
 }
 
 TEST(JudgeArming, WaitsForAChainThatIsNotReportingYet)
 {
   const auto layout = layout_of({wiring(0, 0), wiring(1, 0)});
   const auto t = telemetry_of({{0, {motor_in(Lifecycle::kHold)}}});
-  const auto verdict = judge_arming(t, layout, milliseconds{100}, kGrace);
+  const auto verdict = judge_arming(t, layout, kMaxAge);
   EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
   EXPECT_EQ(verdict.joint, 1);
 }
 
-TEST(JudgeArming, ATransientFaultGetsAGraceForTheResetToLand)
-{
-  const auto layout = layout_of({wiring(0, 0)});
-  const auto t = telemetry_of({{0, {motor_in(Lifecycle::kFault, FaultCause::kOvertorque)}}});
-  EXPECT_EQ(judge_arming(t, layout, milliseconds{100}, kGrace).status,
-    ArmingVerdict::Status::kWaiting);
-}
-
-TEST(JudgeArming, AFaultThatSurvivesTheGraceFailsArming)
+TEST(JudgeArming, AnyFaultFailsAtOnceBecauseFromIdleItIsThisArmingsOwn)
 {
   const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
-  const auto t = telemetry_of({
-      {0, {motor_in(Lifecycle::kHold), motor_in(Lifecycle::kFault, FaultCause::kMotorFault)}}});
-  const auto verdict = judge_arming(t, layout, milliseconds{600}, kGrace);
-  EXPECT_EQ(verdict.status, ArmingVerdict::Status::kFailed);
-  EXPECT_EQ(verdict.joint, 1);
-}
-
-TEST(JudgeArming, AWoundShaftFailsAtOnceBecauseNoRetryFixesIt)
-{
-  const auto layout = layout_of({wiring(0, 0)});
-  const auto t = telemetry_of({{0, {motor_in(Lifecycle::kFault, FaultCause::kWound)}}});
-  EXPECT_EQ(judge_arming(t, layout, milliseconds{0}, kGrace).status,
-    ArmingVerdict::Status::kFailed);
+  for (const FaultCause cause : {FaultCause::kWound, FaultCause::kCanTimeout}) {
+    const auto t = telemetry_of({{0, {motor_in(Lifecycle::kHold), motor_in(Lifecycle::kFault,
+          cause)}}});
+    const auto verdict = judge_arming(t, layout, kMaxAge);
+    EXPECT_EQ(verdict.status, ArmingVerdict::Status::kFailed);
+    EXPECT_EQ(verdict.joint, 1);
+  }
 }
 
 }  // namespace

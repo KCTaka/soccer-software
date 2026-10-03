@@ -23,6 +23,10 @@ namespace
 // The firmware's host-death trigger and dwell, in master cycles (system_config.h).
 constexpr std::uint32_t kHostLostCycles = 12;
 constexpr std::uint32_t kHostLostDampCycles = 60;
+// How long an armed motor's drive may stay silent before the slave faults it
+// (MOTOR_CAN_FB_TIMEOUT_MS).
+constexpr std::uint32_t kCanTimeoutMs = 100;
+constexpr std::uint32_t kWireAgeSaturationMs = 255;
 
 bool is_armed(wire::Lifecycle state) noexcept;
 bool request_carries_fault_reset(const wire::CmdRobot & command) noexcept;
@@ -111,6 +115,18 @@ bool FakeMaster::host_lost() const
   return host_link_ != HostLink::kOk;
 }
 
+double FakeMaster::hold_position(std::uint8_t chain, std::uint8_t motor) const
+{
+  const std::scoped_lock lock{mutex_};
+  return wire::decode_i16(motor_at(chain, motor).hold, wire::kPosScale);
+}
+
+double FakeMaster::shaft_position(std::uint8_t chain, std::uint8_t motor) const
+{
+  const std::scoped_lock lock{mutex_};
+  return wire::decode_i16(motor_at(chain, motor).shaft, wire::kPosScale);
+}
+
 // ===========================================================================
 // Scenario and fault injection
 // ===========================================================================
@@ -193,9 +209,28 @@ void FakeMaster::set_measured(
 {
   const std::scoped_lock lock{mutex_};
   auto & m = motor_at(chain, motor);
-  m.pos = wire::encode_i16(static_cast<float>(pos_rad), wire::kPosScale).raw;
+  m.shaft = wire::encode_i16(static_cast<float>(pos_rad), wire::kPosScale).raw;
   m.vel = wire::encode_i16(static_cast<float>(vel_rad_s), wire::kVelScale).raw;
   m.tau = wire::encode_i16(static_cast<float>(tau_nm), wire::kTauScale).raw;
+}
+
+void FakeMaster::set_undiscovered(std::uint8_t chain, std::uint8_t motor)
+{
+  const std::scoped_lock lock{mutex_};
+  auto & m = motor_at(chain, motor);
+  m.discovered = false;
+  m.state = wire::Lifecycle::kFault;
+  m.cause = wire::FaultCause::kNone;
+  m.pos = 0;  // the slave has never heard from it
+  m.vel = 0;
+  m.tau = 0;
+  m.unanswered_ms = kWireAgeSaturationMs;
+}
+
+void FakeMaster::set_drive_answers(std::uint8_t chain, std::uint8_t motor, bool answers)
+{
+  const std::scoped_lock lock{mutex_};
+  motor_at(chain, motor).drive_answers = answers;
 }
 
 void FakeMaster::unplug()
@@ -247,6 +282,7 @@ void FakeMaster::cycle()
 
   step_host_watchdog(fresh, fault_reset);
   apply_requests();
+  poll_drives();
   emit_telemetry();
   if (++status_divider_ >= 10) {
     status_divider_ = 0;
@@ -340,7 +376,8 @@ void FakeMaster::apply_requests()
   }
 }
 
-// The slave's mode state machine (mode_sm.c), level-triggered: applied every cycle.
+// The slave's mode request handling (motor_runtime_apply_cmd and mode_sm.c), level-triggered:
+// applied every cycle.
 void FakeMaster::apply_request(Chain & chain, Motor & motor, const wire::CmdMotor & request)
 {
   if ((request.flags & wire::kCmdFlagValid) == 0) {
@@ -350,57 +387,105 @@ void FakeMaster::apply_request(Chain & chain, Motor & motor, const wire::CmdMoto
   const auto mode = static_cast<wire::ModeRequest>(request.mode_req);
   const bool fault_reset = (request.flags & wire::kCmdFlagFaultReset) != 0;
 
-  if (motor.state == wire::Lifecycle::kFault) {
-    if (mode != wire::ModeRequest::kIdle && !fault_reset) {
-      motor.flags |= 0x01;  // TELE_FLAG_REQUEST_REJECTED: faults latch
-      return;
-    }
+  // The slave checks discovery and winding only for a motor that is IDLE before the request. A
+  // FAULT motor with a fault reset reaches the arming below without either check.
+  const bool was_idle = motor.state == wire::Lifecycle::kIdle;
+  if (mode == wire::ModeRequest::kHold && was_idle && !motor.discovered) {
+    motor.flags |= wire::kTeleFlagRequestRejected;
+    return;
+  }
+  const bool wound = mode == wire::ModeRequest::kHold && was_idle && motor.wound;
+
+  if (motor.state == wire::Lifecycle::kFault && fault_reset) {
     motor.state = wire::Lifecycle::kIdle;
     motor.cause = wire::FaultCause::kNone;
     motor.motor_fault = 0;
   }
 
-  if (!is_armed(motor.state)) {
-    if (mode == wire::ModeRequest::kIdle) {
-      return;
-    }
-    if (mode != wire::ModeRequest::kHold) {
-      motor.flags |= 0x01;  // from IDLE only HOLD arms
-      return;
-    }
-    if (motor.wound) {
-      motor.state = wire::Lifecycle::kFault;
-      motor.cause = wire::FaultCause::kWound;
-      return;
-    }
-    motor.state = wire::Lifecycle::kHold;
-    motor.last_applied = 0;
-    chain.silent_cycles = config_.arming_silence_cycles;
-    return;
-  }
-
   switch (mode) {
     case wire::ModeRequest::kIdle:
+      if (motor.state != wire::Lifecycle::kIdle) {
+        motor.cause = wire::FaultCause::kNone;  // the disable clears a latched cause
+        motor.motor_fault = 0;
+      }
       motor.state = wire::Lifecycle::kIdle;
       motor.last_applied = 0;
-      break;
+      return;
     case wire::ModeRequest::kHold:
-      motor.state = wire::Lifecycle::kHold;
-      break;
+      if (motor.state == wire::Lifecycle::kIdle) {
+        if (wound) {
+          motor.state = wire::Lifecycle::kFault;
+          motor.cause = wire::FaultCause::kWound;
+          motor.flags |= wire::kTeleFlagRequestRejected;
+          return;
+        }
+        motor.state = wire::Lifecycle::kHold;
+        motor.hold = motor.pos;  // whatever the slave last heard, current or not
+        motor.last_applied = 0;
+        motor.armed_ms = 0;
+        chain.silent_cycles = config_.arming_silence_cycles;
+      } else if (is_armed(motor.state)) {
+        motor.state = wire::Lifecycle::kHold;
+        motor.hold = motor.pos;
+      } else {
+        motor.flags |= wire::kTeleFlagRequestRejected;
+      }
+      return;
     case wire::ModeRequest::kMit:
+      if (!is_armed(motor.state)) {
+        motor.flags |= wire::kTeleFlagRequestRejected;
+        return;
+      }
       motor.state = wire::Lifecycle::kMit;
       // The motor follows its command, which makes sign and unit conversion observable.
+      motor.hold = request.pos;
       motor.pos = request.pos;
       motor.vel = request.vel;
       motor.tau = request.tau_ff;
       motor.last_applied = cmd_seq_active_;
-      break;
+      return;
     case wire::ModeRequest::kDamped:
-      motor.state = wire::Lifecycle::kDamped;
-      break;
     case wire::ModeRequest::kToZero:
-      motor.state = wire::Lifecycle::kToZero;
-      break;
+      if (!is_armed(motor.state)) {
+        motor.flags |= wire::kTeleFlagRequestRejected;
+        return;
+      }
+      motor.state = mode == wire::ModeRequest::kDamped ?
+        wire::Lifecycle::kDamped : wire::Lifecycle::kToZero;
+      return;
+  }
+  motor.flags |= wire::kTeleFlagRequestRejected;
+}
+
+// The slave's per-tick CAN service (motor_runtime_update). It polls an IDLE motor and drives an
+// armed one, and either way the drive's reply refreshes what the slave knows. It sends nothing to
+// a FAULT motor, so a faulted motor's position and feedback age go stale.
+void FakeMaster::poll_drives()
+{
+  const auto cycle_ms = static_cast<std::uint32_t>(
+    std::chrono::duration_cast<std::chrono::milliseconds>(config_.cycle).count());
+  for (auto & chain : chains_) {
+    for (auto & motor : chain.motors) {
+      const bool armed = is_armed(motor.state);
+      const bool polled = armed || motor.state == wire::Lifecycle::kIdle;
+      if (polled && motor.drive_answers) {
+        if (armed) {
+          motor.shaft = motor.hold;  // the drive holds or tracks its target
+        }
+        motor.pos = motor.shaft;
+        motor.unanswered_ms = 0;
+        continue;
+      }
+      motor.unanswered_ms = std::min(motor.unanswered_ms + cycle_ms, kWireAgeSaturationMs);
+      if (armed) {
+        motor.armed_ms += cycle_ms;
+      }
+      // The timeout has a grace from the arm: a motor that never answered reports HOLD until then.
+      if (armed && motor.unanswered_ms >= kCanTimeoutMs && motor.armed_ms >= kCanTimeoutMs) {
+        motor.state = wire::Lifecycle::kFault;
+        motor.cause = wire::FaultCause::kCanTimeout;
+      }
+    }
   }
 }
 
@@ -447,7 +532,8 @@ void FakeMaster::emit_telemetry()
       out.motor_mode = is_armed(motor.state) ? 2 : 0;
       out.motor_fault = motor.motor_fault;
       out.flags = motor.flags;
-      out.fb_age_ms = motor.fb_age;
+      out.fb_age_ms = static_cast<std::uint8_t>(
+        std::min<std::uint32_t>(motor.fb_age + motor.unanswered_ms, kWireAgeSaturationMs));
       out.last_applied_seq = motor.last_applied;
     }
     const auto * bytes = reinterpret_cast<const std::uint8_t *>(&tele);

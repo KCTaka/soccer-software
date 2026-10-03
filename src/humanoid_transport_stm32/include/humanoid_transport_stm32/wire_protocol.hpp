@@ -103,6 +103,15 @@ inline constexpr std::uint8_t kCmdFlagValid = 1U << 0U;
 inline constexpr std::uint8_t kCmdFlagUseConfigGains = 1U << 1U;
 inline constexpr std::uint8_t kCmdFlagFaultReset = 1U << 2U;
 
+// tele_motor_t.flags
+/// The slave refused the last mode request it applied to this motor.
+inline constexpr std::uint8_t kTeleFlagRequestRejected = 1U << 0U;
+
+/// Names for reports and error messages. An undefined value reads "UNKNOWN".
+[[nodiscard]] const char * lifecycle_name(std::uint8_t state) noexcept;
+[[nodiscard]] const char * cause_name(std::uint8_t cause) noexcept;
+[[nodiscard]] const char * robot_state_name(std::uint8_t state) noexcept;
+
 // Fixed-point scales (shared by every RobStride model). Mirror protocol.h exactly.
 inline constexpr float kPosScale = 10000.0F;  // rad   -> i16, home-frame +-pi
 inline constexpr float kVelScale = 100.0F;    // rad/s -> i16

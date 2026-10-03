@@ -517,8 +517,66 @@ TEST_F(TransportTest, ActivationClearsAFaultLatchedByAPreviousSession)
 {
   fake->force_fault(0, 0, wire::FaultCause::kOvertorque);
   ASSERT_TRUE(configure());
-  ASSERT_TRUE(transport->activate());  // the fault reset in the arming request clears it
+  ASSERT_TRUE(transport->activate());  // the fault reset in the clearing request clears it
   EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kHold);
+}
+
+TEST_F(TransportTest, ArmingHoldsAFaultedMotorWhereItIsNotWhereItFaulted)
+{
+  // The leg was moved while the motor sat faulted. The slave does not poll a FAULT motor, so its
+  // idea of the position is still the one from the moment of the fault.
+  fake->force_fault(0, 0, wire::FaultCause::kOvertorque);
+  fake->set_measured(0, 0, 0.8, 0.0, 0.0);
+  ASSERT_TRUE(configure());
+  ASSERT_TRUE(transport->activate());
+
+  EXPECT_NEAR(fake->hold_position(0, 0), 0.8, 1e-3);
+  EXPECT_NEAR(fake->shaft_position(0, 0), 0.8, 1e-3);  // arming did not step it to 0
+}
+
+TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredIsNeverArmed)
+{
+  // The drive was powered after its slave booted: it answers now, but the slave never rediscovers
+  // it, and arming it past that check would step it to the zero position the slave assumes.
+  params.arming_timeout = 400ms;
+  fake->set_undiscovered(0, 1);
+  fake->set_measured(0, 1, 0.6, 0.0, 0.0);
+  ASSERT_TRUE(configure());
+
+  EXPECT_FALSE(transport->activate());
+  EXPECT_FALSE(transport->health_snapshot().active);
+  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
+  EXPECT_NEAR(fake->shaft_position(0, 1), 0.6, 1e-3);
+  EXPECT_TRUE(eventually([&] {
+      return fake->state(0, 0) == wire::Lifecycle::kIdle &&
+             fake->state(1, 0) == wire::Lifecycle::kIdle;
+    }));
+}
+
+TEST_F(TransportTest, AMotorWithNoDriveBehindItIsNeverReportedArmed)
+{
+  // The slave reports HOLD for 100 ms after arming a motor whose drive never answers.
+  params.arming_timeout = 400ms;
+  fake->set_undiscovered(1, 0);
+  fake->set_drive_answers(1, 0, false);
+  ASSERT_TRUE(configure());
+
+  EXPECT_FALSE(transport->activate());
+  EXPECT_FALSE(transport->health_snapshot().active);
+  EXPECT_NE(fake->state(1, 0), wire::Lifecycle::kHold);
+}
+
+TEST_F(TransportTest, ActivationFailsWhenADriveStopsAnsweringBeforeItArms)
+{
+  params.arming_timeout = 400ms;
+  ASSERT_TRUE(configure());
+  fake->set_drive_answers(0, 1, false);
+  // Until its silence outlasts the 15 ms feedback limit, the drive did just answer.
+  std::this_thread::sleep_for(50ms);
+
+  EXPECT_FALSE(transport->activate());
+  EXPECT_NE(fake->state(0, 1), wire::Lifecycle::kHold);
+  EXPECT_NE(fake->state(0, 1), wire::Lifecycle::kMit);
 }
 
 TEST_F(TransportTest, ActivationIsIdempotent)
@@ -663,7 +721,7 @@ TEST_F(TransportTest, AStalledHostLoopTripsTheMastersDeadManAndIsReportedAsAFaul
   const auto result = exchange();
   EXPECT_EQ(result.error, TransportError::kHardwareFault);
 
-  // Recovery is an explicit re-activation, whose arming request carries the fault reset.
+  // Recovery is an explicit re-activation, whose clearing request carries the fault reset.
   transport->deactivate();
   ASSERT_TRUE(transport->activate());
   EXPECT_FALSE(fake->host_lost());
@@ -781,7 +839,9 @@ TEST_F(TransportTest, AFaultedMotorIsReportedAndNeverRearmed)
   EXPECT_EQ(bits >> humanoid::transport_stm32::kFaultCauseShift,
     static_cast<unsigned>(wire::FaultCause::kOvertorque));
   EXPECT_FALSE(feedback.availability_mask.test(0));
-  EXPECT_TRUE(feedback.joints[0].fresh);  // a real sample that says "faulted", not a missing one
+  // The slave stops polling a FAULT motor, so its sample keeps saying "faulted" but ages out.
+  EXPECT_TRUE(eventually([&] {return exchange().ok() && !feedback.joints[0].fresh;}));
+  EXPECT_NE(feedback.joints[0].fault_bits & humanoid::transport_stm32::kFaultBitFirmwareFault, 0);
 
   ASSERT_TRUE(exchange_many(30).ok());
   EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kFault);  // 30 MIT requests did not rearm it

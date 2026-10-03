@@ -7,6 +7,14 @@
 // the host-death watchdog (damped, then idle, latched until a fault reset), and a telemetry frame
 // per cycle that omits a chain that is not answering.
 //
+// It also reproduces how the slave knows where a motor is (motor_runtime.c at soccer-firmware
+// 218126a), flaws included, because the transport must not depend on them. The slave polls an
+// IDLE or armed motor every tick and a FAULT motor never, so a faulted motor's reported position
+// and feedback age go stale. HOLD captures the reported position. A motor the slave did not
+// discover at boot is FAULT with cause NONE, and HOLD on it is rejected from IDLE. HOLD with a
+// fault reset on a FAULT motor skips that check and the wound check, and arms at the stale
+// position. An armed motor whose drive does not answer faults with CAN_TIMEOUT after 100 ms.
+//
 // What this is NOT: hardware-in-the-loop evidence. ADR-007 rejects a host-side loopback as the H1
 // emulator because it leaves the USB stack, cdc_acm, and real timing untested. It tests the
 // parser, the lifecycle, and the fault handling, and it says nothing about timing.
@@ -65,6 +73,10 @@ public:
   [[nodiscard]] wire::Lifecycle state(std::uint8_t chain, std::uint8_t motor) const;
   [[nodiscard]] wire::FaultCause cause(std::uint8_t chain, std::uint8_t motor) const;
   [[nodiscard]] bool host_lost() const;
+  /// Where the motor is holding, rad on the wire: the position HOLD captured.
+  [[nodiscard]] double hold_position(std::uint8_t chain, std::uint8_t motor) const;
+  /// Where the shaft physically is, rad on the wire. An armed motor drives it to its target.
+  [[nodiscard]] double shaft_position(std::uint8_t chain, std::uint8_t motor) const;
 
   // --- Scenario and fault injection ---
 
@@ -81,9 +93,15 @@ public:
   void set_wound(std::uint8_t chain, std::uint8_t motor, bool wound);
   void set_fb_age(std::uint8_t chain, std::uint8_t motor, std::uint8_t age_ms);
   void force_fault(std::uint8_t chain, std::uint8_t motor, wire::FaultCause cause);
-  /// What the motor reports measuring, in SI units (it follows the command while in MIT).
+  /// Moves the shaft and sets what the drive measures, in SI units. The slave sees it only while
+  /// it polls the motor. An armed motor's shaft follows its target instead.
   void set_measured(
     std::uint8_t chain, std::uint8_t motor, double pos_rad, double vel_rad_s, double tau_nm);
+  /// The slave did not find this motor at boot: FAULT, cause NONE, never polled until reset, and
+  /// never armable from IDLE.
+  void set_undiscovered(std::uint8_t chain, std::uint8_t motor);
+  /// Whether the motor's drive answers on CAN (powered and on the bus).
+  void set_drive_answers(std::uint8_t chain, std::uint8_t motor, bool answers);
   /// Closes the pseudo-terminal, as an unplugged USB cable would.
   void unplug();
 
@@ -92,14 +110,25 @@ private:
   {
     wire::Lifecycle state{wire::Lifecycle::kIdle};
     wire::FaultCause cause{wire::FaultCause::kNone};
+    /// What the slave last heard from the drive: what telemetry reports and what HOLD captures.
     std::int16_t pos{0};
     std::int16_t vel{0};
     std::int16_t tau{0};
+    /// Where the shaft really is. Copied into `pos` whenever the slave polls the motor.
+    std::int16_t shaft{0};
+    std::int16_t hold{0};
     std::uint16_t last_applied{0};
+    /// The feedback age while the slave polls the motor and the drive answers.
     std::uint8_t fb_age{2};
+    /// Milliseconds since the drive last answered, while it does not.
+    std::uint32_t unanswered_ms{0};
+    /// Milliseconds since the motor armed, for the CAN timeout's grace.
+    std::uint32_t armed_ms{0};
     std::uint8_t motor_fault{0};
     std::uint8_t flags{0};
     bool wound{false};
+    bool discovered{true};
+    bool drive_answers{true};
   };
 
   struct Chain
@@ -117,6 +146,7 @@ private:
   void read_host();
   void apply_requests();
   void apply_request(Chain & chain, Motor & motor, const wire::CmdMotor & request);
+  void poll_drives();
   void step_host_watchdog(bool fresh, bool fault_reset);
   void emit_telemetry();
   void emit_status();

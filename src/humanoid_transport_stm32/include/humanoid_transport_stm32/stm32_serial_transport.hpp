@@ -21,9 +21,10 @@
 // Parameters (node "stm32_serial", all read once at configure, all read-only):
 //   serial_device          the master's USB CDC device, e.g. /dev/robosoccer-master (required)
 //   handshake_timeout_s    how long configure() waits for the master to answer
-//   arming_timeout_s       how long activate() waits for every motor to report HOLD
+//   arming_timeout_s       how long activate() waits for every motor to clear to IDLE and then
+//                          report HOLD, both with fresh feedback
 //   release_timeout_s      how long deactivate() waits for every motor to report IDLE
-//   fault_grace_s          how long a motor may stay faulted while arming before arming fails
+//   fault_grace_s          how long a motor may stay faulted after its fault reset is sent
 //   joints.<name>.chain, .motor, .direction_sign, .zero_offset_rad
 //                          where each manifest joint lives and its angle convention
 // direction_sign and zero_offset_rad have no default: a plausible-looking default is exactly the
@@ -86,7 +87,9 @@ public:
     const Parameters & parameters, const transport::JointManifest & joints,
     const transport::SafetyManifest & safety);
 
-  /// Arms every motor into HOLD and returns once all report it, or fails and leaves them idle.
+  /// Clears every motor to IDLE with a fault reset, then arms it into HOLD, and returns once all
+  /// report HOLD with fresh feedback. Fails leaving them idle. See plan_request for why it takes
+  /// two steps.
   [[nodiscard]] bool activate() override;
 
   /// Idles every motor and waits for the master to confirm it.
@@ -120,6 +123,11 @@ private:
 
   // --- Lifecycle, non-real-time ---
   [[nodiscard]] bool arm_motors();
+  /// Streams `phase`'s request until every joint reaches its target, one fails, or `give_up`.
+  [[nodiscard]] bool run_activation_step(Phase phase, MonotonicStamp start, MonotonicStamp give_up);
+  /// Why `joint` has not reached `phase`'s target, from the last frame seen, for the timeout.
+  [[nodiscard]] std::string explain_waiting(
+    Phase phase, std::uint8_t joint, const std::optional<TelemetryFrame> & frame) const;
   /// Streams IDLE until every motor reports it. Returns the first joint that never did.
   [[nodiscard]] std::optional<std::uint8_t> release_motors(std::chrono::milliseconds timeout);
   [[nodiscard]] bool send_phase_frame(Phase phase, std::uint16_t cycle_id) noexcept;

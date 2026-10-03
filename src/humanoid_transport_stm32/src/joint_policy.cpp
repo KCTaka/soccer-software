@@ -29,8 +29,7 @@ JointReading read_joint(
   bits = static_cast<std::uint16_t>(bits | (motor->cause << kFaultCauseShift));
   feedback.fault_bits = bits;
 
-  const std::chrono::microseconds age{static_cast<std::int64_t>(motor->fb_age_ms) * 1000};
-  feedback.fresh = age <= max_age;
+  feedback.fresh = reports_within(*motor, max_age);
   reading.commandable = is_commandable(state);
   return reading;
 }
@@ -63,35 +62,55 @@ std::optional<std::uint8_t> chain_motor_count(
   return std::nullopt;
 }
 
-ArmingVerdict judge_arming(
+ArmingVerdict judge_clearing(
   const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
-  std::chrono::nanoseconds elapsed, std::chrono::nanoseconds fault_grace) noexcept
+  std::chrono::microseconds max_age, std::chrono::nanoseconds elapsed,
+  std::chrono::nanoseconds fault_grace) noexcept
 {
-  ArmingVerdict verdict{};
-  bool all_hold = true;
+  ArmingVerdict verdict{ArmingVerdict::Status::kReached, 0};
   for (std::uint8_t joint = 0; joint < layout.joint_count; ++joint) {
     const JointWiring & wiring = layout.joints[joint];
     const auto motor = find_motor(telemetry, wiring.chain, wiring.motor);
-    if (!motor) {
-      all_hold = false;
-      verdict.joint = joint;
-      continue;
+    if (motor && motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kFault) &&
+      elapsed >= fault_grace)
+    {
+      return {ArmingVerdict::Status::kFailed, joint};
     }
-
-    const auto state = static_cast<wire::Lifecycle>(motor->state);
-    if (state == wire::Lifecycle::kFault) {
-      const bool wound = motor->cause == static_cast<std::uint8_t>(wire::FaultCause::kWound);
-      if (wound || elapsed >= fault_grace) {
-        return {ArmingVerdict::Status::kFailed, joint};
-      }
-    }
-    if (state != wire::Lifecycle::kHold) {
-      all_hold = false;
-      verdict.joint = joint;
+    const bool cleared = motor &&
+      motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kIdle) &&
+      reports_within(*motor, max_age);
+    if (!cleared && verdict.status == ArmingVerdict::Status::kReached) {
+      verdict = {ArmingVerdict::Status::kWaiting, joint};
     }
   }
-  verdict.status = all_hold ? ArmingVerdict::Status::kArmed : ArmingVerdict::Status::kWaiting;
   return verdict;
+}
+
+ArmingVerdict judge_arming(
+  const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
+  std::chrono::microseconds max_age) noexcept
+{
+  ArmingVerdict verdict{ArmingVerdict::Status::kReached, 0};
+  for (std::uint8_t joint = 0; joint < layout.joint_count; ++joint) {
+    const JointWiring & wiring = layout.joints[joint];
+    const auto motor = find_motor(telemetry, wiring.chain, wiring.motor);
+    if (motor && motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kFault)) {
+      return {ArmingVerdict::Status::kFailed, joint};
+    }
+    const bool armed = motor &&
+      motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kHold) &&
+      reports_within(*motor, max_age);
+    if (!armed && verdict.status == ArmingVerdict::Status::kReached) {
+      verdict = {ArmingVerdict::Status::kWaiting, joint};
+    }
+  }
+  return verdict;
+}
+
+bool reports_within(const wire::TeleMotor & motor, std::chrono::microseconds max_age) noexcept
+{
+  const std::chrono::microseconds age{static_cast<std::int64_t>(motor.fb_age_ms) * 1000};
+  return age <= max_age;
 }
 
 }  // namespace humanoid::transport_stm32

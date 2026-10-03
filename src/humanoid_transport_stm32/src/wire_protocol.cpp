@@ -255,6 +255,48 @@ std::optional<MasterStatus> parse_master_status(std::span<const std::uint8_t> pa
   return status;
 }
 
+const char * lifecycle_name(std::uint8_t state) noexcept
+{
+  switch (static_cast<Lifecycle>(state)) {
+    case Lifecycle::kBoot: return "BOOT";
+    case Lifecycle::kDiscovering: return "DISCOVERING";
+    case Lifecycle::kIdle: return "IDLE";
+    case Lifecycle::kHold: return "HOLD";
+    case Lifecycle::kMit: return "MIT";
+    case Lifecycle::kDamped: return "DAMPED";
+    case Lifecycle::kToZero: return "TO_ZERO";
+    case Lifecycle::kFault: return "FAULT";
+  }
+  return "UNKNOWN";
+}
+
+const char * cause_name(std::uint8_t cause) noexcept
+{
+  switch (static_cast<FaultCause>(cause)) {
+    case FaultCause::kNone: return "NONE";
+    case FaultCause::kOvertorque: return "OVERTORQUE";
+    case FaultCause::kCanTimeout: return "CAN_TIMEOUT";
+    case FaultCause::kWatchdog: return "WATCHDOG";
+    case FaultCause::kMotorFault: return "MOTOR_FAULT";
+    case FaultCause::kZeroTimeout: return "ZERO_TIMEOUT";
+    case FaultCause::kNotEnabled: return "NOT_ENABLED";
+    case FaultCause::kWound: return "WOUND";
+    case FaultCause::kMasterLost: return "MASTER_LOST";
+  }
+  return "UNKNOWN";
+}
+
+const char * robot_state_name(std::uint8_t state) noexcept
+{
+  switch (static_cast<RobotState>(state)) {
+    case RobotState::kInit: return "INIT";
+    case RobotState::kReady: return "READY";
+    case RobotState::kDegraded: return "DEGRADED";
+    case RobotState::kHostLost: return "HOST_LOST";
+  }
+  return "UNKNOWN";
+}
+
 // ===========================================================================
 // File-local helpers
 // ===========================================================================
