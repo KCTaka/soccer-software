@@ -19,6 +19,7 @@ find_package(rclcpp REQUIRED)
 add_library(${PROJECT_NAME} SHARED
   src/joint_policy.cpp
   src/joint_wiring.cpp
+  src/link_probe.cpp
   src/master_link.cpp
   src/parameter_node.cpp
   src/serial_port.cpp
@@ -36,6 +37,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Export the plugin for the humanoid_transport base class package.
 pluginlib_export_plugin_description_file(humanoid_transport stm32_transport_plugin.xml)
+
+# Read-only first-contact check for real hardware: ros2 run humanoid_transport_stm32 stm32_link_probe
+add_executable(stm32_link_probe src/link_probe_main.cpp)
+target_link_libraries(stm32_link_probe ${PROJECT_NAME})
+install(TARGETS stm32_link_probe RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}
@@ -67,6 +73,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(${PROJECT_NAME}_master_link_test test/master_link_test.cpp)
   target_link_libraries(${PROJECT_NAME}_master_link_test ${PROJECT_NAME}_fake_master)
+
+  ament_add_gtest(${PROJECT_NAME}_link_probe_test test/link_probe_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_link_probe_test ${PROJECT_NAME}_fake_master)
 
   ament_add_gtest(${PROJECT_NAME}_transport_test test/stm32_transport_test.cpp)
   target_link_libraries(${PROJECT_NAME}_transport_test ${PROJECT_NAME}_fake_master)
