@@ -37,6 +37,8 @@ constexpr std::string_view kPositionVelocityOnly = "position_velocity_only";
 // File-local helpers. Declared here, defined at the end of this file.
 std::vector<std::string> joint_names_from_info(const hardware_interface::HardwareInfo & info);
 std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value);
+std::string_view trigger_name(safety::Trigger trigger);
+std::string_view transport_error_name(transport::TransportError error);
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -191,6 +193,16 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_cleanup(
 hardware_interface::CallbackReturn HumanoidActuatorSystem::on_error(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  // The controller_manager comes here, not to on_deactivate(), when read() or write() returns
+  // ERROR. Nothing on the real-time path may log, so this is where the reason becomes visible.
+  // Read before enter_protective_state() below overwrites the trigger.
+  const std::string reason = std::format(
+    "Stopped by a failed cycle: safety trigger {}, last transport error {}, {} consecutive bad "
+    "cycles", trigger_name(safety_kernel_.last_trigger()),
+    transport_error_name(last_exchange_error_), consecutive_bad_cycles_);
+  RCLCPP_ERROR(get_logger(), "%s", reason.c_str());
+  log_exchange_stats();
+
   enter_protective_state(safety::Trigger::kTransportError);
   if (transport_) {
     transport_->deactivate();
@@ -549,6 +561,46 @@ std::optional<transport::TupleCompleteness> accepted_degradation_from(std::strin
     return transport::TupleCompleteness::kPositionVelocityOnly;
   }
   return std::nullopt;
+}
+
+std::string_view trigger_name(safety::Trigger trigger)
+{
+  using safety::Trigger;
+  switch (trigger) {
+    case Trigger::kNone: return "none";
+    case Trigger::kNotConfigured: return "not configured";
+    case Trigger::kStaleFeedback: return "stale feedback";
+    case Trigger::kNonFiniteCommand: return "non-finite command";
+    case Trigger::kPositionEnvelope: return "position envelope";
+    case Trigger::kVelocityEnvelope: return "velocity envelope";
+    case Trigger::kTorqueEnvelope: return "torque envelope";
+    case Trigger::kPowerEnvelope: return "power envelope";
+    case Trigger::kSlewLimit: return "torque slew limit";
+    case Trigger::kAvailabilityMaskChange: return "availability mask change";
+    case Trigger::kSequenceRejected: return "sequence rejected";
+    case Trigger::kManifestMismatch: return "manifest mismatch";
+    case Trigger::kTransportError: return "transport error";
+    case Trigger::kCommandLoss: return "command loss";
+    case Trigger::kDeadlineMissed: return "deadline missed";
+    case Trigger::kOperatorStop: return "operator stop";
+  }
+  return "unknown";
+}
+
+std::string_view transport_error_name(transport::TransportError error)
+{
+  using transport::TransportError;
+  switch (error) {
+    case TransportError::kNone: return "none";
+    case TransportError::kTimeout: return "timeout";
+    case TransportError::kFraming: return "framing";
+    case TransportError::kSequenceMismatch: return "sequence mismatch";
+    case TransportError::kManifestMismatch: return "manifest mismatch";
+    case TransportError::kIncompleteBatch: return "incomplete batch";
+    case TransportError::kNotActive: return "not active";
+    case TransportError::kHardwareFault: return "hardware fault";
+  }
+  return "unknown";
 }
 
 }  // namespace
