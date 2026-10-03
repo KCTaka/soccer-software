@@ -144,6 +144,32 @@ This is **not hardware-in-the-loop evidence**. ADR-007 rejects a host-side loopb
 emulator: it leaves the USB stack, `cdc_acm`, and real timing untested. SIL timing is never timing
 evidence (ADR-007-05).
 
+### Bench, hardware in the loop (2026-10-03)
+
+The full stack was run against the robot's master, both slaves, and ten free RobStride drives on a
+bench (no load): a non-real-time ROS node publishing `~/joint_references`, `MitImpedanceController`,
+`HumanoidActuatorSystem` with its SafetyKernel, this transport, the master, the slaves, and the
+drives. The description, manifest and wiring were bench-only: ten joints named after the firmware's
+`robot_legs` motors, chain 0 and 1, motors 0 to 4, sign +1, offset 0, envelope inside every
+drive's span, kp 5, kd 0.2. `controller_manager` ran at 200 Hz with FIFO priority 50 on the Jetson.
+
+- Configure and the two-step activation succeeded every time, in 120 to 125 ms with the drives
+  IDLE.
+- Two runs of 31 s and 21 s: 6230 and 4230 exchanges, 0 failed, 0 deadline misses, worst exchange
+  4.73 ms and 2.87 ms. `/joint_states` came back at 200.0 Hz.
+- Every joint followed the references: from rest positions up to 1.67 rad away to within 0.05 rad
+  of 0 in a 3 s ease, then +-0.3 rad swings reaching +-0.24 to 0.29 rad, RMS error 0.025 to 0.042
+  rad. With kp 5 the error is what drive friction leaves against a soft spring; it says nothing
+  about latency.
+- One startup in 23 failed: the first `read()` cycles reported three consecutive bad cycles about
+  25 ms after activation, and the component was dropped. The cause was not recorded (see item 2
+  below); the component now logs it.
+- With joints resting outside the envelope (moved by hand while idle), every start failed at the
+  controller's first cycle on the position envelope. The controller holds the measured position
+  until a reference arrives, and the SafetyKernel checks that position even at zero stiffness. On
+  the robot a joint cannot rest outside an envelope taken from its mechanical limits; a tighter
+  envelope would stop the robot from starting.
+
 ## First contact with hardware
 
 `stm32_link_probe` is read-only. It sends nothing, so it is safe against a powered robot in any
@@ -183,18 +209,25 @@ Observed on 2026-10-03 against the robot's master (read-only):
 
 Needs the real master and a model whose joint names match the attached motors:
 
-1. Real cmd-to-telemetry behaviour over USB CDC. The firmware notes the first commands after a
-   fresh connect may not land for ~1 s; `arming_timeout_s` tolerates it, but confirm.
+1. Command to telemetry over USB CDC works on the bench (above): activation, arming, and 10 000
+   cycles without a failed exchange. The firmware notes that the first commands after a fresh
+   connect may not land for ~1 s; activation never needed that long on the bench.
 2. The gap between `activate()` returning and the first `write()` must stay under the master's
    60 ms host-death limit under `controller_manager`. If it does not, activation is followed by
-   `HOST_LOST`.
-3. Pacing under load: `exchange()` duration and deadline misses (`ExchangeStats`), and the master's
-   `cmd_on_time` / `cmd_late` / `cmd_missing` / `cmd_duplicate` counters. This transport does not
-   read those four counters, so a diagnostics reader is the missing piece for timing work.
+   `HOST_LOST`. The one failed bench startup fits that: the last arming request can precede
+   `activate()`'s return by up to 20 ms, and that start's first `controller_manager` cycle took
+   10 ms. It is not confirmed. The component's error log now names the transport error, which
+   would read "hardware fault" for `HOST_LOST`.
+3. Pacing under load. On the idle Jetson `ExchangeStats` showed no deadline misses; the first
+   `controller_manager` cycle sometimes overran (5 to 11 ms). The master's `cmd_on_time` /
+   `cmd_late` / `cmd_missing` / `cmd_duplicate` counters are still unread, so a diagnostics reader
+   is the missing piece for timing work.
 4. The drive's own span is narrower than the wire's and depends on the model (RS00/RS02: Kp
    0..500, Kd 0..5; RS03/RS06: Kp 0..5000, Kd 0..100; the `robot_legs` configuration mixes them).
-   The slave clamps to it silently. The master cannot report a motor's model, so this transport cannot check
-   it. The robot's `SafetyManifest` must keep stiffness and damping inside the drives' spans.
+   The slave clamps to it silently. The master cannot report a motor's model, so this transport
+   cannot check it, and the SafetyKernel does not check stiffness or damping against the
+   envelope. The robot's `SafetyManifest` must keep stiffness and damping inside the drives'
+   spans, and something must enforce it.
 5. The identity interlock of ADR-002. No digest exists in the firmware, and the master's motor
    count is compile-time with no in-band check. `configure()` verifies chain and motor counts
    against the wiring, which catches a mismatched build but not a swapped motor model.
