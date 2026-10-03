@@ -19,6 +19,8 @@ find_package(rclcpp REQUIRED)
 add_library(${PROJECT_NAME} SHARED
   src/joint_policy.cpp
   src/joint_wiring.cpp
+  src/master_link.cpp
+  src/serial_port.cpp
   src/wire_protocol.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
@@ -51,6 +53,15 @@ if(BUILD_TESTING)
 
   ament_add_gtest(${PROJECT_NAME}_joint_policy_test test/joint_policy_test.cpp)
   target_link_libraries(${PROJECT_NAME}_joint_policy_test ${PROJECT_NAME})
+
+  # The fake master is a pseudo-terminal stand-in for the STM32; see test/fake_master.hpp for what
+  # it does and does not prove.
+  add_library(${PROJECT_NAME}_fake_master STATIC test/fake_master.cpp)
+  target_include_directories(${PROJECT_NAME}_fake_master PUBLIC test)
+  target_link_libraries(${PROJECT_NAME}_fake_master PUBLIC ${PROJECT_NAME})
+
+  ament_add_gtest(${PROJECT_NAME}_master_link_test test/master_link_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_master_link_test ${PROJECT_NAME}_fake_master)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
