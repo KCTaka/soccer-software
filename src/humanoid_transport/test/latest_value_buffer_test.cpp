@@ -2,7 +2,9 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <optional>
 #include <thread>
 
 #include "humanoid_transport/latest_value_buffer.hpp"
@@ -94,10 +96,29 @@ TEST(LatestValueBuffer, ConcurrentReadsAreNeverTornOrStale)
       }
     });
 
-  std::uint64_t last = 0U;
+  // On a loaded machine the producer may not have run yet, and a fixed number of reads could all
+  // find nothing. Wait for its first publish, so the reads below overlap publishing.
+  const auto give_up = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+  std::optional<TestFrame> first;
+  while (!first && std::chrono::steady_clock::now() < give_up) {
+    first = buffer.read();
+    std::this_thread::yield();
+  }
+  if (!first) {
+    stop.store(true, std::memory_order_relaxed);
+    producer.join();
+    FAIL() << "the producer published nothing within 5 s";
+  }
+
+  // At least 200000 reads, and on until the producer has been seen to advance, so the reads are
+  // known to have overlapped publishing.
+  std::uint64_t last = first->words[0];
   std::uint64_t torn = 0U;
   std::uint64_t regressions = 0U;
-  for (int i = 0; i < 200000; ++i) {
+  const auto read_until = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+  for (int i = 0; i < 200000 ||
+    (last == first->words[0] && std::chrono::steady_clock::now() < read_until); ++i)
+  {
     const auto out = buffer.read();
     if (!out) {
       continue;
@@ -118,7 +139,7 @@ TEST(LatestValueBuffer, ConcurrentReadsAreNeverTornOrStale)
 
   EXPECT_EQ(torn, 0U);
   EXPECT_EQ(regressions, 0U);
-  EXPECT_GT(last, 0U);
+  EXPECT_GT(last, first->words[0]);  // the producer kept publishing while it was read
 }
 
 }  // namespace
