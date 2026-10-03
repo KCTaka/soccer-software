@@ -1,0 +1,13 @@
+<library path="humanoid_transport_stm32">
+  <class
+    name="humanoid_transport_stm32/Stm32SerialTransport"
+    type="humanoid::transport_stm32::Stm32SerialTransport"
+    base_class_type="humanoid::transport::ActuatorTransport">
+    <description>
+      Production transport (ADR-001-04): the master-link protocol of soccer-firmware over USB CDC
+      to the master STM32, which schedules the 200 Hz SPI and CAN exchange to the RobStride drives.
+      Selected by setting transport_plugin to "humanoid_transport_stm32/Stm32SerialTransport" in
+      the hardware YAML. Configured by the "stm32_serial" node's parameters.
+    </description>
+  </class>
+</library>

@@ -105,6 +105,12 @@ struct JointReading
 [[nodiscard]] std::optional<wire::TeleMotor> find_motor(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain, std::uint8_t motor) noexcept;
 
+/// How many motors the master reports on `chain`, or nothing if it did not report that chain. This
+/// separates "that slave is not answering" from "that slave reports fewer motors than the wiring
+/// expects", which is a firmware built from a different configuration.
+[[nodiscard]] std::optional<std::uint8_t> chain_motor_count(
+  const wire::RobotTelemetry & telemetry, std::uint8_t chain) noexcept;
+
 /// How arming is going, judged from one telemetry frame.
 struct ArmingVerdict
 {

@@ -20,7 +20,9 @@ add_library(${PROJECT_NAME} SHARED
   src/joint_policy.cpp
   src/joint_wiring.cpp
   src/master_link.cpp
+  src/parameter_node.cpp
   src/serial_port.cpp
+  src/stm32_serial_transport.cpp
   src/wire_protocol.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
@@ -31,6 +33,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   humanoid_transport::humanoid_transport
   pluginlib::pluginlib
   rclcpp::rclcpp)
+
+# Export the plugin for the humanoid_transport base class package.
+pluginlib_export_plugin_description_file(humanoid_transport stm32_transport_plugin.xml)
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}
@@ -62,6 +67,18 @@ if(BUILD_TESTING)
 
   ament_add_gtest(${PROJECT_NAME}_master_link_test test/master_link_test.cpp)
   target_link_libraries(${PROJECT_NAME}_master_link_test ${PROJECT_NAME}_fake_master)
+
+  ament_add_gtest(${PROJECT_NAME}_transport_test test/stm32_transport_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_transport_test ${PROJECT_NAME}_fake_master)
+
+  # Custom main: configure() declares ROS parameters on the transport's own node, which needs
+  # rclcpp::init(), and the overrides are passed as --ros-args like ros2_control_node passes them.
+  ament_add_gtest(${PROJECT_NAME}_parameters_test
+    test/stm32_parameters_test.cpp
+    test/stm32_parameters_test_main.cpp
+    SKIP_LINKING_MAIN_LIBRARIES)
+  target_link_libraries(${PROJECT_NAME}_parameters_test
+    ${PROJECT_NAME}_fake_master rclcpp::rclcpp)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

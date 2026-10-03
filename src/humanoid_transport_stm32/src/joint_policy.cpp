@@ -51,6 +51,18 @@ std::optional<wire::TeleMotor> find_motor(
   return std::nullopt;
 }
 
+std::optional<std::uint8_t> chain_motor_count(
+  const wire::RobotTelemetry & telemetry, std::uint8_t chain) noexcept
+{
+  const std::size_t chain_count = telemetry.header.n_chains;
+  for (std::size_t i = 0; i < chain_count && i < telemetry.chains.size(); ++i) {
+    if (telemetry.chains[i].chain_id == chain) {
+      return telemetry.chains[i].n_motors;
+    }
+  }
+  return std::nullopt;
+}
+
 ArmingVerdict judge_arming(
   const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
   std::chrono::nanoseconds elapsed, std::chrono::nanoseconds fault_grace) noexcept

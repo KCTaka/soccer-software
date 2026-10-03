@@ -62,8 +62,10 @@ using LayoutOrError = std::variant<WiringLayout, std::string>;
 
 /// Validates `joints` (manifest order) and derives the per-chain command layout. Rejects an empty
 /// or oversized joint list, a chain or motor index beyond the wire maximums, two joints on one
-/// motor, a direction_sign other than +-1, and a non-finite offset.
-[[nodiscard]] LayoutOrError make_layout(std::span<const JointWiring> joints);
+/// motor, a direction_sign other than +-1, and a non-finite offset. `names`, if given, parallels
+/// `joints` and names the joint in each message; otherwise a message gives its position.
+[[nodiscard]] LayoutOrError make_layout(
+  std::span<const JointWiring> joints, std::span<const std::string> names = {});
 
 /// Why `envelope` cannot be carried by the wire for this joint, or nothing if it can.
 ///

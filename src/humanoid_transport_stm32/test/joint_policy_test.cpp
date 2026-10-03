@@ -210,6 +210,13 @@ TEST(FindMotor, ReportsAMotorBeyondTheChainsReportedCountAsAbsent)
   EXPECT_FALSE(find_motor(t, 0, 1).has_value());
 }
 
+TEST(ChainMotorCount, SeparatesAnAbsentChainFromOneReportingFewerMotors)
+{
+  const auto t = telemetry_of({{1, {motor_in(Lifecycle::kIdle), motor_in(Lifecycle::kIdle)}}});
+  EXPECT_EQ(chain_motor_count(t, 1), 2);
+  EXPECT_FALSE(chain_motor_count(t, 0).has_value());
+}
+
 // ---------------------------------------------------------------------------
 // judge_arming
 // ---------------------------------------------------------------------------

@@ -32,9 +32,12 @@ constexpr double kMaxDamping =
 
 std::optional<std::string> exceeds(const char * what, double value, double limit);
 
+// "joint 'knee'" when a name is known, "joint 3" when not.
+std::string label(std::span<const std::string> names, std::size_t index);
+
 }  // namespace
 
-LayoutOrError make_layout(std::span<const JointWiring> joints)
+LayoutOrError make_layout(std::span<const JointWiring> joints, std::span<const std::string> names)
 {
   if (joints.empty()) {
     return std::string{"no joints are wired"};
@@ -55,23 +58,25 @@ LayoutOrError make_layout(std::span<const JointWiring> joints)
     const JointWiring & w = joints[i];
     if (w.chain >= wire::kMaxChains) {
       return std::format(
-        "joint {}: chain {} is beyond the wire maximum of {} chains", i, w.chain,
+        "{}: chain {} is beyond the wire maximum of {} chains", label(names, i), w.chain,
         wire::kMaxChains);
     }
     if (w.motor >= wire::kMaxMotorsPerChain) {
       return std::format(
-        "joint {}: motor {} is beyond the wire maximum of {} motors per chain", i, w.motor,
+        "{}: motor {} is beyond the wire maximum of {} motors per chain", label(names, i), w.motor,
         wire::kMaxMotorsPerChain);
     }
     if (w.direction_sign != 1 && w.direction_sign != -1) {
-      return std::format("joint {}: direction_sign must be 1 or -1, got {}", i, w.direction_sign);
+      return std::format(
+        "{}: direction_sign must be 1 or -1, got {}", label(names, i), w.direction_sign);
     }
     if (!std::isfinite(w.zero_offset_rad)) {
-      return std::format("joint {}: zero_offset_rad is not finite", i);
+      return std::format("{}: zero_offset_rad is not set or not finite", label(names, i));
     }
     if (taken[w.chain][w.motor]) {
       return std::format(
-        "joint {}: chain {} motor {} is already wired to another joint", i, w.chain, w.motor);
+        "{}: chain {} motor {} is already wired to another joint", label(names, i), w.chain,
+        w.motor);
     }
     taken[w.chain][w.motor] = true;
     slots[w.chain] = std::max(slots[w.chain], static_cast<std::uint8_t>(w.motor + 1U));
@@ -126,6 +131,14 @@ wire::MitSetpoint to_setpoint(
 
 namespace
 {
+
+std::string label(std::span<const std::string> names, std::size_t index)
+{
+  if (index < names.size()) {
+    return std::format("joint '{}'", names[index]);
+  }
+  return std::format("joint {}", index);
+}
 
 // A limit of exactly the wire range still fits; NaN fails the comparison and is reported.
 std::optional<std::string> exceeds(const char * what, double value, double limit)

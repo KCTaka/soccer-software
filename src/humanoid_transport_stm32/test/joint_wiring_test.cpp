@@ -155,6 +155,17 @@ TEST(JointWiringLayout, RejectsASignThatIsNotPlusOrMinusOne)
   EXPECT_FALSE(error_of(make_layout(std::vector<JointWiring>{wiring(0, 0, 2)})).empty());
 }
 
+TEST(JointWiringLayout, NamesTheOffendingJointWhenNamesAreGiven)
+{
+  const std::vector<JointWiring> joints = {wiring(0, 0), wiring(0, 0)};
+  const std::vector<std::string> names = {"left_knee", "right_knee"};
+  const auto error = error_of(make_layout(joints, names));
+  EXPECT_NE(error.find("'right_knee'"), std::string::npos);
+
+  // Without names it falls back to the position.
+  EXPECT_NE(error_of(make_layout(joints)).find("joint 1"), std::string::npos);
+}
+
 TEST(JointWiringLayout, RejectsANonFiniteOffset)
 {
   const double nan = std::numeric_limits<double>::quiet_NaN();
