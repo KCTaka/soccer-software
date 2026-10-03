@@ -31,6 +31,7 @@ TEST(LinkProbe, ReportsAHealthyMasterAndSendsNothing)
   const std::string report = out.str();
   EXPECT_NE(report.find("protocol version 8 (matches)"), std::string::npos) << report;
   EXPECT_NE(report.find("polls at 200 Hz, telemetry 200 Hz"), std::string::npos) << report;
+  EXPECT_NE(report.find("= 200.0 Hz"), std::string::npos) << report;  // the fake's 5 ms cycle
   EXPECT_NE(report.find("chain 0: 2 motor(s)"), std::string::npos) << report;
   EXPECT_NE(report.find("chain 1: 1 motor(s)"), std::string::npos) << report;
   EXPECT_NE(report.find("IDLE"), std::string::npos) << report;

@@ -2,10 +2,10 @@
 // The Jetson <-> master STM32 wire protocol of soccer-firmware, PROTO_VERSION 8.
 //
 // Source of truth: firmware/common/include/protocol.h on soccer-firmware branch
-// akp/single_motor_rework (commit e30d756). This file mirrors it byte for byte; the golden frames
-// under test/golden are produced by compiling that header, so a layout mistake here fails a test
-// instead of misreading a motor. When the firmware changes any struct it bumps PROTO_VERSION, and
-// kProtocolVersion below must follow it in the same change.
+// akp/single_motor_rework (commit 218126a; unchanged since e30d756). This file mirrors it byte
+// for byte; the golden frames under test/golden are produced by compiling that header, so a
+// layout mistake here fails a test instead of misreading a motor. When the firmware changes any
+// struct it bumps PROTO_VERSION, and kProtocolVersion below must follow it in the same change.
 //
 // Everything here is allocation-free and noexcept, so the real-time exchange() path may use it.
 #ifndef HUMANOID_TRANSPORT_STM32__WIRE_PROTOCOL_HPP_
