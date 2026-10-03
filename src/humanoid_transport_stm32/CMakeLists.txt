@@ -17,6 +17,8 @@ find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
+  src/joint_policy.cpp
+  src/joint_wiring.cpp
   src/wire_protocol.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
@@ -43,6 +45,12 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_wire_protocol_test test/wire_protocol_test.cpp)
   target_link_libraries(${PROJECT_NAME}_wire_protocol_test ${PROJECT_NAME})
   target_include_directories(${PROJECT_NAME}_wire_protocol_test PRIVATE test)
+
+  ament_add_gtest(${PROJECT_NAME}_joint_wiring_test test/joint_wiring_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_joint_wiring_test ${PROJECT_NAME})
+
+  ament_add_gtest(${PROJECT_NAME}_joint_policy_test test/joint_policy_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_joint_policy_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
