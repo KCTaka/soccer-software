@@ -579,6 +579,25 @@
       "items": { "$ref": "#/$defs/actuator" }
     },
 
+    "imu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "link", "pos_m", "quat_wxyz"],
+      "description": "Optional. The one inertial sensor the robot carries, mounted on `link`. Emitted as an MJCF site with gyro, accelerometer and frame-orientation sensors, a URDF frame `<name>_link`, and a ros2_control sensor `<name>` exporting orientation, angular_velocity and linear_acceleration.",
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "link": { "$ref": "#/$defs/identifier" },
+        "pos_m": { "$ref": "#/$defs/vector3", "description": "Sensor origin in the frame of `link`." },
+        "quat_wxyz": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4,
+          "description": "Sensor orientation in the frame of `link`, w first. Must normalise to 1; validator check S-01."
+        }
+      }
+    },
+
     "closed_loops": {
       "type": "array",
       "items": { "$ref": "#/$defs/closed_loop" },

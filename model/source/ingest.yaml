@@ -6,6 +6,8 @@ source:
   commit: 8161bba264d7fa7c99ca301e91e7fb44737676ad # ADR-009-02: pin before first ingest
   mjcf: model/source/menagerie/unitree_g1/g1.xml
   assets_dir: model/source/menagerie/unitree_g1/assets
+  # The G1's pelvis IMU, the one its stock locomotion policies read.
+  imu_site: imu_in_pelvis
 ingest_tool_version: "0.1.0"
 exported_at: "2026-09-03T00:00:00Z"
 exported_by: "model/generators/ingest.py"

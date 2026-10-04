@@ -33,6 +33,7 @@ class Ctx:
         self.overlay, self.meshes, self.warnings = {}, {}, []
         self.actuator_by_joint = {}
         self.root_link, self.floating_root = None, False
+        self.imu_site, self.imu = None, None
 
 def collect_defaults(root, tag):
     """class name (None = root default) -> merged <tag> attributes."""
@@ -179,6 +180,12 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "dimensions_m": geom_size(attrs.get("size"))})
     ctx.overlay[name] = overlay_geoms
 
+    for site in body.findall("site"):
+        if ctx.imu_site is not None and site.get("name") == ctx.imu_site:
+            ctx.imu = {"name": "imu", "link": name,
+                       "pos_m": vec(site.get("pos"), 3, [0, 0, 0]),
+                       "quat_wxyz": vec(site.get("quat"), 4, [1, 0, 0, 0])}
+
     # Joint (if any) attaches this body to its parent.
     joint_obj, joint_name = None, None
     if parent_link is not None:
@@ -257,6 +264,7 @@ def ingest(config_path, out_path, overlay_out_path):
                       "version_or_configuration": cfg["source"]["commit"],
                       "exported_at": cfg["exported_at"], "exported_by": cfg["exported_by"]}
 
+    ctx.imu_site = cfg["source"].get("imu_site")
     parse_assets(root, ctx)
     parse_actuators(root, ctx)
     joint_defaults = collect_defaults(root, "joint")
@@ -267,6 +275,9 @@ def ingest(config_path, out_path, overlay_out_path):
     if len(bodies) != 1:
         raise ValueError("expected exactly one root body in worldbody")
     walk_body(bodies[0], None, None, angle, ctx, joint_defaults, geom_defaults)
+
+    if ctx.imu_site is not None and ctx.imu is None:
+        raise ValueError(f"imu_site '{ctx.imu_site}' not found in {mjcf_path}")
 
     # Actuators: one PROVISIONAL entry per actuated joint (schema A-01).
     joint_names = [j["name"] for j in ctx.joints]
@@ -319,6 +330,8 @@ def ingest(config_path, out_path, overlay_out_path):
             "strippath": False, "angle": "radian",
             "fusestatic": "false", "discardvisual": False}},
     }
+    if ctx.imu is not None:
+        model["imu"] = ctx.imu
     with open(out_path, "w") as f:
         yaml.safe_dump(model, f, sort_keys=False, width=1000, allow_unicode=True)
 

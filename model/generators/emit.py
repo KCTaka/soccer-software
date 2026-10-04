@@ -10,13 +10,20 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from .common import num_or, rpy_to_quat
+from .common import num_or, quat_to_rpy, rpy_to_quat
 
 # Provisional envelope constants until G3 actuator characterisation.
 PROV_KP_MAX, PROV_KD_MAX = 500.0, 10.0
 PROV_SLEW_NM_S, PROV_POWER_W = 500.0, 400.0
 CMD_INTERFACES = ("position", "velocity", "effort", "stiffness", "damping")
 STATE_INTERFACES = ("position", "velocity", "effort")
+# The interface names imu_sensor_broadcaster reads; kImuStateFields in batch_types.hpp spells the
+# same list, and the hardware contract rejects a description that differs.
+IMU_INTERFACES = (
+    "orientation.x", "orientation.y", "orientation.z", "orientation.w",
+    "angular_velocity.x", "angular_velocity.y", "angular_velocity.z",
+    "linear_acceleration.x", "linear_acceleration.y", "linear_acceleration.z",
+)
 
 def load(src, overlay_path):
     with open(src) as f:
@@ -177,6 +184,16 @@ def emit_urdf(model, out_path, assets_dir):
             friction=f"{num_or(tr['friction_coulomb_nm']):.10g}",
         )
 
+    imu = model.get("imu")
+    if imu is not None:
+        # The frame the IMU's readings are expressed in, for TF and for the broadcaster's frame_id.
+        ET.SubElement(robot, "link", name=f"{imu['name']}_link")
+        ij = ET.SubElement(robot, "joint", name=f"{imu['name']}_joint", type="fixed")
+        ET.SubElement(ij, "origin", xyz=fmt(imu["pos_m"]),
+                      rpy=fmt(quat_to_rpy(imu["quat_wxyz"])))
+        ET.SubElement(ij, "parent", link=imu["link"])
+        ET.SubElement(ij, "child", link=f"{imu['name']}_link")
+
     rc = ET.SubElement(
         robot, "ros2_control", name="HumanoidActuatorSystem", type="system"
     )
@@ -198,6 +215,10 @@ def emit_urdf(model, out_path, assets_dir):
             ET.SubElement(je, "command_interface", name=c)
         for s in STATE_INTERFACES:
             ET.SubElement(je, "state_interface", name=s)
+    if imu is not None:
+        se = ET.SubElement(rc, "sensor", name=imu["name"])
+        for s in IMU_INTERFACES:
+            ET.SubElement(se, "state_interface", name=s)
 
     ET.indent(robot)
     ET.ElementTree(robot).write(
@@ -210,6 +231,7 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
     kids = children_by_parent(joints)
     joint_by_child = {j["child_link"]: j for j in joints}
     sim = model["simulation"]["mjcf_compiler"]
+    imu = model.get("imu")
 
     mj = ET.Element("mujoco", model=model["robot"]["name"])
     comp = ET.SubElement(mj, "compiler")
@@ -264,6 +286,9 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
                                        inertia["izz_kg_m2"], inertia["ixy_kg_m2"],
                                        inertia["ixz_kg_m2"], inertia["iyz_kg_m2"]]))
         add_geoms(be, link_name)
+        if imu is not None and imu["link"] == link_name:
+            ET.SubElement(be, "site", name=imu["name"], pos=fmt(imu["pos_m"]),
+                          quat=fmt(imu["quat_wxyz"]), size="0.01")
         if not is_root:
             j = joint_by_child[link_name]
             if j["type"] != "fixed":
@@ -289,6 +314,15 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
     ground.set("condim", "3")
 
     add_body(wb, model["robot"]["root_link"], True)
+
+    if imu is not None:
+        # Exactly one sensor of each type: MujocoActuatorTransport finds them by type, not name.
+        sensors = ET.SubElement(mj, "sensor")
+        ET.SubElement(sensors, "framequat", name=f"{imu['name']}_orientation", objtype="site",
+                      objname=imu["name"])
+        ET.SubElement(sensors, "gyro", name=f"{imu['name']}_angular_velocity", site=imu["name"])
+        ET.SubElement(sensors, "accelerometer", name=f"{imu['name']}_linear_acceleration",
+                      site=imu["name"])
 
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")

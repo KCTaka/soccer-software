@@ -98,5 +98,14 @@ def structural_checks(model):
             errs.append(f"A-02: duplicate can_node_id {key}")
         seen.add(key)
 
+    # S-01 / S-02: the IMU sits on a declared link, with a unit orientation.
+    imu = model.get("imu")
+    if imu is not None:
+        if imu["link"] not in links:
+            errs.append(f"S-02: imu link {imu['link']} is not declared")
+        n = math.sqrt(sum(a * a for a in imu["quat_wxyz"]))
+        if abs(n - 1.0) > 1e-9:
+            errs.append(f"S-01: imu quaternion norm {n}")
+
     warns.append("C-01: sole polygon check skipped (provisional model; no sole geometry)")
     return errs, warns, total
