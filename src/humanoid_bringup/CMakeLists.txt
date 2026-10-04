@@ -3,7 +3,7 @@ project(humanoid_bringup VERSION 0.1.0 LANGUAGES CXX)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY config launch
+install(DIRECTORY config launch policies
   DESTINATION share/${PROJECT_NAME})
 
 install(FILES
@@ -29,6 +29,13 @@ install(PROGRAMS
   nodes/trajectory_player.py
   nodes/sil_stand_verifier.py
   nodes/bench_player.py
+  nodes/walk_policy.py
+  nodes/walk_policy_core.py
   DESTINATION lib/${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(walk_policy_core_test test/test_walk_policy_core.py)
+endif()
 
 ament_package()

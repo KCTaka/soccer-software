@@ -1,0 +1,106 @@
+# Unitree's pretrained G1 walking policy, deployed through the MIT impedance controller.
+# One file for both nodes: `walk_policy` reads its section, and the launch also hands the file to
+# ros2_control_node, where `humanoid_mit_controller` picks up its gains. The gains are part of the
+# policy: it was trained against exactly these torques.
+#
+# Everything under `walk_policy` is from the upstream training and deploy code (see README.md)
+# unless marked "chosen here".
+
+walk_policy:
+  ros__parameters:
+    # Replaced by the launch file with the installed path.
+    policy_path: ""
+    rate_hz: 50.0                 # decimation 4 x 5 ms in training; 10 x 2 ms in the upstream deploy
+    # The 12 outputs, in the order the policy was trained on (also the observation's joint order).
+    policy_joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_pitch_joint
+      - right_ankle_roll_joint
+    default_angles: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0, -0.1, 0.0, 0.0, 0.3, -0.2, 0.0]
+    action_scale: 0.25            # target = default_angles + action_scale * action
+    ang_vel_scale: 0.25
+    dof_pos_scale: 1.0
+    dof_vel_scale: 0.05
+    command_scale: [2.0, 2.0, 0.25]   # vx, vy, yaw rate
+    command_limit: [1.0, 1.0, 1.0]    # the trained command ranges (|vx|, |vy|, |yaw rate|)
+    gait_period_s: 0.8            # the phase clock the policy observes
+    # Order of the humanoid_mit_controller `joints`. The node publishes references in this order
+    # and refuses to start if /joint_states does not carry exactly these joints.
+    controlled_joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_pitch_joint
+      - right_ankle_roll_joint
+      - waist_yaw_joint
+      - waist_roll_joint
+      - waist_pitch_joint
+      - left_shoulder_pitch_joint
+      - left_shoulder_roll_joint
+      - left_shoulder_yaw_joint
+      - left_elbow_joint
+      - left_wrist_roll_joint
+      - left_wrist_pitch_joint
+      - left_wrist_yaw_joint
+      - right_shoulder_pitch_joint
+      - right_shoulder_roll_joint
+      - right_shoulder_yaw_joint
+      - right_elbow_joint
+      - right_wrist_roll_joint
+      - right_wrist_pitch_joint
+      - right_wrist_yaw_joint
+    # chosen here: seconds to move every joint from where it is to the default stance before the
+    # policy takes over. Zero here, because in SIL the robot starts in the stance (see
+    # `mujoco_sim`) and the stance is only dynamically stable: held by the stiff PD alone for a
+    # second it tips over, so a ramp must not pass through it. Non-policy joints (waist, arms) hold
+    # where they started.
+    ramp_s: 0.0
+    # chosen here: sensor samples older than this stop the policy (the controller holds the last
+    # reference), and a command older than cmd_vel_timeout_s falls back to `fallback_command`.
+    max_sensor_age_s: 0.1
+    cmd_vel_timeout_s: 0.5
+    fallback_command: [0.0, 0.0, 0.0]
+
+humanoid_mit_controller:
+  ros__parameters:
+    # Legs: the policy's training gains [N*m/rad], [N*m*s/rad]. Waist and arms: chosen here, to
+    # hold the pose the 12-DOF training model fixed rigidly. They must be stiff: at 100 and 30 the
+    # upper body sags and the policy falls within seconds; at 500/10 and 200/5 it walks. 500 and 10
+    # are the safety manifest's provisional stiffness and damping caps.
+    kp: [100.0, 100.0, 100.0, 150.0, 40.0, 40.0, 100.0, 100.0, 100.0, 150.0, 40.0, 40.0, 500.0, 500.0, 500.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0]
+    kd: [2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 2.0, 2.0, 10.0, 10.0, 10.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+
+# SIL only. The robot starts in the default stance, as every training episode did, so the policy
+# can hold it from its first step. Must equal walk_policy `default_angles` (a test checks).
+mujoco_sim:
+  ros__parameters:
+    initial_pose.joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_pitch_joint
+      - right_ankle_roll_joint
+    initial_pose.positions: [-0.1, 0.0, 0.0, 0.3, -0.2, 0.0, -0.1, 0.0, 0.0, 0.3, -0.2, 0.0]
