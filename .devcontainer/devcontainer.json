@@ -16,7 +16,8 @@
     "--net=host",
     "--cap-add=SYS_NICE",
     "--ulimit", "rtprio=99:99",
-    "--env-file=${localWorkspaceFolder}/.devcontainer/.generated/host.env"
+    "--env-file=${localWorkspaceFolder}/.devcontainer/.generated/host.env",
+    "--device=/dev/ttyACM0",
   ],
 
   "containerEnv": {
