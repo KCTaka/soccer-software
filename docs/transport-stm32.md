@@ -181,8 +181,11 @@ it rests to 0, swings it +-0.3 rad, and returns to 0. **The drives move. Run it 
 attached to them.** Check where they rest with the probe first: a joint outside the bench envelope
 (+-1.8 rad) stops the run at the controller's first cycle.
 
-The dev container does not pass the serial device through, so run it from the container image with
-the device, host networking, and real-time scheduling, plus a Zenoh router:
+The dev container works without the board attached, so it does not pass `/dev/ttyACM0` itself. It
+mounts the host's `/dev` at `/host-dev` and allows the USB serial majors, so with the board plugged
+in the dev container can use `serial_device:=/host-dev/ttyACM0` (Dev Containers: Rebuild Container
+once after pulling this change). To run from a throwaway container instead, with the device, host
+networking, and real-time scheduling, plus a Zenoh router:
 
 ```bash
 docker run --rm -it --entrypoint bash --device=/dev/ttyACM0 --net=host --ipc=host --cap-add=SYS_NICE --ulimit rtprio=99:99 -v "$PWD":/ws -w /ws <dev-container-image>

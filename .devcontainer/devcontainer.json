@@ -17,7 +17,12 @@
     "--cap-add=SYS_NICE",
     "--ulimit", "rtprio=99:99",
     "--env-file=${localWorkspaceFolder}/.devcontainer/.generated/host.env",
-    "--device=/dev/ttyACM0",
+    // The STM32 master is optional: `--device=/dev/ttyACM0` would stop the container starting
+    // whenever the board is unplugged. Instead allow the USB serial majors (166 ttyACM, 188 ttyUSB)
+    // and mount the host's /dev below, so the board appears as /host-dev/ttyACM0 when present,
+    // including when plugged in after the container started.
+    "--device-cgroup-rule=c 166:* rwm",
+    "--device-cgroup-rule=c 188:* rwm",
   ],
 
   "containerEnv": {
@@ -32,7 +37,8 @@
 
   // /tmp/.X11-unix exists on every host that has ever run X (on WSL it points at WSLg's socket).
   "mounts": [
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+    "source=/dev,target=/host-dev,type=bind,bind-propagation=rslave"
   ],
 
   // foxglove_bridge listens here; with --net=host Remote-SSH forwards it to the laptop, so Foxglove
