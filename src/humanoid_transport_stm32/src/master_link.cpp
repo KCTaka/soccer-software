@@ -292,14 +292,44 @@ namespace
 
 void signal(const UniqueFd & fd) noexcept
 {
-  const std::uint64_t one = 1;
-  static_cast<void>(::write(fd.get(), &one, sizeof(one)));
+  std::uint64_t one = 1;
+  for (;; ) {
+    const ssize_t res = ::write(fd.get(), &one, sizeof(one));
+    if (res == static_cast<ssize_t>(sizeof(one))) {
+      return;
+    }
+    if (res < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return;
+      }
+      return;
+    }
+    return;
+  }
 }
 
 void drain(const UniqueFd & fd) noexcept
 {
   std::uint64_t count = 0;
-  static_cast<void>(::read(fd.get(), &count, sizeof(count)));
+  for (;; ) {
+    const ssize_t res = ::read(fd.get(), &count, sizeof(count));
+    if (res == static_cast<ssize_t>(sizeof(count))) {
+      return;
+    }
+    if (res < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return;
+      }
+      return;
+    }
+    return;
+  }
 }
 
 }  // namespace
