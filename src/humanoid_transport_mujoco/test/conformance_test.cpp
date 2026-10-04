@@ -3,6 +3,7 @@
 #include <mujoco/mujoco.h>
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -131,4 +132,28 @@ TEST_F(ConformanceTest, C8_ExchangeWhileInactiveFailsWithNotActive)
   const auto res = transport->exchange(
     cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
   EXPECT_EQ(res.error, humanoid::transport::TransportError::kNotActive);
+}
+
+TEST_F(ConformanceTest, C9_ImuReportsAnUprightUnitAttitudeOnTheFirstCycle)
+{
+  ASSERT_TRUE(transport->configure(manifest, safety));
+  EXPECT_TRUE(transport->capabilities().provides_imu);
+  ASSERT_TRUE(transport->activate());
+
+  humanoid::transport::CommandBatch cmd{};
+  humanoid::transport::FeedbackBatch fb{};
+  cmd.joint_count = manifest.joint_count;
+  cmd.sequence = 1;
+  ASSERT_TRUE(
+    transport->exchange(
+      cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100)).ok());
+
+  const auto & imu = fb.imu;
+  ASSERT_TRUE(imu.valid);
+  const double norm = std::sqrt(
+    imu.orientation_x * imu.orientation_x + imu.orientation_y * imu.orientation_y +
+    imu.orientation_z * imu.orientation_z + imu.orientation_w * imu.orientation_w);
+  EXPECT_NEAR(norm, 1.0, 1e-9);
+  // The robot starts upright at qpos0, and one 5 ms cycle cannot tip it far.
+  EXPECT_GT(std::abs(imu.orientation_w), 0.99);
 }

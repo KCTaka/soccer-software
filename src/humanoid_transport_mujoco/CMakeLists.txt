@@ -41,6 +41,7 @@ add_library(${PROJECT_NAME} SHARED
   src/mujoco_actuator_transport.cpp
   src/ground_truth_publisher.cpp
   src/mujoco_disturbance.cpp
+  src/mujoco_imu.cpp
   src/mujoco_placement.cpp
   src/sim_node.cpp
 )
@@ -91,6 +92,9 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_disturbance_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_disturbance_test PRIVATE
     HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
+
+  ament_add_gtest(${PROJECT_NAME}_imu_test test/imu_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_imu_test ${PROJECT_NAME})
 
   ament_add_gtest(${PROJECT_NAME}_placement_test test/placement_test.cpp)
   target_link_libraries(${PROJECT_NAME}_placement_test ${PROJECT_NAME})

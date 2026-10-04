@@ -26,6 +26,7 @@
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport_mujoco/ground_truth_publisher.hpp"
 #include "humanoid_transport_mujoco/mujoco_disturbance.hpp"
+#include "humanoid_transport_mujoco/mujoco_imu.hpp"
 #include "humanoid_transport_mujoco/sim_node.hpp"
 
 // Forward-declare MuJoCo types to avoid pulling the full header into dependents.
@@ -102,6 +103,7 @@ private:
   [[nodiscard]] bool validate_substeps();
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
   [[nodiscard]] bool resolve_initial_placement();
+  [[nodiscard]] bool map_imu();
   [[nodiscard]] bool configure_disturbance(const PushConfig & config);
 
   // --- MuJoCo state ---
@@ -115,6 +117,8 @@ private:
   // qpos offset of that tree's free joint, or -1 for a fixed base. Resolved
   // at configure so exchange() never searches the model in-cycle.
   int root_qpos_adr_{-1};
+  // The IMU sensors' offsets into sensordata; present() is false for a model without an IMU.
+  ImuSensors imu_sensors_;
   // Root height that puts the lowest collision geom on the ground plane.
   double initial_root_z_{0.0};
 

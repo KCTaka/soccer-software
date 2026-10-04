@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -68,6 +69,7 @@ bool MujocoActuatorTransport::configure(
          load_model(params->mjcf_path) &&
          validate_substeps() &&
          map_joints(joints) &&
+         map_imu() &&
          resolve_initial_placement() &&
          configure_disturbance(params->push);
 }
@@ -126,6 +128,7 @@ transport::TransportCapabilities MujocoActuatorTransport::capabilities() const
   caps.supports_availability_mask = true;
   caps.provides_temperature = false;
   caps.provides_bus_voltage = false;
+  caps.provides_imu = imu_sensors_.present();
   caps.is_deterministic = false;  // kSimulated, not kReplay
   caps.tuple_completeness = transport::TupleCompleteness::kFull;
   return caps;
@@ -228,6 +231,12 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     fb.temperature_c = 0.0F;
     fb.bus_voltage_v = 0.0F;
     fb.fault_bits = 0;
+  }
+
+  // Sensors are evaluated by mj_step() at the start of its last substep, so the reading lags the
+  // joint state above by one physics step (1 ms), as a real sampled IMU lags by its latency.
+  if (imu_sensors_.present()) {
+    feedback.imu = read_imu(*data_, imu_sensors_);
   }
 
   const auto round_trip = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -415,6 +424,16 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
         name, joints.joints[0].name.data()));
     }
   }
+  return true;
+}
+
+bool MujocoActuatorTransport::map_imu()
+{
+  auto found = find_imu_sensors(*model_);
+  if (const auto * error = std::get_if<std::string>(&found)) {
+    return fail(*error);
+  }
+  imu_sensors_ = std::get<ImuSensors>(found);
   return true;
 }
 
