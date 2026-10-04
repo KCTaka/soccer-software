@@ -37,6 +37,8 @@ struct TransportCapabilities
   bool supports_availability_mask{false};
   bool provides_temperature{false};
   bool provides_bus_voltage{false};
+  /// True when exchange() fills FeedbackBatch::imu with a valid sample.
+  bool provides_imu{false};
   /// True only for kReplay. ADR-007 forbids claiming a timing property from a non-physical class.
   bool is_deterministic{false};
 

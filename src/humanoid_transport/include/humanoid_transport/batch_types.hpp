@@ -85,6 +85,42 @@ inline constexpr std::array<NamedField<JointFeedback>, 3> kJointStateFields{{
   {"effort", &JointFeedback::effort_nm},
 }};
 
+/// One reading of the robot's inertial sensor, in the sensor's own frame and ROS conventions
+/// (REP-103): orientation is the sensor frame's attitude in the world as an x-y-z-w quaternion,
+/// angular velocity in rad/s, linear acceleration in m/s^2 including gravity (a specific force).
+struct ImuSample
+{
+  double orientation_x{0.0};
+  double orientation_y{0.0};
+  double orientation_z{0.0};
+  double orientation_w{1.0};
+  double angular_velocity_x{0.0};
+  double angular_velocity_y{0.0};
+  double angular_velocity_z{0.0};
+  double linear_acceleration_x{0.0};
+  double linear_acceleration_y{0.0};
+  double linear_acceleration_z{0.0};
+  /// False means the transport has no IMU, or none answered this cycle. The fields are then
+  /// meaningless, and consumers must not read them as a robot at rest.
+  bool valid{false};
+};
+static_assert(std::is_trivially_copyable_v<ImuSample>);
+
+/// The state interfaces an IMU exports, in storage order. The names are the ones
+/// imu_sensor_broadcaster reads, and model/generators/emit.py (IMU_INTERFACES) declares the same.
+inline constexpr std::array<NamedField<ImuSample>, 10> kImuStateFields{{
+  {"orientation.x", &ImuSample::orientation_x},
+  {"orientation.y", &ImuSample::orientation_y},
+  {"orientation.z", &ImuSample::orientation_z},
+  {"orientation.w", &ImuSample::orientation_w},
+  {"angular_velocity.x", &ImuSample::angular_velocity_x},
+  {"angular_velocity.y", &ImuSample::angular_velocity_y},
+  {"angular_velocity.z", &ImuSample::angular_velocity_z},
+  {"linear_acceleration.x", &ImuSample::linear_acceleration_x},
+  {"linear_acceleration.y", &ImuSample::linear_acceleration_y},
+  {"linear_acceleration.z", &ImuSample::linear_acceleration_z},
+}};
+
 struct CommandBatch
 {
   CycleSequence sequence{0U};
@@ -105,6 +141,9 @@ struct FeedbackBatch
   std::bitset<kMaxJoints> availability_mask{};
   std::uint32_t availability_epoch{0U};
   std::array<JointFeedback, kMaxJoints> joints{};
+  /// Left at its default (invalid) by a transport with no IMU. A transport that has one sets it
+  /// on every successful exchange.
+  ImuSample imu{};
 };
 
 enum class TransportError : std::uint8_t
