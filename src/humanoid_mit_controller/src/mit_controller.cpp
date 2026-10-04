@@ -5,7 +5,9 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <variant>
 
+#include "humanoid_mit_controller/gains.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
 namespace humanoid::control
@@ -43,10 +45,26 @@ controller_interface::CallbackReturn MitImpedanceController::on_configure(
   }
   num_joints_ = joint_names_.size();
 
+  // `kp` and `kd` give one gain per joint in `joints` order; when empty, every joint takes
+  // default_kp / default_kd.
   auto_declare<double>("default_kp", 0.0);
   auto_declare<double>("default_kd", 0.0);
-  default_kp_ = get_node()->get_parameter("default_kp").as_double();
-  default_kd_ = get_node()->get_parameter("default_kd").as_double();
+  auto_declare<std::vector<double>>("kp", std::vector<double>{});
+  auto_declare<std::vector<double>>("kd", std::vector<double>{});
+  const auto kp = resolve_gains(
+    "kp", get_node()->get_parameter("kp").as_double_array(),
+    get_node()->get_parameter("default_kp").as_double(), num_joints_);
+  const auto kd = resolve_gains(
+    "kd", get_node()->get_parameter("kd").as_double_array(),
+    get_node()->get_parameter("default_kd").as_double(), num_joints_);
+  for (const auto * result : {&kp, &kd}) {
+    if (const auto * error = std::get_if<std::string>(result)) {
+      RCLCPP_ERROR(get_node()->get_logger(), "on_configure: %s", error->c_str());
+      return controller_interface::CallbackReturn::ERROR;
+    }
+  }
+  kp_ = std::get<std::vector<double>>(kp);
+  kd_ = std::get<std::vector<double>>(kd);
 
   // Non-RT subscription. Callback runs on executor thread, writes to SPSC buffer.
   ref_sub_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
@@ -65,8 +83,8 @@ controller_interface::CallbackReturn MitImpedanceController::on_configure(
         (i < msg->velocity.size()) ? msg->velocity[i] : 0.0;
         frame.joints[i].effort_nm =
         (i < msg->effort.size()) ? msg->effort[i] : 0.0;
-        frame.joints[i].stiffness_nm_rad = default_kp_;
-        frame.joints[i].damping_nm_s_rad = default_kd_;
+        frame.joints[i].stiffness_nm_rad = kp_[i];
+        frame.joints[i].damping_nm_s_rad = kd_[i];
       }
       reference_buffer_.publish(frame);
     });

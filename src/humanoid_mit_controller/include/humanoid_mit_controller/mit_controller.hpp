@@ -1,7 +1,8 @@
 // Copyright 2026 Your Organization Name
 // MitImpedanceController: the sole owner of the five-field MIT tuple (ADR-001-02).
 //
-// Claims all five command interfaces for every controlled joint.
+// Claims all five command interfaces for every controlled joint. Stiffness and damping are
+// per-joint parameters (`kp`, `kd`): a learned policy is trained against specific gains.
 // HumanoidActuatorSystem::prepare_command_mode_switch rejects a switch that
 // starts or stops part of any joint's tuple, and its write() sends this
 // controller's command only while every joint's tuple is owned.
@@ -81,8 +82,10 @@ private:
 
   // --- Parameters ---
   std::vector<std::string> joint_names_;
-  double default_kp_{0.0};
-  double default_kd_{0.0};
+  // One gain per joint, in joint_names_ order, resolved at configure from `kp`/`kd` (or their
+  // defaults). Read by the reference subscription's callback.
+  std::vector<double> kp_;
+  std::vector<double> kd_;
 
   // Interface handles, ordered: [joint0/pos, joint0/vel, ..., jointN/damping]
   // The framework assigns them in the order returned by
