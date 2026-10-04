@@ -123,4 +123,47 @@ TEST(HardwareContract, RejectsUnknownOrRepeatedInterfaces)
   EXPECT_TRUE(hardware_contract_violation(repeated));
 }
 
+hardware_interface::ComponentInfo imu_sensor()
+{
+  hardware_interface::ComponentInfo sensor;
+  sensor.name = "imu";
+  for (const auto & field : humanoid::transport::kImuStateFields) {
+    hardware_interface::InterfaceInfo interface;
+    interface.name = std::string{field.name};
+    sensor.state_interfaces.push_back(interface);
+  }
+  return sensor;
+}
+
+TEST(HardwareContract, AcceptsAnImuSensor)
+{
+  auto info = valid_info();
+  info.sensors.push_back(imu_sensor());
+  EXPECT_EQ(hardware_contract_violation(info).value_or(""), "");
+}
+
+TEST(HardwareContract, RejectsAnImuMissingAnInterface)
+{
+  auto info = valid_info();
+  info.sensors.push_back(imu_sensor());
+  info.sensors.front().state_interfaces.pop_back();
+  EXPECT_NE(hardware_contract_violation(info).value_or("").find("'imu'"), std::string::npos);
+}
+
+TEST(HardwareContract, RejectsAnImuInterfaceItDoesNotKnow)
+{
+  auto info = valid_info();
+  info.sensors.push_back(imu_sensor());
+  info.sensors.front().state_interfaces.back().name = "linear_acceleration.w";
+  EXPECT_TRUE(hardware_contract_violation(info));
+}
+
+TEST(HardwareContract, RejectsASecondSensor)
+{
+  auto info = valid_info();
+  info.sensors.push_back(imu_sensor());
+  info.sensors.push_back(imu_sensor());
+  EXPECT_TRUE(hardware_contract_violation(info));
+}
+
 }  // namespace

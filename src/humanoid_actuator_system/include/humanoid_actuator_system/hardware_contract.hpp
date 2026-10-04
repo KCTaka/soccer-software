@@ -35,7 +35,9 @@ inline constexpr std::array<std::string_view, 2> kHardwareParams{
 ///     by that name, so a truncated one would address the wrong joint, or none;
 ///   - every joint declares exactly the kMitFields command interfaces and the kJointStateFields
 ///     state interfaces. The resource manager filters mode switches by these declarations, so a
-///     missing one would make every claim look partial.
+///     missing one would make every claim look partial;
+///   - it declares at most one sensor, an IMU, with exactly the kImuStateFields state interfaces
+///     and no command interfaces.
 [[nodiscard]] std::optional<std::string> hardware_contract_violation(
   const hardware_interface::HardwareInfo & info);
 

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -132,6 +133,15 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       "claim a controller may make, and degradation was not accepted");
   }
 
+  // The description declares an IMU the transport cannot deliver: not an error, because one
+  // generated description serves every deployment, but its interfaces will read NaN.
+  if (!info_.sensors.empty() && !caps.provides_imu) {
+    RCLCPP_WARN(
+      get_logger(), "Description declares sensor '%s' but transport '%s' provides no IMU; its "
+      "interfaces will read NaN", info_.sensors.front().name.c_str(),
+      parameters_.transport_plugin.c_str());
+  }
+
   // 8. Preallocate batches
   command_snapshot_ = transport::CommandBatch{};
   feedback_ = transport::FeedbackBatch{};
@@ -245,6 +255,16 @@ HumanoidActuatorSystem::on_export_state_interfaces()
         joint_names_[j], std::string{kFields[f].name}, &state_storage_[j * kFields.size() + f]));
     }
   }
+
+  // hardware_contract_violation() has checked that these are the kImuStateFields, once each.
+  imu_storage_.assign(
+    info_.sensors.empty() ? 0U : transport::kImuStateFields.size(),
+    std::numeric_limits<double>::quiet_NaN());
+  for (std::size_t f = 0; f < imu_storage_.size(); ++f) {
+    interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
+        info_.sensors.front().name, std::string{transport::kImuStateFields[f].name},
+        &imu_storage_[f]));
+  }
   return interfaces;
 }
 
@@ -336,6 +356,14 @@ hardware_interface::return_type HumanoidActuatorSystem::read(
     for (std::size_t f = 0; f < kFields.size(); ++f) {
       state_storage_[i * kFields.size() + f] = feedback_.joints[i].*kFields[f].member;
     }
+  }
+
+  // An invalid sample reads NaN rather than the last or a zero value: a robot that is falling must
+  // not look like one standing still.
+  constexpr auto & kImuFields = transport::kImuStateFields;
+  for (std::size_t f = 0; f < imu_storage_.size(); ++f) {
+    imu_storage_[f] = feedback_.imu.valid ?
+      feedback_.imu.*kImuFields[f].member : std::numeric_limits<double>::quiet_NaN();
   }
 
   return hardware_interface::return_type::OK;

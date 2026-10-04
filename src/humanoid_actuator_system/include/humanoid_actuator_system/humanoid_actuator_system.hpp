@@ -173,6 +173,9 @@ private:
   std::vector<std::string> joint_names_;
   std::vector<double> command_storage_;
   std::vector<double> state_storage_;
+  // The IMU's state interfaces, in kImuStateFields order. Empty when the description declares no
+  // IMU. Holds NaN, the ros2_control "no value", whenever the transport has no valid sample.
+  std::vector<double> imu_storage_;
   hardware_interface::HardwareInfo info_;
 
   // Preallocated. Nothing in the cycle may allocate.

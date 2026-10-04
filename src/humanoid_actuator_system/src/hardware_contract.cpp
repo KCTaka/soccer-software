@@ -18,7 +18,7 @@ namespace
 {
 template<typename Fields>
 std::optional<std::string> interfaces_violation(
-  const std::string & joint, const char * kind,
+  const std::string & owner, const char * kind,
   const std::vector<hardware_interface::InterfaceInfo> & declared, const Fields & required);
 }  // namespace
 
@@ -48,12 +48,28 @@ std::optional<std::string> hardware_contract_violation(
         joint.name.size(), transport::kMaxNameLength - 1U);
     }
     if (auto v = interfaces_violation(
-        joint.name, "command", joint.command_interfaces, transport::kMitFields))
+        std::format("joint '{}'", joint.name), "command", joint.command_interfaces,
+        transport::kMitFields))
     {
       return v;
     }
     if (auto v = interfaces_violation(
-        joint.name, "state", joint.state_interfaces, transport::kJointStateFields))
+        std::format("joint '{}'", joint.name), "state", joint.state_interfaces,
+        transport::kJointStateFields))
+    {
+      return v;
+    }
+  }
+  if (info.sensors.size() > 1U) {
+    return std::format("{} sensors declared; at most one IMU is supported", info.sensors.size());
+  }
+  for (const auto & sensor : info.sensors) {
+    if (!sensor.command_interfaces.empty()) {
+      return std::format("sensor '{}' declares command interfaces", sensor.name);
+    }
+    if (auto v = interfaces_violation(
+        std::format("sensor '{}'", sensor.name), "state", sensor.state_interfaces,
+        transport::kImuStateFields))
     {
       return v;
     }
@@ -66,7 +82,7 @@ namespace
 
 template<typename Fields>
 std::optional<std::string> interfaces_violation(
-  const std::string & joint, const char * kind,
+  const std::string & owner, const char * kind,
   const std::vector<hardware_interface::InterfaceInfo> & declared, const Fields & required)
 {
   for (const auto & interface : declared) {
@@ -77,13 +93,13 @@ std::optional<std::string> interfaces_violation(
         [&interface](const auto & other) {return other.name == interface.name;}) != 1)
     {
       return std::format(
-        "joint '{}' declares {} interface '{}', which is unknown or repeated", joint, kind,
+        "{} declares {} interface '{}', which is unknown or repeated", owner, kind,
         interface.name);
     }
   }
   if (declared.size() != required.size()) {
     return std::format(
-      "joint '{}' declares {} {} interfaces; exactly {} are required", joint, declared.size(), kind,
+      "{} declares {} {} interfaces; exactly {} are required", owner, declared.size(), kind,
       required.size());
   }
   return std::nullopt;
