@@ -414,7 +414,11 @@ bool Stm32SerialTransport::check_manifests(
 
   chain_index_.fill(kNoChain);
   for (std::uint8_t c = 0; c < layout_.chain_count; ++c) {
-    chain_index_[layout_.chains[c].chain_id] = c;
+    const auto chain_id = layout_.chains[c].chain_id;
+    if (chain_id >= chain_index_.size()) {
+      return fail(std::format("chain_id {} must be below {}", chain_id, chain_index_.size()));
+    }
+    chain_index_[chain_id] = c;
   }
   joint_count_ = joints.joint_count;
   parameters_ = parameters;

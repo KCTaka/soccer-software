@@ -31,7 +31,9 @@ namespace
 thread_local std::size_t g_thread_allocations = 0;
 }  // namespace
 
-void * operator new(std::size_t size)
+// noinline: inlined into a caller, GCC pairs the malloc/free inside these with the caller's
+// new/delete and reports -Wmismatched-new-delete on what is a matched pair.
+[[gnu::noinline]] void * operator new(std::size_t size)
 {
   ++g_thread_allocations;
   if (void * p = std::malloc(size)) {
@@ -39,8 +41,8 @@ void * operator new(std::size_t size)
   }
   throw std::bad_alloc{};
 }
-void operator delete(void * p) noexcept {std::free(p);}
-void operator delete(void * p, std::size_t) noexcept {std::free(p);}
+[[gnu::noinline]] void operator delete(void * p) noexcept {std::free(p);}
+[[gnu::noinline]] void operator delete(void * p, std::size_t) noexcept {std::free(p);}
 
 namespace
 {

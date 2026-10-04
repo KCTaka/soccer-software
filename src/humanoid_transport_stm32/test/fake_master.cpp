@@ -604,7 +604,9 @@ void FakeMaster::write_host(const std::vector<std::uint8_t> & bytes)
     return;
   }
   // Non-blocking: a full buffer drops the frame, as the master's USB TX ring would.
-  static_cast<void>(::write(master_fd_.get(), bytes.data(), bytes.size()));
+  if (::write(master_fd_.get(), bytes.data(), bytes.size()) < 0) {
+    return;
+  }
 }
 
 FakeMaster::Motor & FakeMaster::motor_at(std::uint8_t chain, std::uint8_t motor)
