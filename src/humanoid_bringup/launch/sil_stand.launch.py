@@ -88,6 +88,7 @@ def generate_launch_description():
             package='controller_manager',
             executable='spawner',
             arguments=['joint_state_broadcaster',
+                       'imu_sensor_broadcaster',
                        'humanoid_mit_controller'],
             output='screen',
         ),

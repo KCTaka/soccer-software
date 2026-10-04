@@ -3,8 +3,16 @@ controller_manager:
     update_rate: 200  # Hz
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
+    imu_sensor_broadcaster:
+      type: imu_sensor_broadcaster/IMUSensorBroadcaster
     humanoid_mit_controller:
       type: humanoid_mit_controller/MitImpedanceController
+# Publishes the <sensor name="imu"> of the robot description as sensor_msgs/Imu on
+# /imu_sensor_broadcaster/imu. frame_id is the URDF frame the generator emits for that sensor.
+imu_sensor_broadcaster:
+  ros__parameters:
+    sensor_name: imu
+    frame_id: imu_link
 # The HumanoidActuatorSystem hardware component's node. ros2_control names it after the robot
 # description's <ros2_control name>, lower-cased. These choose the deployment, not the robot, so
 # the generated description does not carry them and the component has no defaults for them.
