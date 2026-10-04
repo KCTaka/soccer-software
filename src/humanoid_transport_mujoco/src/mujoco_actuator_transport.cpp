@@ -30,6 +30,7 @@ namespace
 // File-local helpers. Declared here, defined at the end of this file, so the
 // class implementation reads first.
 bool fail(std::string_view msg);
+bool commands_stiffness(const humanoid::transport::CommandBatch & command) noexcept;
 
 }  // namespace
 
@@ -65,11 +66,15 @@ bool MujocoActuatorTransport::configure(
   const transport::SafetyManifest & /*safety*/)
 {
   const auto params = declare_parameters();
+  if (params) {
+    hold_until_commanded_ = params->hold_until_commanded;
+  }
   return params &&
          load_model(params->mjcf_path) &&
          validate_substeps() &&
          map_joints(joints) &&
          map_imu() &&
+         map_initial_pose(*params) &&
          resolve_initial_placement() &&
          configure_disturbance(params->push);
 }
@@ -83,7 +88,7 @@ bool MujocoActuatorTransport::activate()
   if (!model_ || !data_) {
     return false;
   }
-  mj_resetData(model_.get(), data_.get());
+  reset_to_initial_pose();
 
   // Start with the lowest collision geom on the ground plane. The height is
   // derived from the model in resolve_initial_placement(), not hardcoded.
@@ -95,6 +100,7 @@ bool MujocoActuatorTransport::activate()
   mj_forward(model_.get(), data_.get());
 
   active_ = true;
+  held_ = hold_until_commanded_;
 
   ground_truth_.start(sim_node_->node());
 
@@ -154,33 +160,11 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     return result;
   }
 
-  // --- Apply MIT torque to qfrc_applied ---
-  // tau = K_p * (q_d - q) + K_d * (qdot_d - qdot) + tau_ff
-  for (std::uint8_t i = 0; i < joint_count_; ++i) {
-    const int dof = joint_map_[i].dof_adr;
-    const int qp = joint_map_[i].qpos_adr;
-    if (dof < 0 || qp < 0) {
-      continue;
-    }
-
-    const auto & cmd = command.joints[i];
-    const double q = data_->qpos[qp];
-    const double qdot = data_->qvel[dof];
-
-    const double tau =
-      cmd.stiffness_nm_rad * (cmd.position_rad - q) +
-      cmd.damping_nm_s_rad * (cmd.velocity_rad_s - qdot) +
-      cmd.effort_nm;
-
-    data_->qfrc_applied[dof] = tau;
-  }
-
-  // SIL scenario control: external push, if one is scheduled.
-  disturbance_.apply(*data_);
-
-  // --- Step physics: n_substeps of dt_physics ---
-  for (int s = 0; s < n_substeps_; ++s) {
-    mj_step(model_.get(), data_.get());
+  // While held, the robot stands still and time does not advance. The first stiff command ends
+  // the hold for good, even if later commands go slack.
+  held_ = held_ && !commands_stiffness(command);
+  if (!held_) {
+    advance_physics(command);
   }
 
   const auto t_end = std::chrono::steady_clock::now();
@@ -316,6 +300,19 @@ MujocoActuatorTransport::declare_parameters()
   try {
     params.mjcf_path = node->declare_parameter<std::string>(
       "mjcf_path", "", describe("Absolute path to the generated MJCF model"));
+    params.hold_until_commanded = node->declare_parameter<bool>(
+      "hold_until_commanded", false,
+      describe(
+        "Hold the robot still and do not advance simulated time until the first command with a "
+        "nonzero stiffness arrives, so it does not fall while controllers start"));
+    params.initial_pose_joints = node->declare_parameter<std::vector<std::string>>(
+      "initial_pose.joints", std::vector<std::string>{},
+      describe(
+        "Joints the robot starts at a given angle, by name; pairs with initial_pose.positions"));
+    params.initial_pose_positions = node->declare_parameter<std::vector<double>>(
+      "initial_pose.positions", std::vector<double>{},
+      describe(
+        "Starting angle of each initial_pose.joints entry, rad. Joints not listed start at 0"));
     params.push.force_n = node->declare_parameter<double>(
       "disturbance.push.force_n", defaults.force_n,
       describe("Push force magnitude, N. 0 disables the push"));
@@ -427,6 +424,38 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
   return true;
 }
 
+void MujocoActuatorTransport::advance_physics(const transport::CommandBatch & command) noexcept
+{
+  // --- Apply MIT torque to qfrc_applied ---
+  // tau = K_p * (q_d - q) + K_d * (qdot_d - qdot) + tau_ff
+  for (std::uint8_t i = 0; i < joint_count_; ++i) {
+    const int dof = joint_map_[i].dof_adr;
+    const int qp = joint_map_[i].qpos_adr;
+    if (dof < 0 || qp < 0) {
+      continue;
+    }
+
+    const auto & cmd = command.joints[i];
+    const double q = data_->qpos[qp];
+    const double qdot = data_->qvel[dof];
+
+    const double tau =
+      cmd.stiffness_nm_rad * (cmd.position_rad - q) +
+      cmd.damping_nm_s_rad * (cmd.velocity_rad_s - qdot) +
+      cmd.effort_nm;
+
+    data_->qfrc_applied[dof] = tau;
+  }
+
+  // SIL scenario control: external push, if one is scheduled.
+  disturbance_.apply(*data_);
+
+  // --- Step physics: n_substeps of dt_physics ---
+  for (int s = 0; s < n_substeps_; ++s) {
+    mj_step(model_.get(), data_.get());
+  }
+}
+
 bool MujocoActuatorTransport::map_imu()
 {
   auto found = find_imu_sensors(*model_);
@@ -435,6 +464,43 @@ bool MujocoActuatorTransport::map_imu()
   }
   imu_sensors_ = std::get<ImuSensors>(found);
   return true;
+}
+
+bool MujocoActuatorTransport::map_initial_pose(const SimParameters & params)
+{
+  initial_pose_.clear();
+  if (params.initial_pose_joints.size() != params.initial_pose_positions.size()) {
+    return fail(std::format(
+      "initial_pose has {} joints but {} positions", params.initial_pose_joints.size(),
+      params.initial_pose_positions.size()));
+  }
+  for (std::size_t i = 0; i < params.initial_pose_joints.size(); ++i) {
+    const auto & name = params.initial_pose_joints[i];
+    const double value = params.initial_pose_positions[i];
+    const int jnt_id = mj_name2id(model_.get(), mjtObj::mjOBJ_JOINT, name.c_str());
+    if (jnt_id < 0) {
+      return fail(std::format("initial_pose joint '{}' not found in model", name));
+    }
+    const int type = model_->jnt_type[jnt_id];
+    if (type != mjtJoint::mjJNT_HINGE && type != mjtJoint::mjJNT_SLIDE) {
+      return fail(std::format("initial_pose joint '{}' is not hinge/slide", name));
+    }
+    if (model_->jnt_limited[jnt_id] &&
+      (value<model_->jnt_range[2 * jnt_id] || value> model_->jnt_range[2 * jnt_id + 1]))
+    {
+      return fail(std::format("initial_pose angle {} for '{}' is outside its range", value, name));
+    }
+    initial_pose_.push_back({model_->jnt_qposadr[jnt_id], value});
+  }
+  return true;
+}
+
+void MujocoActuatorTransport::reset_to_initial_pose() noexcept
+{
+  mj_resetData(model_.get(), data_.get());
+  for (const auto & joint : initial_pose_) {
+    data_->qpos[joint.qpos_adr] = joint.value;
+  }
 }
 
 bool MujocoActuatorTransport::resolve_initial_placement()
@@ -446,7 +512,7 @@ bool MujocoActuatorTransport::resolve_initial_placement()
 
   // Kinematics at the model's reference configuration (qpos0), which is the
   // configuration activate() resets to.
-  mj_resetData(model_.get(), data_.get());
+  reset_to_initial_pose();
   mj_kinematics(model_.get(), data_.get());
   const auto ground = ground_plane_z(*model_, *data_);
   if (!ground) {
@@ -488,6 +554,14 @@ bool fail(std::string_view msg)
 {
   std::cerr << "MujocoActuatorTransport: " << msg << "\n";
   return false;
+}
+
+// True when any joint of `command` has a nonzero stiffness: a controller is driving the robot.
+bool commands_stiffness(const humanoid::transport::CommandBatch & command) noexcept
+{
+  return std::any_of(
+    command.joints.begin(), command.joints.begin() + command.joint_count,
+    [](const humanoid::transport::JointCommand & joint) {return joint.stiffness_nm_rad != 0.0;});
 }
 
 }  // namespace

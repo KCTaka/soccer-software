@@ -88,6 +88,16 @@ if(BUILD_TESTING)
   target_compile_definitions(${PROJECT_NAME}_conformance_test PRIVATE
     HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
 
+  # The same main, with the transport configured to hold the robot until it is commanded.
+  ament_add_gtest(${PROJECT_NAME}_hold_test
+    test/hold_test.cpp
+    test/conformance_test_main.cpp
+    SKIP_LINKING_MAIN_LIBRARIES)
+  target_link_libraries(${PROJECT_NAME}_hold_test ${PROJECT_NAME} rclcpp::rclcpp)
+  target_compile_definitions(${PROJECT_NAME}_hold_test PRIVATE
+    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}"
+    HUMANOID_TEST_HOLD_UNTIL_COMMANDED)
+
   ament_add_gtest(${PROJECT_NAME}_disturbance_test test/disturbance_test.cpp)
   target_link_libraries(${PROJECT_NAME}_disturbance_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_disturbance_test PRIVATE
