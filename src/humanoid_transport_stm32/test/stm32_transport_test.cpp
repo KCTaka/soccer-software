@@ -471,6 +471,36 @@ TEST_F(TransportTest, ActivationArmsEveryMotorIntoHold)
   EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kHold);
 }
 
+TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyIdle)
+{
+  params.monitor_only = true;
+  ASSERT_TRUE(configure());
+  ASSERT_TRUE(transport->activate());  // connects and streams; never runs the arming sequence
+
+  // Activation armed nothing: every motor is still IDLE at the master.
+  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kIdle);
+
+  // Many running cycles keep streaming telemetry and still never arm.
+  for (int i = 0; i < 50; ++i) {
+    EXPECT_TRUE(exchange().ok());
+  }
+
+  // Had any cycle sent HOLD or MIT, the master's state machine would have armed that motor.
+  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kIdle);
+
+  // And the wire itself carried IDLE for every wired slot, never HOLD/MIT.
+  const auto last = fake->last_command();
+  ASSERT_TRUE(last.has_value());
+  const auto idle = static_cast<std::uint8_t>(wire::ModeRequest::kIdle);
+  EXPECT_EQ(last->chains[0].motors[0].mode_req, idle);
+  EXPECT_EQ(last->chains[0].motors[1].mode_req, idle);
+  EXPECT_EQ(last->chains[1].motors[0].mode_req, idle);
+}
+
 TEST_F(TransportTest, ActivationSurvivesASlaveGoingSilentWhileItArms)
 {
   auto config = default_fake_config();

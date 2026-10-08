@@ -1,0 +1,17 @@
+# Read-only monitor of the bench_2s_10m dial board. controller_manager runs the actuator system
+# with Stm32SerialTransport in monitor_only mode and a joint_state_broadcaster -- no MIT controller,
+# so no command interface is ever claimed. The stm32_serial joints map is the GENERATED
+# config/bench_2s_10m/stm32_wiring.yaml, merged in by the launch; serial_device is a launch
+# argument. monitor_only never arms: activate() only connects, and every cycle sends IDLE.
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz; checked against humanoid_transport/timing.hpp at configure
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+humanoidactuatorsystem:
+  ros__parameters:
+    transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
+    accepted_degradation: "none"
+stm32_serial:
+  ros__parameters:
+    monitor_only: true

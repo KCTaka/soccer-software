@@ -15,6 +15,17 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/safety_manifest.yaml"
     DESTINATION share/${PROJECT_NAME}/config)
 
+# Bench dial board (bench_2s_10m). Primitive-only URDF for the RViz view launch, plus the
+# generated transport wiring and safety manifest for a future bench transport launch.
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/bench_2s_10m/generated/robot.urdf"
+    DESTINATION share/${PROJECT_NAME}/config
+    RENAME bench_description.urdf)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/bench_2s_10m/generated/stm32_wiring.yaml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/bench_2s_10m/generated/safety_manifest.yaml"
+    DESTINATION share/${PROJECT_NAME}/config/bench_2s_10m)
+
 # SIL model. The MJCF locates its meshes through a relative meshdir
 # (../source/menagerie/unitree_g1/assets), so both are installed with the
 # same relative layout under share/${PROJECT_NAME}/model.

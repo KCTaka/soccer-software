@@ -55,6 +55,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       ros-jazzy-mujoco-vendor \
       ros-jazzy-rviz2 \
       ros-jazzy-foxglove-bridge \
+      ros-jazzy-joint-state-publisher \
+      ros-jazzy-joint-state-publisher-gui \
+      ros-jazzy-plotjuggler-ros \
+      ros-jazzy-rqt-plot \
       python3-colcon-ros \
       python3-rosdep \
  && rm -rf /var/lib/apt/lists/*

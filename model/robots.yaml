@@ -1,0 +1,37 @@
+# Registry of robots the model pipeline generates. One entry per robot.
+#
+#   python3 -m model.generators.cli check                 # every robot
+#   python3 -m model.generators.cli check    --robot bench_2s_10m
+#   python3 -m model.generators.cli generate --robot bench_2s_10m
+#   python3 -m model.generators.cli ingest   --robot unitree_g1
+#
+# source_kind:
+#   menagerie  ingest reads `ingest_config` (a pinned MuJoCo-Menagerie MJCF) and writes
+#              `source` + `overlay`.
+#   authored   `source` is the hand-written source of truth; ingest is an identity normaliser
+#              (load + canonical re-dump), so regenerate-and-diff catches a non-canonical edit.
+#
+# firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
+robots:
+  unitree_g1:
+    source_kind: menagerie
+    ingest_config: model/source/ingest.yaml
+    source: model/source/robot_model.yaml
+    overlay: model/source/menagerie_contact_overlay.yaml
+    generated: model/generated
+    assets_dir: model/source/menagerie/unitree_g1/assets
+    firmware_config: false
+  bench_2s_10m:
+    source_kind: authored
+    ingest_config: null
+    source: model/robots/bench_2s_10m/source/robot_model.yaml
+    overlay: null
+    generated: model/robots/bench_2s_10m/generated
+    assets_dir: null
+    firmware_config: true
+    firmware_setup: 2s_10m
+    stm32_wiring: true
+    safety_manifest_path: config/bench_2s_10m/safety_manifest.yaml
+    safety_manifest_package: humanoid_bringup
+
+default_robot: unitree_g1

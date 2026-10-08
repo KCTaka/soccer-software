@@ -1,0 +1,116 @@
+schema_version: 0.1.0-provisional
+source_digest_note: envelopes derived from robot_model.yaml limits; stiffness/damping/slew/power are provisional constants
+joint_count: 10
+max_consecutive_bad_cycles: 3
+feedback_max_age_us: 15000
+envelopes:
+  bench_j1:
+    position_min_rad: -0.79
+    position_max_rad: 0.79
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j2:
+    position_min_rad: -1.05
+    position_max_rad: 1.05
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j3:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j4:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j5:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j6:
+    position_min_rad: -0.79
+    position_max_rad: 0.79
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j7:
+    position_min_rad: -1.05
+    position_max_rad: 1.05
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j8:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j9:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0
+  bench_j10:
+    position_min_rad: -1.31
+    position_max_rad: 1.31
+    velocity_max_rad_s: 10.0
+    torque_continuous_nm: 0.8
+    torque_peak_nm: 0.8
+    torque_peak_duration_s: 1.0
+    stiffness_max_nm_rad: 500.0
+    damping_max_nm_s_rad: 5.0
+    torque_slew_max_nm_s: 500.0
+    power_max_w: 400.0

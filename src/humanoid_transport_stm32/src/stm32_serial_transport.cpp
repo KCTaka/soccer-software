@@ -82,6 +82,15 @@ bool Stm32SerialTransport::activate()
   link_.acknowledge_master_reset();
   isolated_mask_.store(0);
 
+  if (parameters_.monitor_only) {
+    // Read-only: do not run the arming sequence. The link is already streaming telemetry; mark
+    // active so exchange() runs, where every cycle sends IDLE. No motor is ever armed.
+    availability_.reset();
+    availability_epoch_.store(0);
+    active_.store(true, std::memory_order_release);
+    return true;
+  }
+
   if (!arm_motors()) {
     // Never leave a motor armed behind a failed activation.
     if (const auto stuck = release_motors(parameters_.release_timeout)) {
@@ -160,6 +169,11 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
   bool tuples_representable = true;
   for (std::uint8_t j = 0; j < joint_count_; ++j) {
     const JointWiring & wiring = layout_.joints[j];
+    if (parameters_.monitor_only) {
+      // Read-only: ask every motor for IDLE, never HOLD or MIT. The tuple is never encoded or sent.
+      slot_of(wire_command, wiring) = plain_request(plan_request(Phase::kReleasing, false, true));
+      continue;
+    }
     const bool is_isolated = ((isolated >> j) & 1U) != 0U;
     const wire::EncodedCommand encoded = wire::encode_command(
       wire::ModeRequest::kMit, to_setpoint(wiring, command.joints[j]), wire::kCmdFlagValid);
@@ -303,6 +317,10 @@ std::optional<Stm32SerialTransport::Parameters> Stm32SerialTransport::declare_pa
     parameters.serial_device = node->declare_parameter<std::string>(
       "serial_device", "",
         describe("The master STM32's USB CDC device, e.g. /dev/robosoccer-master"));
+    parameters.monitor_only = node->declare_parameter<bool>(
+      "monitor_only", false,
+        describe("Read-only: activate() connects and streams but never arms; every cycle sends "
+                 "IDLE for all motors"));
     const Parameters defaults;
     parameters.handshake_timeout = to_milliseconds(node->declare_parameter<double>(
       "handshake_timeout_s",

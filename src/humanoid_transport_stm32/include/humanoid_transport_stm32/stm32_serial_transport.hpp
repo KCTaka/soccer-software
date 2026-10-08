@@ -10,7 +10,8 @@
 //
 // Safety, and where it lives. This transport asks for MIT on every joint every cycle and never for
 // HOLD: a motor that dropped to IDLE or FAULT stays there until the next activation, because
-// auto-rearm is prohibited. The firmware owns the independent protections: the host-death
+// auto-rearm is prohibited. (In monitor_only mode it never arms at all: activate() only connects,
+// and every cycle sends IDLE.) The firmware owns the independent protections: the host-death
 // watchdog (the master damps and then idles the motors if no fresh command arrives for 12 cycles
 // while any motor is armed), the slave's soft limits, and the drive's own protection. Nothing here
 // keeps a stalled real-time loop alive, and nothing may: no background thread sends commands.
@@ -20,6 +21,8 @@
 //
 // Parameters (node "stm32_serial", all read once at configure, all read-only):
 //   serial_device          the master's USB CDC device, e.g. /dev/robosoccer-master (required)
+//   monitor_only           read-only: activate() connects and streams telemetry but never arms,
+//                          and every exchange() sends IDLE for all motors (default false)
 //   handshake_timeout_s    how long configure() waits for the master to answer
 //   arming_timeout_s       how long activate() waits for every motor to clear to IDLE and then
 //                          report HOLD, both with fresh feedback
@@ -59,6 +62,9 @@ public:
   struct Parameters
   {
     std::string serial_device;
+    /// Read-only mode: activate() connects and streams telemetry but never runs the arming
+    /// sequence, and every exchange() sends IDLE for all motors. Nothing ever arms.
+    bool monitor_only{false};
     std::chrono::milliseconds handshake_timeout{2000};
     std::chrono::milliseconds arming_timeout{3000};
     std::chrono::milliseconds release_timeout{1000};

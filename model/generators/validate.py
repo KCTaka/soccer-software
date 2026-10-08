@@ -98,6 +98,38 @@ def structural_checks(model):
             errs.append(f"A-02: duplicate can_node_id {key}")
         seen.add(key)
 
+    # A-03 / A-04 / A-05: physical actuators with explicit slot + drive (e.g. the bench). Skipped
+    # for provisional/sim actuators, which carry neither.
+    joint_by_act = {j["actuator"]: j for j in joints if j["actuator"] is not None}
+    slots_by_segment = {}
+    for a in model["actuators"]:
+        if "slot" in a:
+            slots_by_segment.setdefault(a["bus_segment"], []).append(a["slot"])
+    for seg, slots in slots_by_segment.items():
+        if len(set(slots)) != len(slots):
+            errs.append(f"A-03: segment {seg} has duplicate slots {sorted(slots)}")
+        if sorted(slots) != list(range(len(slots))):
+            errs.append(f"A-03: segment {seg} slots {sorted(slots)} are not contiguous 0..n-1")
+    for a in model["actuators"]:
+        d = a.get("drive")
+        if d is None:
+            continue
+        if d["default_kp"] > d["kp_max"]:
+            errs.append(f"A-04: actuator {a['name']} default_kp {d['default_kp']} > kp_max "
+                        f"{d['kp_max']}")
+        if d["default_kd"] > d["kd_max"]:
+            errs.append(f"A-04: actuator {a['name']} default_kd {d['default_kd']} > kd_max "
+                        f"{d['kd_max']}")
+        j = joint_by_act.get(a["name"])
+        if j is not None:
+            lim = j["limits"]
+            if lim["velocity_rad_s"] > d["velocity_max_rad_s"]:
+                errs.append(f"A-05: joint {j['name']} velocity {lim['velocity_rad_s']} exceeds "
+                            f"drive velocity_max {d['velocity_max_rad_s']}")
+            if lim["effort_peak_nm"] > d["torque_max_nm"]:
+                errs.append(f"A-05: joint {j['name']} effort_peak {lim['effort_peak_nm']} exceeds "
+                            f"drive torque_max {d['torque_max_nm']}")
+
     # S-01 / S-02: the IMU sits on a declared link, with a unit orientation.
     imu = model.get("imu")
     if imu is not None:

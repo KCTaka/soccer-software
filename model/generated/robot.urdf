@@ -8,13 +8,13 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/source/menagerie/unitree_g1/assets/pelvis_contour_link.STL" />
+        <mesh filename="package://humanoid_bringup/model/source/menagerie/unitree_g1/assets/pelvis.STL" />
       </geometry>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/source/menagerie/unitree_g1/assets/pelvis_contour_link.STL" />
+        <mesh filename="package://humanoid_bringup/model/source/menagerie/unitree_g1/assets/pelvis.STL" />
       </geometry>
     </collision>
   </link>

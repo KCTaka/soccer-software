@@ -1,0 +1,1415 @@
+schema_version: 1.0.0
+robot:
+  name: bench_2s_10m
+  size_class: benchtop
+  root_link: extrusion_base
+  total_mass_measured_kg: null
+  zero_pose_photo: null
+provenance:
+  generated_from:
+  - 'hand-authored: model/robots/bench_2s_10m/source/robot_model.yaml'
+  ingest_tool_version: 0.1.0
+  source_digests: {}
+links:
+- name: extrusion_base
+  parent_joint: null
+  mass:
+    cad_kg: 2.16
+    measured_kg: null
+    provenance: &id001
+      cad_system: derived
+      document_id: bench fixture 2s_10m (hand-authored dial board)
+      version_or_configuration: 2s_10m-v1
+      exported_at: '2026-10-07T00:00:00Z'
+      exported_by: hand-authored
+  com_m:
+  - 0.0
+  - 0.0
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 0.0005760000000000001
+    iyy_kg_m2: 0.045288
+    izz_kg_m2: 0.045288
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.0
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.25
+      - 0.02
+      - 0.02
+    mesh: null
+- name: bench_j1_hand
+  parent_joint: bench_j1
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - 0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j2_hand
+  parent_joint: bench_j2
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - 0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j3_hand
+  parent_joint: bench_j3
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - 0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j4_hand
+  parent_joint: bench_j4
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - 0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j5_hand
+  parent_joint: bench_j5
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - 0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - 0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j6_hand
+  parent_joint: bench_j6
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - -0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - -0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j7_hand
+  parent_joint: bench_j7
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - -0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - -0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j8_hand
+  parent_joint: bench_j8
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - -0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - -0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j9_hand
+  parent_joint: bench_j9
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - -0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - -0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+- name: bench_j10_hand
+  parent_joint: bench_j10
+  mass:
+    cad_kg: 0.02
+    measured_kg: null
+    provenance: *id001
+  com_m:
+  - 0.0
+  - -0.06
+  - 0.0
+  inertia:
+    reference_point: com
+    reference_frame: principal
+    principal_axes_rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+    ixx_kg_m2: 2.400666666666667e-05
+    iyy_kg_m2: 1.1333333333333334e-07
+    izz_kg_m2: 2.4106666666666667e-05
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.0
+    iyz_kg_m2: 0.0
+    provenance: *id001
+  visual_mesh: null
+  collision:
+    primitives:
+    - shape: box
+      frame:
+        xyz_m:
+        - 0.0
+        - -0.06
+        - 0.0
+        rpy_rad:
+        - 0.0
+        - 0.0
+        - 0.0
+      dimensions_m:
+      - 0.004
+      - 0.06
+      - 0.001
+    mesh: null
+joints:
+- name: bench_j1
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j1_hand
+  origin:
+    xyz_m:
+    - -0.2
+    - 0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -0.81
+    hard_stop_upper_rad: 0.81
+    software_lower_rad: -0.79
+    software_upper_rad: 0.79
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j1
+- name: bench_j2
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j2_hand
+  origin:
+    xyz_m:
+    - -0.1
+    - 0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.07
+    hard_stop_upper_rad: 1.07
+    software_lower_rad: -1.05
+    software_upper_rad: 1.05
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j2
+- name: bench_j3
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j3_hand
+  origin:
+    xyz_m:
+    - 0.0
+    - 0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j3
+- name: bench_j4
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j4_hand
+  origin:
+    xyz_m:
+    - 0.1
+    - 0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j4
+- name: bench_j5
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j5_hand
+  origin:
+    xyz_m:
+    - 0.2
+    - 0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j5
+- name: bench_j6
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j6_hand
+  origin:
+    xyz_m:
+    - -0.2
+    - -0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -0.81
+    hard_stop_upper_rad: 0.81
+    software_lower_rad: -0.79
+    software_upper_rad: 0.79
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j6
+- name: bench_j7
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j7_hand
+  origin:
+    xyz_m:
+    - -0.1
+    - -0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.07
+    hard_stop_upper_rad: 1.07
+    software_lower_rad: -1.05
+    software_upper_rad: 1.05
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j7
+- name: bench_j8
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j8_hand
+  origin:
+    xyz_m:
+    - 0.0
+    - -0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j8
+- name: bench_j9
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j9_hand
+  origin:
+    xyz_m:
+    - 0.1
+    - -0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j9
+- name: bench_j10
+  type: revolute
+  parent_link: extrusion_base
+  child_link: bench_j10_hand
+  origin:
+    xyz_m:
+    - 0.2
+    - -0.02
+    - 0.0
+    rpy_rad:
+    - 0.0
+    - 0.0
+    - 0.0
+  axis:
+  - 0.0
+  - 0.0
+  - 1.0
+  positive_direction:
+    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
+    photo: null
+    verified_by: null
+  limits:
+    hard_stop_lower_rad: -1.33
+    hard_stop_upper_rad: 1.33
+    software_lower_rad: -1.31
+    software_upper_rad: 1.31
+    velocity_rad_s: 10.0
+    velocity_limit_origin: drive
+    effort_continuous_nm: 0.8
+    effort_peak_nm: 0.8
+    effort_peak_duration_s: 1.0
+  transmission:
+    gear_ratio: 1.0
+    direction_sign: -1
+    backlash_rad: NR
+    stiffness_nm_rad: NR
+    friction_coulomb_nm: 0.0
+    friction_viscous_nm_s_rad: 0.0
+    armature_kg_m2: 0.0
+  calibration:
+    zero_offset_rad: 0.0
+    zero_pose_value_rad: 0.0
+    measured_at: null
+  actuator: bench_j10
+actuators:
+- name: bench_j1
+  motor_class: RS02
+  bus_segment: slave0
+  can_node_id: 1
+  slot: 0
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 44.0
+    torque_max_nm: 17.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j2
+  motor_class: RS02
+  bus_segment: slave0
+  can_node_id: 2
+  slot: 1
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 44.0
+    torque_max_nm: 17.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j3
+  motor_class: RS00
+  bus_segment: slave0
+  can_node_id: 3
+  slot: 2
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j4
+  motor_class: RS00
+  bus_segment: slave0
+  can_node_id: 4
+  slot: 3
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j5
+  motor_class: RS00
+  bus_segment: slave0
+  can_node_id: 5
+  slot: 4
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j6
+  motor_class: RS02
+  bus_segment: slave1
+  can_node_id: 6
+  slot: 0
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 44.0
+    torque_max_nm: 17.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j7
+  motor_class: RS02
+  bus_segment: slave1
+  can_node_id: 7
+  slot: 1
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 44.0
+    torque_max_nm: 17.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j8
+  motor_class: RS00
+  bus_segment: slave1
+  can_node_id: 8
+  slot: 2
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j9
+  motor_class: RS00
+  bus_segment: slave1
+  can_node_id: 9
+  slot: 3
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+- name: bench_j10
+  motor_class: RS00
+  bus_segment: slave1
+  can_node_id: 10
+  slot: 4
+  drive:
+    default_kp: 15.0
+    default_kd: 1.0
+    kp_max: 500.0
+    kd_max: 5.0
+    velocity_max_rad_s: 33.0
+    torque_max_nm: 14.0
+    position_max_rad: 12.57
+  mit_encoding:
+    verified_by: NR
+    position:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    velocity:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    effort:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    stiffness:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    damping:
+      bits: NR
+      min: NR
+      max: NR
+      endianness: NR
+    frames_per_cycle_command: NR
+    frames_per_cycle_feedback: NR
+    dlc_command_bytes: NR
+    dlc_feedback_bytes: NR
+  thermal:
+    derating_curve: NR
+    measured: false
+closed_loops: []
+emission:
+  urdf:
+    enabled: true
+    mode: full_tree
+    excluded_links: []
+  mjcf:
+    enabled: false
+  sdf:
+    enabled: false
+  usd:
+    enabled: false
+simulation:
+  mjcf_compiler:
+    balanceinertia: false
+    boundmass: 0
+    boundinertia: 0
+    settotalmass: -1
+    inertiafromgeom: 'false'
+    strippath: false
+    angle: radian
+    fusestatic: 'false'
+    discardvisual: false

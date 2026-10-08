@@ -248,6 +248,16 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
     for child in body.findall("body"):
         walk_body(child, name, eff_class, angle, ctx, joint_defaults, geom_defaults)
 
+def normalize(src_path, out_path):
+    """Identity ingest for an authored robot: the source is the truth, so just re-emit it in
+    canonical form. Regenerate-and-diff then flags a hand-edit that is not canonical, the same way
+    it flags a stale Menagerie ingest."""
+    with open(src_path) as f:
+        model = yaml.safe_load(f)
+    with open(out_path, "w") as f:
+        yaml.safe_dump(model, f, sort_keys=False, width=1000, allow_unicode=True)
+
+
 def ingest(config_path, out_path, overlay_out_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)

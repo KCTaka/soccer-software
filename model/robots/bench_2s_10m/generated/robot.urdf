@@ -1,0 +1,388 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="bench_2s_10m">
+  <link name="extrusion_base">
+    <inertial xyz="0 0 0" rpy="0 0 0">
+      <mass value="2.16" />
+      <inertia ixx="0.000576" iyy="0.045288" izz="0.045288" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.5 0.04 0.04" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.5 0.04 0.04" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j1_hand">
+    <inertial xyz="0 0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j2_hand">
+    <inertial xyz="0 0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j3_hand">
+    <inertial xyz="0 0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j4_hand">
+    <inertial xyz="0 0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j5_hand">
+    <inertial xyz="0 0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j6_hand">
+    <inertial xyz="0 -0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j7_hand">
+    <inertial xyz="0 -0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j8_hand">
+    <inertial xyz="0 -0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j9_hand">
+    <inertial xyz="0 -0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="bench_j10_hand">
+    <inertial xyz="0 -0.06 0" rpy="0 0 0">
+      <mass value="0.02" />
+      <inertia ixx="2.400666667e-05" iyy="1.133333333e-07" izz="2.410666667e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 -0.06 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.008 0.12 0.002" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bench_j1" type="revolute">
+    <origin xyz="-0.2 0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j1_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.79" upper="0.79" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j2" type="revolute">
+    <origin xyz="-0.1 0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j2_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.05" upper="1.05" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j3" type="revolute">
+    <origin xyz="0 0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j3_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j4" type="revolute">
+    <origin xyz="0.1 0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j4_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j5" type="revolute">
+    <origin xyz="0.2 0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j5_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j6" type="revolute">
+    <origin xyz="-0.2 -0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j6_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.79" upper="0.79" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j7" type="revolute">
+    <origin xyz="-0.1 -0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j7_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.05" upper="1.05" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j8" type="revolute">
+    <origin xyz="0 -0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j8_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j9" type="revolute">
+    <origin xyz="0.1 -0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j9_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="bench_j10" type="revolute">
+    <origin xyz="0.2 -0.02 0" rpy="0 0 0" />
+    <parent link="extrusion_base" />
+    <child link="bench_j10_hand" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.31" upper="1.31" effort="0.8" velocity="10" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <ros2_control name="HumanoidActuatorSystem" type="system">
+    <hardware>
+      <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
+      <param name="safety_manifest_path">config/bench_2s_10m/safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_bringup</param>
+    </hardware>
+    <joint name="bench_j1">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j2">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j3">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j4">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j5">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j6">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j7">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j8">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j9">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="bench_j10">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+  </ros2_control>
+</robot>
