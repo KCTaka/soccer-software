@@ -326,6 +326,16 @@ void FakeMaster::set_drive_answers(std::uint8_t chain, std::uint8_t motor, bool 
   motor_at(chain, motor).drive_answers = answers;
 }
 
+void FakeMaster::set_discovering(std::uint8_t chain, std::uint8_t motor, bool discovering)
+{
+  const std::scoped_lock lock{mutex_};
+  auto & m = motor_at(chain, motor);
+  // DISCOVERING is not advanced by drive_sm_on_tick (a boot state the discovery routine owns), so
+  // it stays put until cleared -- exactly a slave still coming up.
+  m.drive_state = static_cast<std::uint8_t>(
+    discovering ? wire::DriveState::DRV_DISCOVERING : wire::DriveState::DRV_DISABLED);
+}
+
 void FakeMaster::set_enable_never_runs(std::uint8_t chain, std::uint8_t motor, bool never)
 {
   const std::scoped_lock lock{mutex_};

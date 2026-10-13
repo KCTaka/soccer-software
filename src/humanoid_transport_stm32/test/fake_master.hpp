@@ -129,6 +129,9 @@ public:
   /// The slave did not find this motor at boot: it never answers, so it ages to ABSENT and an
   /// ENABLE is refused (ABSENT rejects it).
   void set_undiscovered(std::uint8_t chain, std::uint8_t motor);
+  /// Hold the motor in boot discovery (DRV_DISCOVERING): it has not finished coming up, so
+  /// configure must wait for it. Clear it (false) to let it report DISABLED again.
+  void set_discovering(std::uint8_t chain, std::uint8_t motor, bool discovering);
   /// Whether the motor's drive answers on CAN (powered and on the bus).
   void set_drive_answers(std::uint8_t chain, std::uint8_t motor, bool answers);
   /// The drive answers but never reports rs_mode == Run, so ENABLING times out to ENABLE_FAILED.

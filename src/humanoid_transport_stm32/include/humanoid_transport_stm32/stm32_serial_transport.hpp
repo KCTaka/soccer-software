@@ -8,13 +8,14 @@
 // Jetson loop is phase-locked to the master's cycle instead of beating against it. A frame that
 // does not arrive by the deadline is a bad cycle, and three in a row are command loss (ADR-002).
 //
-// Safety, and where it lives. This transport asks for MIT on every joint every cycle and never for
-// HOLD: a motor that dropped to IDLE or FAULT stays there until the next activation, because
-// auto-rearm is prohibited. (In monitor_only mode it never arms at all: activate() only connects,
-// and every cycle sends IDLE.) The firmware owns the independent protections: the host-death
-// watchdog (the master damps and then idles the motors if no fresh command arrives for 12 cycles
-// while any motor is armed), the slave's soft limits, and the drive's own protection. Nothing here
-// keeps a stalled real-time loop alive, and nothing may: no background thread sends commands.
+// Safety, and where it lives. This transport asks ENABLE with a VALID tuple on every joint every
+// cycle and never RESET: a motor that dropped to DISABLED or FAULT stays there until the next
+// activation, because auto-rearm is prohibited. (In monitor_only mode it never arms at all:
+// activate() only connects, and every cycle sends DISABLE.) The firmware owns the independent
+// protections: the host-death watchdog (the master damps and then idles the motors if no fresh
+// command arrives for HOST_LOST_CYCLES while any motor is armed), the slave's soft limits, and the
+// drive's own protection. Nothing here keeps a stalled real-time loop alive, and nothing may: no
+// background thread sends commands.
 //
 // Real-time. exchange() is the only real-time entry point besides the two disable requests. It
 // allocates nothing, takes no lock, and waits only on an eventfd with the caller's deadline.
@@ -24,9 +25,11 @@
 //   monitor_only           read-only: activate() connects and streams telemetry but never arms,
 //                          and every exchange() sends IDLE for all motors (default false)
 //   handshake_timeout_s    how long configure() waits for the master to answer
-//   arming_timeout_s       how long activate() waits for every motor to clear to IDLE and then
-//                          report HOLD, both with fresh feedback
-//   release_timeout_s      how long deactivate() waits for every motor to report IDLE
+//   discovery_timeout_s    how long configure() waits for every wired joint to finish boot
+//                          discovery (leave BOOT/DISCOVERING) and report a healthy link
+//   arming_timeout_s       how long activate() waits for every motor to clear to DISABLED and then
+//                          report ENABLED, both with fresh feedback
+//   release_timeout_s      how long deactivate() waits for every motor to report DISABLED
 //   fault_grace_s          how long a motor may stay faulted after its fault reset is sent
 //   joints.<name>.chain, .motor, .direction_sign, .zero_offset_rad
 //                          where each manifest joint lives and its angle convention
@@ -66,6 +69,10 @@ public:
     /// sequence, and every exchange() sends IDLE for all motors. Nothing ever arms.
     bool monitor_only{false};
     std::chrono::milliseconds handshake_timeout{2000};
+    /// How long configure() waits for every wired joint to leave BOOT/DISCOVERING and report a
+    /// healthy link. The firmware's boot discovery can take seconds; an empty (unwired) chain is
+    /// not checked, so its slow discovery never blocks configure.
+    std::chrono::milliseconds discovery_timeout{3000};
     std::chrono::milliseconds arming_timeout{3000};
     std::chrono::milliseconds release_timeout{1000};
     std::chrono::milliseconds fault_grace{500};
@@ -93,9 +100,9 @@ public:
     const Parameters & parameters, const transport::JointManifest & joints,
     const transport::SafetyManifest & safety);
 
-  /// Clears every motor to IDLE with a fault reset, then arms it into HOLD, and returns once all
-  /// report HOLD with fresh feedback. Fails leaving them idle. See plan_request for why it takes
-  /// two steps.
+  /// Clears every motor to DISABLED with a RESET, then arms it to ENABLED, and returns once all
+  /// report ENABLED with fresh feedback. Fails leaving them disabled. See plan_request for why it
+  /// takes two steps.
   [[nodiscard]] bool activate() override;
 
   /// Idles every motor and waits for the master to confirm it.
@@ -126,6 +133,11 @@ private:
     const transport::SafetyManifest & safety);
   [[nodiscard]] bool open_link(const Parameters & parameters);
   [[nodiscard]] bool check_master(const Parameters & parameters);
+  /// Whether one telemetry frame shows every wired joint ready: its chain ALIVE and reporting the
+  /// expected motor count, its motor out of BOOT/DISCOVERING and not ABSENT, and the robot not in
+  /// PROTO_MISMATCH. On the first unmet condition, returns false and sets `why` (for the timeout
+  /// message). Non-real-time; called only from check_master().
+  [[nodiscard]] bool frame_health(const TelemetryFrame & frame, std::string & why) const;
 
   // --- Lifecycle, non-real-time ---
   [[nodiscard]] bool arm_motors();
@@ -151,7 +163,7 @@ private:
   // --- Constants ---
   static constexpr std::uint8_t kNoChain = 0xFF;
   /// How long arming and releasing wait for one telemetry frame before sending the next request.
-  /// Well inside the master's 12-cycle host-death limit, so a slow frame cannot trip it.
+  /// Well inside the master's host-death limit (HOST_LOST_CYCLES), so a slow frame cannot trip it.
   static constexpr std::chrono::milliseconds kFrameWait{20};
 
   // --- Configuration, read once at configure ---

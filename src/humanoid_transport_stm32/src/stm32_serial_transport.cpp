@@ -327,6 +327,10 @@ std::optional<Stm32SerialTransport::Parameters> Stm32SerialTransport::declare_pa
       "handshake_timeout_s",
       std::chrono::duration<double>(defaults.handshake_timeout).count(),
       describe("How long configure waits for the master to answer, s")));
+    parameters.discovery_timeout = to_milliseconds(node->declare_parameter<double>(
+      "discovery_timeout_s", std::chrono::duration<double>(defaults.discovery_timeout).count(),
+      describe("How long configure waits for every wired joint to finish boot discovery and "
+               "report a healthy link, s")));
     parameters.arming_timeout = to_milliseconds(node->declare_parameter<double>(
       "arming_timeout_s", std::chrono::duration<double>(defaults.arming_timeout).count(),
       describe("How long activate waits for every motor to clear to IDLE, then report HOLD, s")));
@@ -470,6 +474,16 @@ bool Stm32SerialTransport::check_master(const Parameters & parameters)
         wire::kProtocolVersion));
   }
 
+  // The protocol version byte matching is not enough: the schema hash proves both sides agree on
+  // the exact wire LAYOUT. A build re-vendored from a different firmware tag has a different hash.
+  if (status->schema_hash != wire::kSchemaHash) {
+    link_.close();
+    return fail(std::format(
+        "the master reports wire schema 0x{:08X} but this build is pinned to 0x{:08X}; reflash the "
+        "master or re-vendor the host from the matching soccer-firmware tag", status->schema_hash,
+        wire::kSchemaHash));
+  }
+
   // One telemetry frame per cycle is what exchange() relies on. The firmware emits telemetry from
   // inside the poll cycle today, but the two are separate settings in its configuration, so a
   // master that polls at a different rate than it reports is one whose behaviour is unknown.
@@ -487,32 +501,91 @@ bool Stm32SerialTransport::check_master(const Parameters & parameters)
   }
   nominal_cycle_period_us_ = kMicrosecondsPerSecond / status->telemetry_hz;
 
-  // The wiring is a claim about the robot. Check it against what answers, while nothing is armed.
-  const auto frame = link_.wait_for_frame(0, parameters.handshake_timeout);
-  if (!frame) {
-    link_.close();
-    return fail(std::format(
-        "the master answers but reports no telemetry within {} ms; no slave is responding",
-        parameters.handshake_timeout.count()));
-  }
-  for (std::uint8_t c = 0; c < layout_.chain_count; ++c) {
-    const ChainLayout & chain = layout_.chains[c];
-    const auto motors = chain_motor_count(frame->robot, chain.chain_id);
-    if (!motors) {
-      link_.close();
-      return fail(std::format(
-          "chain {} is wired to joints but is not reporting: is that slave powered and running "
-          "firmware built from the same configuration?", chain.chain_id));
+  // The wiring is a claim about the robot. Check it against what answers, while nothing is armed,
+  // giving the slaves until discovery_timeout to finish boot discovery (leave BOOT/DISCOVERING) and
+  // bring their links up. Only wired chains are checked, so an empty chain's slow discovery (the
+  // firmware's boot discover() can take tens of seconds on an unpopulated chain) never blocks here.
+  const auto give_up = std::chrono::steady_clock::now() + parameters.discovery_timeout;
+  std::uint64_t seen = 0;
+  std::optional<TelemetryFrame> frame;
+  std::string why = "no telemetry arrived";
+  for (;; ) {
+    if (const auto f = link_.wait_for_frame(seen, kFrameWait)) {
+      frame = f;
+      seen = link_.frame_count();
+      if (frame_health(*frame, why)) {
+        break;
+      }
     }
-    if (*motors < chain.motor_slots) {
+    if (std::chrono::steady_clock::now() >= give_up) {
       link_.close();
       return fail(std::format(
-          "chain {} reports {} motors but the wiring needs {}: the firmware was built from a "
-          "different configuration", chain.chain_id, *motors, chain.motor_slots));
+          "the robot was not ready within {} ms: {}", parameters.discovery_timeout.count(), why));
     }
   }
 
   last_cycle_ = frame->robot.cycle_id;
+  return true;
+}
+
+bool Stm32SerialTransport::frame_health(const TelemetryFrame & frame, std::string & why) const
+{
+  if (frame.robot.robot_state ==
+    static_cast<std::uint8_t>(wire::RobotState::ROBOT_PROTO_MISMATCH))
+  {
+    why = "a slave fails the version gate (robot_state PROTO_MISMATCH); reflash the mismatched "
+      "slave";
+    return false;
+  }
+  for (std::uint8_t c = 0; c < layout_.chain_count; ++c) {
+    const ChainLayout & chain = layout_.chains[c];
+    // The per-chain link: find the chain the master reported for this wired id.
+    std::optional<std::uint8_t> link;
+    for (std::uint8_t i = 0; i < frame.robot.n_chains && i < wire::kMaxChains; ++i) {
+      if (frame.robot.chains[i].chain_id == chain.chain_id) {
+        link = frame.robot.chains[i].link;
+        break;
+      }
+    }
+    if (!link || *link != static_cast<std::uint8_t>(wire::ChainLink::CHAIN_LINK_ALIVE)) {
+      why = std::format(
+        "chain {} link is {}; is that slave powered and on the SPI bus?", chain.chain_id,
+        wire::chain_link_name(link.value_or(
+          static_cast<std::uint8_t>(wire::ChainLink::CHAIN_LINK_LOST))));
+      return false;
+    }
+    const auto motors = chain_motor_count(frame.robot, chain.chain_id);
+    if (!motors) {
+      why = std::format("chain {} is wired to joints but is not reporting motors", chain.chain_id);
+      return false;
+    }
+    if (*motors < chain.motor_slots) {
+      why = std::format(
+        "chain {} reports {} motors but the wiring needs {}: the firmware was built from a "
+        "different configuration", chain.chain_id, *motors, chain.motor_slots);
+      return false;
+    }
+  }
+  for (std::uint8_t j = 0; j < joint_count_; ++j) {
+    const JointWiring & wiring = layout_.joints[j];
+    const auto motor = find_motor(frame.robot, wiring.chain, wiring.motor);
+    if (!motor) {
+      why = std::format("joint '{}' maps to a motor the master is not reporting", joint_name(j));
+      return false;
+    }
+    const auto state = static_cast<wire::DriveState>(motor->drive_state);
+    if (state == wire::DriveState::DRV_BOOT || state == wire::DriveState::DRV_DISCOVERING) {
+      why = std::format("joint '{}' is still in boot discovery ({})", joint_name(j),
+          wire::drive_state_name(motor->drive_state));
+      return false;
+    }
+    if (state == wire::DriveState::DRV_ABSENT) {
+      why = std::format(
+        "joint '{}' maps to a motor its slave did not discover at boot (ABSENT); with the drive "
+        "powered, reset that slave", joint_name(j));
+      return false;
+    }
+  }
   return true;
 }
 

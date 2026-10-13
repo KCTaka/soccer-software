@@ -97,6 +97,7 @@ protected:
 
     params.serial_device = fake->device();
     params.handshake_timeout = 500ms;
+    params.discovery_timeout = 500ms;
     params.arming_timeout = 1500ms;
     params.release_timeout = 500ms;
     params.fault_grace = 150ms;
@@ -402,6 +403,45 @@ TEST_F(TransportTest, ConfigureFailsWhenAWiredChainIsNotReporting)
   EXPECT_FALSE(configure());
 }
 
+TEST_F(TransportTest, ConfigureFailsWhenTheMasterReportsADifferentSchemaHash)
+{
+  auto config = default_fake_config();
+  config.schema_hash = wire::kSchemaHash ^ 0x1u;  // same proto version, different wire layout
+  start_fake(config);
+  EXPECT_FALSE(configure());
+}
+
+TEST_F(TransportTest, ConfigureFailsWhenAWiredChainsLinkIsNotAlive)
+{
+  fake->set_chain_mismatch(1, true);  // link MISMATCH, and robot_state PROTO_MISMATCH
+  EXPECT_FALSE(configure());
+}
+
+TEST_F(TransportTest, ConfigureFailsWhileAJointIsStillInBootDiscovery)
+{
+  fake->set_discovering(0, 0, true);
+  EXPECT_FALSE(configure());
+}
+
+TEST_F(TransportTest, ConfigureFailsWhenAWiredJointsMotorIsAbsent)
+{
+  fake->set_undiscovered(0, 1);  // never discovered -> ABSENT
+  EXPECT_FALSE(configure());
+}
+
+TEST_F(TransportTest, ConfigureWaitsForBootDiscoveryThenSucceeds)
+{
+  fake->set_discovering(0, 0, true);
+  // Discovery finishes partway through the discovery_timeout window; configure must wait, not fail.
+  std::thread finish([&] {
+      std::this_thread::sleep_for(150ms);
+      fake->set_discovering(0, 0, false);
+    });
+  const bool ok = configure();
+  finish.join();
+  EXPECT_TRUE(ok);
+}
+
 TEST_F(TransportTest, ConfigureFailsWhenAChainReportsFewerMotorsThanTheWiringNeeds)
 {
   params.wiring[2] = wiring(1, 1);  // chain 1 has one motor
@@ -561,36 +601,26 @@ TEST_F(TransportTest, ActivationClearsAFaultLatchedByAPreviousSession)
 // (plan_request kArming sends ENABLE with NO tuple until P8.3), so there is nothing to assert about
 // hold_position here yet. The capture-once test lives with the P8.3 lifecycle.
 
-TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredIsNeverArmed)
+TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredFailsConfigureAndIsNeverArmed)
 {
-  // The drive was powered after its slave booted: it answers now, but the slave never rediscovers
-  // it, and arming it past that check would step it to the zero position the slave assumes.
-  params.arming_timeout = 400ms;
+  // The drive was powered after its slave booted: it answers now, but the slave never rediscovered
+  // it (ABSENT). The first-contact health gate catches that at configure, before anything could arm
+  // and step it to the zero position the slave assumes -- so configure() refuses and the shaft is
+  // never touched.
   fake->set_undiscovered(0, 1);
   fake->set_measured(0, 1, 0.6, 0.0, 0.0);
-  ASSERT_TRUE(configure());
-
-  EXPECT_FALSE(transport->activate());
-  EXPECT_FALSE(transport->health_snapshot().active);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ABSENT);  // never discovered -> ABSENT
-  EXPECT_NEAR(fake->shaft_position(0, 1), 0.6, 1e-3);
-  EXPECT_TRUE(eventually([&] {
-      return fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
-             fake->state(1, 0) == wire::DriveState::DRV_DISABLED;
-    }));
+  EXPECT_FALSE(configure());
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ABSENT);
+  EXPECT_NEAR(fake->shaft_position(0, 1), 0.6, 1e-3);  // never stepped
 }
 
-TEST_F(TransportTest, AMotorWithNoDriveBehindItIsNeverReportedArmed)
+TEST_F(TransportTest, AMotorWithNoDriveBehindItFailsConfigure)
 {
-  // A motor the slave never discovered ages to ABSENT; an ENABLE for it is refused, so it never
-  // reaches ENABLED.
-  params.arming_timeout = 400ms;
+  // Same gate, with the drive also silent on CAN: an ABSENT motor fails configure, so it is never
+  // armed.
   fake->set_undiscovered(1, 0);
   fake->set_drive_answers(1, 0, false);
-  ASSERT_TRUE(configure());
-
-  EXPECT_FALSE(transport->activate());
-  EXPECT_FALSE(transport->health_snapshot().active);
+  EXPECT_FALSE(configure());
   EXPECT_NE(fake->state(1, 0), wire::DriveState::DRV_ENABLED);
 }
 
