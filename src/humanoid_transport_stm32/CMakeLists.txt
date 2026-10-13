@@ -27,8 +27,13 @@ add_library(${PROJECT_NAME} SHARED
   src/wire_protocol.cpp
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+# generated/ holds the wire code vendored from a pinned soccer-firmware tag
+# (generated/vendor.sh + FIRMWARE_PIN). wire_protocol.hpp includes it as
+# "robot_wire_gen.hpp"; it is installed flat into the package include root so the
+# same spelling resolves in the install tree.
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/generated>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(${PROJECT_NAME} PUBLIC
   humanoid_transport::humanoid_transport
@@ -44,6 +49,11 @@ target_link_libraries(stm32_link_probe ${PROJECT_NAME})
 install(TARGETS stm32_link_probe RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
+# The vendored generated header ships flat in the include root (matching the
+# "robot_wire_gen.hpp" include spelling); protocol.yaml ships as runtime data for
+# the hardware interface's self-describing log.
+install(FILES generated/robot_wire_gen.hpp DESTINATION include/${PROJECT_NAME})
+install(FILES generated/protocol.yaml DESTINATION share/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
@@ -53,11 +63,29 @@ install(TARGETS ${PROJECT_NAME}
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
+  # generated/ is vendored verbatim from a pinned soccer-firmware tag (firmware
+  # house style, style-checked there) — exclude it from our linters.
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/generated/robot_wire_gen.hpp")
   ament_lint_auto_find_test_dependencies()
 
   ament_add_gtest(${PROJECT_NAME}_wire_protocol_test test/wire_protocol_test.cpp)
   target_link_libraries(${PROJECT_NAME}_wire_protocol_test ${PROJECT_NAME})
   target_include_directories(${PROJECT_NAME}_wire_protocol_test PRIVATE test)
+
+  # The vendored wire code must match the pinned firmware release: FIRMWARE_PIN's
+  # SCHEMA_HASH drives the test, so re-vendoring without bumping the pin (or the
+  # reverse) fails the build. The golden fixtures prove header<->bytes agreement.
+  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/generated/FIRMWARE_PIN" _firmware_pin)
+  string(REGEX MATCH "SCHEMA_HASH=(0x[0-9A-Fa-f]+)" _ "${_firmware_pin}")
+  set(_pinned_hash "${CMAKE_MATCH_1}")
+  if(NOT _pinned_hash)
+    message(FATAL_ERROR "generated/FIRMWARE_PIN has no SCHEMA_HASH=0x... line")
+  endif()
+  ament_add_gtest(${PROJECT_NAME}_wire_pin_test test/wire_pin_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_wire_pin_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_wire_pin_test PRIVATE
+    "WIRE_PINNED_SCHEMA_HASH=${_pinned_hash}"
+    "WIRE_FIXTURE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/generated/fixtures\"")
 
   ament_add_gtest(${PROJECT_NAME}_joint_wiring_test test/joint_wiring_test.cpp)
   target_link_libraries(${PROJECT_NAME}_joint_wiring_test ${PROJECT_NAME})
