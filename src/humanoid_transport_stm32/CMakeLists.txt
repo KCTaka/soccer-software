@@ -64,8 +64,12 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(ament_cmake_gtest REQUIRED)
   # generated/ is vendored verbatim from a pinned soccer-firmware tag (firmware
-  # house style, style-checked there) — exclude it from our linters.
-  set(AMENT_LINT_AUTO_FILE_EXCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/generated/robot_wire_gen.hpp")
+  # house style, style-checked there) — exclude it from our linters: the C++ wire
+  # header and the firmware_sm/ C headers the fake master's shim compiles against.
+  file(GLOB _vendored_sources
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/robot_wire_gen.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/firmware_sm/*.h")
+  set(AMENT_LINT_AUTO_FILE_EXCLUDE ${_vendored_sources})
   ament_lint_auto_find_test_dependencies()
 
   ament_add_gtest(${PROJECT_NAME}_wire_protocol_test test/wire_protocol_test.cpp)
@@ -95,9 +99,27 @@ if(BUILD_TESTING)
 
   # The fake master is a pseudo-terminal stand-in for the STM32; see test/fake_master.hpp for what
   # it does and does not prove.
-  add_library(${PROJECT_NAME}_fake_master STATIC test/fake_master.cpp)
+  # fake_master runs the firmware's real decision logic: fw_drive_sm.cpp is the isolated TU that
+  # includes the vendored firmware drive_sm.h (generated/firmware_sm, PRIVATE so protocol.h's
+  # macros never reach a TU that also pulls the C++ wire wrapper).
+  add_library(${PROJECT_NAME}_fake_master STATIC test/fake_master.cpp test/fw_drive_sm.cpp)
   target_include_directories(${PROJECT_NAME}_fake_master PUBLIC test)
+  target_include_directories(${PROJECT_NAME}_fake_master PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/generated/firmware_sm")
   target_link_libraries(${PROJECT_NAME}_fake_master PUBLIC ${PROJECT_NAME})
+  # fw_drive_sm.cpp is the one TU that compiles the vendored firmware C headers (drive_sm.h,
+  # motor_config.h). Those are firmware house style -- motor_config.h uses C99 designated array
+  # initializers, which C++ allows only as an extension -- so this file alone drops -Wpedantic.
+  set_source_files_properties(test/fw_drive_sm.cpp PROPERTIES COMPILE_OPTIONS "-Wno-pedantic")
+
+  # The shim boundary: the firmware drive-SM enum values (through fw_drive_sm) must equal wire::'s.
+  ament_add_gtest(${PROJECT_NAME}_fw_boundary_test test/fw_boundary_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_fw_boundary_test ${PROJECT_NAME}_fake_master)
+
+  # The master logic the fake master emulates by hand: the version-gate enable refusal and the
+  # robot_state reporting priority.
+  ament_add_gtest(${PROJECT_NAME}_fake_master_test test/fake_master_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_fake_master_test ${PROJECT_NAME}_fake_master)
 
   ament_add_gtest(${PROJECT_NAME}_master_link_test test/master_link_test.cpp)
   target_link_libraries(${PROJECT_NAME}_master_link_test ${PROJECT_NAME}_fake_master)

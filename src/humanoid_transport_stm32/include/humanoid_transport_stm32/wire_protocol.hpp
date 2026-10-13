@@ -1,11 +1,16 @@
 // Copyright 2026 UTRA-RoboSoccer
-// The Jetson <-> master STM32 wire protocol of soccer-firmware, PROTO_VERSION 8.
+// The Jetson <-> master STM32 wire protocol of soccer-firmware.
 //
-// Source of truth: firmware/common/include/protocol.h on soccer-firmware branch
-// akp/single_motor_rework (commit 218126a; unchanged since e30d756). This file mirrors it byte
-// for byte; the golden frames under test/golden are produced by compiling that header, so a
-// layout mistake here fails a test instead of misreading a motor. When the firmware changes any
-// struct it bumps PROTO_VERSION, and kProtocolVersion below must follow it in the same change.
+// Thin wrapper over the GENERATED header vendored in generated/robot_wire_gen.hpp (copied from a
+// pinned soccer-firmware release by generated/vendor.sh; see generated/FIRMWARE_PIN). The layout --
+// every struct, enum, flag and scale -- is defined once, in firmware's protocol.yaml, and emitted
+// into that header; this file does NOT redeclare it. It aliases the generated types into this
+// namespace and keeps only the hand-written host-side logic: CRC, fixed-point encode/decode,
+// framing, the resync FrameScanner, payload decoders, and name helpers.
+//
+// kProtocolVersion and the layout come from the generated header, so a firmware bump is picked up
+// by re-vendoring (vendor.sh), not by editing this file. wire_pin_test asserts the vendored
+// schema hash equals the pin and that the firmware golden fixtures round-trip.
 //
 // Everything here is allocation-free and noexcept, so the real-time exchange() path may use it.
 #ifndef HUMANOID_TRANSPORT_STM32__WIRE_PROTOCOL_HPP_
@@ -20,229 +25,82 @@
 #include <optional>
 #include <type_traits>
 
+#include "robot_wire_gen.hpp"
+
 namespace humanoid::transport_stm32::wire
 {
 
-// The structs below are memcpy'd to and from the byte stream, so the host must share the MCU's
-// byte order. Both supported hosts (x86-64, AArch64 Jetson) are little-endian.
+// The structs are memcpy'd to and from the byte stream, so the host must share the MCU's byte
+// order. Both supported hosts (x86-64, AArch64 Jetson) are little-endian.
 static_assert(std::endian::native == std::endian::little, "the wire is little-endian");
 
-inline constexpr std::uint8_t kProtocolVersion = 8;
+// --- Layout, enums, flags and scales: aliased from the generated header -----------------------
 
-// Fixed WIRE maximums. They size the arrays in every frame; the live counts travel in n_chains and
-// n_motors. They are distinct from the firmware's generated per-build NUM_SLAVES / N_MOTORS.
-inline constexpr std::size_t kMaxChains = 4;
-inline constexpr std::size_t kMaxMotorsPerChain = 5;
+inline constexpr std::uint8_t kProtocolVersion = robot_wire::PROTO_VERSION;
+inline constexpr std::uint32_t kSchemaHash = robot_wire::PROTO_SCHEMA_HASH;
+
+inline constexpr std::size_t kMaxChains = robot_wire::MAX_CHAINS;
+inline constexpr std::size_t kMaxMotorsPerChain = robot_wire::MAX_MOTORS_PER_CHAIN;
 inline constexpr std::size_t kMaxMotors = kMaxChains * kMaxMotorsPerChain;
+inline constexpr std::size_t kHeaderSize = robot_wire::MSG_HEADER_SIZE;
 
-inline constexpr std::size_t kHeaderSize = 16;
+using MessageType = robot_wire::MsgType;
+using NodeId = robot_wire::NodeId;
+/// Per-motor drive state reported in tele_motor_t.drive_state (v10 CiA-402-style lifecycle).
+using DriveState = robot_wire::DriveState;
+/// Per-motor drive request in cmd_motor_t.drive_req. The MIT tuple travels under kCmdFlagValid;
+/// there is no "MIT request" -- an ENABLED motor simply applies every valid tuple.
+using DriveReq = robot_wire::DriveReq;
+/// Why a motor is, or last was, faulted. Latched at detection by the firmware.
+using DriveFault = robot_wire::DriveFault;
+using RobotState = robot_wire::RobotState;
+/// Per-chain SPI link state, authored by the master in tele_chain_t.link.
+using ChainLink = robot_wire::ChainLink;
 
-enum class MessageType : std::uint16_t
-{
-  kPing = 0x01,
-  kMasterStatus = 0x02,
-  kSlaveStatus = 0x03,
-  kRobotCmd = 0x08,
-  kRobotTele = 0x09,
-};
-
-enum class NodeId : std::uint8_t
-{
-  kJetson = 1,
-  kMaster = 2,
-};
-
-/// tele_motor_t.state: what one motor is doing. HOLD, MIT, DAMPED and TO_ZERO are "armed".
-enum class Lifecycle : std::uint8_t
-{
-  kBoot = 0,
-  kDiscovering = 1,
-  kIdle = 2,
-  kHold = 3,
-  kMit = 4,
-  kDamped = 5,
-  kToZero = 6,
-  kFault = 7,
-};
-
-/// cmd_motor_t.mode_req. kHold is the only request that arms a motor from kIdle.
-enum class ModeRequest : std::uint8_t
-{
-  kIdle = 0,
-  kHold = 1,
-  kMit = 2,
-  kDamped = 3,
-  kToZero = 4,
-};
-
-/// tele_motor_t.cause: why a motor is, or last was, faulted. Latched by the firmware.
-enum class FaultCause : std::uint8_t
-{
-  kNone = 0,
-  kOvertorque = 1,
-  kCanTimeout = 2,
-  kWatchdog = 3,
-  kMotorFault = 4,
-  kZeroTimeout = 5,
-  kNotEnabled = 6,
-  kWound = 7,
-  kMasterLost = 8,
-};
-
-enum class RobotState : std::uint8_t
-{
-  kInit = 0,
-  kReady = 1,
-  kDegraded = 2,
-  /// The master's host-death watchdog tripped. Latched until a command carries kCmdFlagFaultReset.
-  kHostLost = 3,
-};
+using MsgHeader = robot_wire::MsgHeader;
+using CmdMotor = robot_wire::cmd_motor_t;
+using CmdChain = robot_wire::cmd_chain_t;
+using CmdRobot = robot_wire::cmd_robot_t;
+using TeleMotor = robot_wire::tele_motor_t;
+using TeleChain = robot_wire::tele_chain_t;
+using MasterStatus = robot_wire::MasterStatus;
 
 // cmd_motor_t.flags
-inline constexpr std::uint8_t kCmdFlagValid = 1U << 0U;
-inline constexpr std::uint8_t kCmdFlagUseConfigGains = 1U << 1U;
-inline constexpr std::uint8_t kCmdFlagFaultReset = 1U << 2U;
+inline constexpr std::uint8_t kCmdFlagValid = robot_wire::CMD_FLAG_VALID;
+inline constexpr std::uint8_t kCmdFlagUseConfigGains = robot_wire::CMD_FLAG_USE_CONFIG_GAINS;
 
 // tele_motor_t.flags
-/// The slave refused the last mode request it applied to this motor.
-inline constexpr std::uint8_t kTeleFlagRequestRejected = 1U << 0U;
+inline constexpr std::uint8_t kTeleFlagRequestRejected = robot_wire::TELE_FLAG_REQUEST_REJECTED;
+
+// Fixed-point scales (shared by every RobStride model).
+inline constexpr float kPosScale = robot_wire::PROTO_POS_SCALE;  // rad   -> i16, home-frame +-pi
+inline constexpr float kVelScale = robot_wire::PROTO_VEL_SCALE;  // rad/s -> i16
+inline constexpr float kTauScale = robot_wire::PROTO_TAU_SCALE;  // N*m   -> i16
+inline constexpr float kKpScale = robot_wire::PROTO_KP_SCALE;    // N*m/rad   -> u16
+inline constexpr float kKdScale = robot_wire::PROTO_KD_SCALE;    // N*m*s/rad -> u16
 
 /// Names for reports and error messages. An undefined value reads "UNKNOWN".
-[[nodiscard]] const char * lifecycle_name(std::uint8_t state) noexcept;
-[[nodiscard]] const char * cause_name(std::uint8_t cause) noexcept;
+[[nodiscard]] const char * drive_state_name(std::uint8_t state) noexcept;
+[[nodiscard]] const char * drive_fault_name(std::uint8_t fault) noexcept;
+[[nodiscard]] const char * drive_req_name(std::uint8_t req) noexcept;
 [[nodiscard]] const char * robot_state_name(std::uint8_t state) noexcept;
+[[nodiscard]] const char * chain_link_name(std::uint8_t link) noexcept;
 
-// Fixed-point scales (shared by every RobStride model). Mirror protocol.h exactly.
-inline constexpr float kPosScale = 10000.0F;  // rad   -> i16, home-frame +-pi
-inline constexpr float kVelScale = 100.0F;    // rad/s -> i16
-inline constexpr float kTauScale = 100.0F;    // N*m   -> i16
-inline constexpr float kKpScale = 10.0F;      // N*m/rad     -> u16
-inline constexpr float kKdScale = 100.0F;     // N*m*s/rad   -> u16
+// --- Decoded telemetry ------------------------------------------------------------------------
 
-// --- Frame header and payload structs -------------------------------------------------------
-
-struct [[gnu::packed]] MsgHeader
-{
-  std::uint16_t type;
-  std::uint16_t seq;
-  std::uint8_t src;
-  std::uint8_t dst;
-  std::uint32_t ts_ms;
-  std::uint16_t len;
-  std::uint16_t ver_flags;  // low byte: protocol version; high byte reserved, 0
-  std::uint16_t crc16;
-};
-static_assert(sizeof(MsgHeader) == kHeaderSize);
-
-struct [[gnu::packed]] CmdMotor
-{
-  std::uint8_t mode_req;
-  std::int16_t pos;
-  std::int16_t vel;
-  std::uint16_t kp;
-  std::uint16_t kd;
-  std::int16_t tau_ff;
-  std::uint8_t flags;
-};
-static_assert(sizeof(CmdMotor) == 12);
-
-struct [[gnu::packed]] CmdChain
-{
-  std::uint8_t chain_id;
-  std::uint8_t n_motors;
-  std::array<CmdMotor, kMaxMotorsPerChain> motors;
-};
-static_assert(sizeof(CmdChain) == 62);
-
-struct [[gnu::packed]] CmdRobot
-{
-  std::uint16_t cycle_id;  // the master cycle whose telemetry this command was computed from
-  std::uint16_t cmd_seq;   // one per host command, never 0 (0 means "none applied")
-  std::uint8_t n_chains;
-  std::uint8_t reserved;
-  std::array<CmdChain, kMaxChains> chains;
-};
-static_assert(sizeof(CmdRobot) == 254);
-
-struct [[gnu::packed]] TeleMotor
-{
-  std::int16_t pos;
-  std::int16_t vel;
-  std::int16_t tau;
-  std::uint8_t temp_c;
-  std::uint8_t state;  // Lifecycle
-  std::uint8_t cause;  // FaultCause
-  std::uint8_t motor_mode;
-  // Drive fault bits: b0 undervoltage, b1 driver, b2 overheat, b3 encoder, b4 stall, b5 uncal.
-  std::uint8_t motor_fault;
-  std::uint8_t flags;
-  std::uint8_t fb_age_ms;  // ms since the drive last reported, saturating at 255
-  std::uint32_t fault_word;
-  std::uint16_t last_applied_seq;
-  std::uint16_t reserved;
-};
-static_assert(sizeof(TeleMotor) == 21);
-
-struct [[gnu::packed]] TeleChain
-{
-  std::uint8_t chain_id;
-  std::uint8_t n_motors;
-  std::uint8_t spi_seq_echo;
-  std::uint8_t spi_resyncs;
-  std::uint32_t slave_time_us;
-  std::uint16_t cmd_crc_errors;
-  std::uint16_t can_tx_errors;
-  std::uint8_t spi_tx_arm_fails;
-  std::array<TeleMotor, kMaxMotorsPerChain> motors;
-};
-static_assert(sizeof(TeleChain) == 118);
-
-/// The fixed head of tele_robot_t. The master transmits this plus only the first n_chains chains.
-struct [[gnu::packed]] TeleRobotHeader
-{
-  std::uint16_t cycle_id;
-  std::uint32_t master_time_us;
-  std::uint16_t last_cmd_seq_rx;
-  std::uint16_t cmd_seq_active;
-  std::uint16_t cmd_on_time;
-  std::uint16_t cmd_late;
-  std::uint16_t cmd_missing;
-  std::uint16_t cmd_duplicate;
-  std::uint8_t n_chains;
-  std::uint8_t robot_state;  // RobotState
-};
-static_assert(sizeof(TeleRobotHeader) == 20);
-
-/// A decoded tele_robot_t. Chains at or beyond header.n_chains are zero.
-struct RobotTelemetry
-{
-  TeleRobotHeader header{};
-  std::array<TeleChain, kMaxChains> chains{};
-};
+/// A decoded tele_robot_t: the full fixed-size struct, chains at or beyond n_chains left zero.
+/// The generated tele_robot_t is a flat packed POD (header fields then chains[kMaxChains]); the
+/// head is its first robot_wire::offsetof(chains) bytes, followed by the chains actually sent.
+using RobotTelemetry = robot_wire::tele_robot_t;
 static_assert(std::is_trivially_copyable_v<RobotTelemetry>);
 
-struct [[gnu::packed]] MasterStatus
-{
-  std::uint8_t robot_state;
-  std::uint8_t slave_alive;
-  std::uint32_t uptime_ms;
-  std::uint32_t link_errors;
-  std::uint32_t rx_frames;
-  std::uint16_t master_poll_hz;
-  std::uint16_t telemetry_hz;
-  std::uint16_t slave_tick_hz;
-  std::uint16_t host_cmd_hz;
-  std::uint32_t rx_resyncs;
-  std::uint32_t rx_discarded_bytes;
-};
-static_assert(sizeof(MasterStatus) == 30);
-
+inline constexpr std::size_t kTeleHeadSize = offsetof(robot_wire::tele_robot_t, chains);
+inline constexpr std::size_t kMaxPayload = sizeof(RobotTelemetry);  // = PROTO_MAX_PAYLOAD
 inline constexpr std::size_t kRobotCmdFrameSize = kHeaderSize + sizeof(CmdRobot);
-inline constexpr std::size_t kMaxPayload = sizeof(TeleRobotHeader) + kMaxChains * sizeof(TeleChain);
 
-// --- CRC16-CCITT ----------------------------------------------------------------------------
+// --- CRC16-CCITT ------------------------------------------------------------------------------
 
-inline constexpr std::uint16_t kCrcInit = 0xFFFFU;
+inline constexpr std::uint16_t kCrcInit = robot_wire::PROTO_CRC_INIT;
 
 /// CRC16-CCITT-FALSE (poly 0x1021, init 0xFFFF, no reflection), as the firmware's proto_crc16.
 [[nodiscard]] std::uint16_t crc16(
@@ -286,9 +144,10 @@ struct EncodedCommand
   bool representable;
 };
 
-/// Encode one motor's request. `flags` should include kCmdFlagValid for a live request.
+/// Encode one motor's drive request plus MIT tuple. `flags` should include kCmdFlagValid for a
+/// live tuple; in v10 the request byte (DriveReq) and the tuple are independent.
 [[nodiscard]] EncodedCommand encode_command(
-  ModeRequest mode, const MitSetpoint & setpoint, std::uint8_t flags) noexcept;
+  DriveReq request, const MitSetpoint & setpoint, std::uint8_t flags) noexcept;
 
 // --- Framing --------------------------------------------------------------------------------
 

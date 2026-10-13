@@ -29,12 +29,12 @@ TEST(LinkProbe, ReportsAHealthyMasterAndSendsNothing)
   EXPECT_TRUE(probe_master(fake.device(), 1500ms, out)) << out.str();
 
   const std::string report = out.str();
-  EXPECT_NE(report.find("protocol version 8 (matches)"), std::string::npos) << report;
+  EXPECT_NE(report.find("protocol version 10 (matches)"), std::string::npos) << report;
   EXPECT_NE(report.find("polls at 200 Hz, telemetry 200 Hz"), std::string::npos) << report;
   EXPECT_NE(report.find("= 200.0 Hz"), std::string::npos) << report;  // the fake's 5 ms cycle
-  EXPECT_NE(report.find("chain 0: 2 motor(s)"), std::string::npos) << report;
-  EXPECT_NE(report.find("chain 1: 1 motor(s)"), std::string::npos) << report;
-  EXPECT_NE(report.find("IDLE"), std::string::npos) << report;
+  EXPECT_NE(report.find("chain 0: link ALIVE, 2 motor(s)"), std::string::npos) << report;
+  EXPECT_NE(report.find("chain 1: link ALIVE, 1 motor(s)"), std::string::npos) << report;
+  EXPECT_NE(report.find("DISABLED"), std::string::npos) << report;  // a disarmed motor
   EXPECT_NE(report.find("OK"), std::string::npos) << report;
 
   // The one guarantee that matters for first contact with a live robot.

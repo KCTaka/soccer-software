@@ -21,12 +21,12 @@ JointReading read_joint(
   feedback.temperature_c = static_cast<float>(motor->temp_c);
   feedback.bus_voltage_v = 0.0F;  // the master does not report it (provides_bus_voltage is false)
 
-  const auto state = static_cast<wire::Lifecycle>(motor->state);
-  auto bits = static_cast<std::uint16_t>(motor->motor_fault & kFaultBitsDriveMask);
-  if (state == wire::Lifecycle::kFault) {
+  const auto state = static_cast<wire::DriveState>(motor->drive_state);
+  auto bits = static_cast<std::uint16_t>(motor->rs_fault_bits & kFaultBitsDriveMask);
+  if (state == wire::DriveState::DRV_FAULT) {
     bits = static_cast<std::uint16_t>(bits | kFaultBitFirmwareFault);
   }
-  bits = static_cast<std::uint16_t>(bits | (motor->cause << kFaultCauseShift));
+  bits = static_cast<std::uint16_t>(bits | (motor->drive_fault << kFaultCauseShift));
   feedback.fault_bits = bits;
 
   feedback.fresh = reports_within(*motor, max_age);
@@ -37,8 +37,8 @@ JointReading read_joint(
 std::optional<wire::TeleMotor> find_motor(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain, std::uint8_t motor) noexcept
 {
-  const std::size_t chain_count = telemetry.header.n_chains;
-  for (std::size_t i = 0; i < chain_count && i < telemetry.chains.size(); ++i) {
+  const std::size_t chain_count = telemetry.n_chains;
+  for (std::size_t i = 0; i < chain_count && i < wire::kMaxChains; ++i) {
     const wire::TeleChain & candidate = telemetry.chains[i];
     if (candidate.chain_id == chain) {
       if (motor < candidate.n_motors) {
@@ -53,9 +53,15 @@ std::optional<wire::TeleMotor> find_motor(
 std::optional<std::uint8_t> chain_motor_count(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain) noexcept
 {
-  const std::size_t chain_count = telemetry.header.n_chains;
-  for (std::size_t i = 0; i < chain_count && i < telemetry.chains.size(); ++i) {
+  const std::size_t chain_count = telemetry.n_chains;
+  for (std::size_t i = 0; i < chain_count && i < wire::kMaxChains; ++i) {
     if (telemetry.chains[i].chain_id == chain) {
+      // v10 always emits every configured chain (Option A); a chain whose link is not ALIVE carries
+      // no motor data (n_motors == 0). That is "not reporting", the same as an omitted chain, not a
+      // firmware built with fewer motors than the wiring expects.
+      if (telemetry.chains[i].n_motors == 0) {
+        return std::nullopt;
+      }
       return telemetry.chains[i].n_motors;
     }
   }
@@ -71,13 +77,13 @@ ArmingVerdict judge_clearing(
   for (std::uint8_t joint = 0; joint < layout.joint_count; ++joint) {
     const JointWiring & wiring = layout.joints[joint];
     const auto motor = find_motor(telemetry, wiring.chain, wiring.motor);
-    if (motor && motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kFault) &&
+    if (motor && motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_FAULT) &&
       elapsed >= fault_grace)
     {
       return {ArmingVerdict::Status::kFailed, joint};
     }
     const bool cleared = motor &&
-      motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kIdle) &&
+      motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_DISABLED) &&
       reports_within(*motor, max_age);
     if (!cleared && verdict.status == ArmingVerdict::Status::kReached) {
       verdict = {ArmingVerdict::Status::kWaiting, joint};
@@ -94,11 +100,11 @@ ArmingVerdict judge_arming(
   for (std::uint8_t joint = 0; joint < layout.joint_count; ++joint) {
     const JointWiring & wiring = layout.joints[joint];
     const auto motor = find_motor(telemetry, wiring.chain, wiring.motor);
-    if (motor && motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kFault)) {
+    if (motor && motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_FAULT)) {
       return {ArmingVerdict::Status::kFailed, joint};
     }
     const bool armed = motor &&
-      motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kHold) &&
+      motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_ENABLED) &&
       reports_within(*motor, max_age);
     if (!armed && verdict.status == ArmingVerdict::Status::kReached) {
       verdict = {ArmingVerdict::Status::kWaiting, joint};

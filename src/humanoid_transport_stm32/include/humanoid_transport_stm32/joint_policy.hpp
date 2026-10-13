@@ -28,62 +28,58 @@ enum class Phase : std::uint8_t
   kReleasing,
 };
 
-/// The request for one motor this cycle.
+/// The request for one motor this cycle (protocol v10: a DriveReq plus, independently, whether a
+/// VALID MIT tuple rides alongside it).
 struct JointRequest
 {
-  wire::ModeRequest mode{wire::ModeRequest::kIdle};
-  /// The five-field tuple is carried. False for HOLD, IDLE and DAMPED, which take no setpoint.
+  wire::DriveReq request{wire::DriveReq::DRV_REQ_DISABLE};
+  /// A VALID five-field tuple is carried. In v10 an ENABLED motor applies every valid tuple, so
+  /// both arming (the captured hold tuple) and running (the live tuple) set this.
   bool send_tuple{false};
-  bool fault_reset{false};
-  /// Let the slave apply its configured gains. Used for DAMPED, so the damping a motor falls back
-  /// to is the one its own configuration vouches for, not a number this transport invented.
+  /// Let the slave apply its configured gains instead of the wire kp/kd.
   bool use_config_gains{false};
 };
 
-/// The request for a motor.
+/// The request for a motor (protocol v10; the drive request and the tuple are independent).
 ///
-///   kClearing   IDLE with fault reset. The reset clears what the previous session left latched,
-///               in a motor or in a master stuck in HOST_LOST: activation is the operator's
-///               acknowledgement (ADR-002). IDLE is what makes it safe. The slave polls an IDLE
-///               motor every tick, but not a FAULT one, so only once the motor is IDLE does its
-///               reported position become current again.
-///   kArming     HOLD, never with a fault reset. HOLD from IDLE arms at the captured position, so
-///               arming does not step, but only when that capture is current. HOLD with a reset
-///               on a FAULT motor arms in the same request from the position it had when it
-///               faulted. It also skips the slave's checks that the motor was discovered at boot
-///               and that its shaft is not wound. The slave applies those checks only to a motor
-///               that is already IDLE.
-///   kRunning    MIT with the tuple. Never HOLD: a motor that dropped to IDLE or FAULT stays
-///               there, because auto-rearm is prohibited. An isolated motor is asked for IDLE. A
-///               tuple the wire cannot carry is replaced by DAMPED rather than clamped.
-///   kReleasing  IDLE.
+///   kClearing   RESET, no tuple. RESET clears what the previous session left latched, in a motor
+///               (FAULT -> CLEARING -> DISABLED) or in a master stuck in HOST_LOST: activation is
+///               the operator's acknowledgement (ADR-002). The slave polls a DISABLED motor every
+///               tick, so once clearing reaches DISABLED the reported position is current again.
+///   kArming     ENABLE while streaming the VALID captured-hold tuple every cycle (ENABLED is limp
+///               until the first valid tuple, so the tuple must flow from the first ENABLE). A
+///               motor latched in FAULT is not re-armed here; clearing must reach DISABLED first.
+///   kRunning    ENABLE with the live tuple. An isolated motor is asked for DISABLE. A tuple the
+///               wire cannot carry is clamped to the manifest envelope by the caller (which counts
+///               a bad cycle), not turned into a damping request here.
+///   kReleasing  DISABLE.
 [[nodiscard]] constexpr JointRequest plan_request(
-  Phase phase, bool isolated, bool tuple_representable) noexcept
+  Phase phase, bool isolated, bool /*tuple_representable*/) noexcept
 {
   switch (phase) {
     case Phase::kClearing:
-      return {wire::ModeRequest::kIdle, false, true, false};
+      return {wire::DriveReq::DRV_REQ_RESET, false, false};
     case Phase::kArming:
-      return {wire::ModeRequest::kHold, false, false, false};
+      // ENABLE and wait for ENABLED. P8.3 streams the captured VALID hold tuple here so the motor
+      // holds instead of coming up limp; until then arming is not safe to run on hardware.
+      return {wire::DriveReq::DRV_REQ_ENABLE, false, false};
     case Phase::kReleasing:
-      return {wire::ModeRequest::kIdle, false, false, false};
+      return {wire::DriveReq::DRV_REQ_DISABLE, false, false};
     case Phase::kRunning:
       break;
   }
   if (isolated) {
-    return {wire::ModeRequest::kIdle, false, false, false};
+    return {wire::DriveReq::DRV_REQ_DISABLE, false, false};
   }
-  if (!tuple_representable) {
-    return {wire::ModeRequest::kDamped, false, false, true};
-  }
-  return {wire::ModeRequest::kMit, true, false, false};
+  return {wire::DriveReq::DRV_REQ_ENABLE, true, false};
 }
 
-/// True when a motor in `state` is armed and takes an MIT request.
-[[nodiscard]] constexpr bool is_commandable(wire::Lifecycle state) noexcept
+/// True when a motor in `state` is armed and applies an MIT tuple. In v10 that is ENABLED (limp
+/// until the first valid tuple, then executing it); ENABLING/STOPPING are transient, not
+/// commandable.
+[[nodiscard]] constexpr bool is_commandable(wire::DriveState state) noexcept
 {
-  return state == wire::Lifecycle::kHold || state == wire::Lifecycle::kMit ||
-         state == wire::Lifecycle::kDamped;
+  return state == wire::DriveState::DRV_ENABLED;
 }
 
 // JointFeedback::fault_bits layout. The seam gives the field no meaning of its own; this is the
@@ -121,9 +117,11 @@ struct JointReading
 [[nodiscard]] std::optional<wire::TeleMotor> find_motor(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain, std::uint8_t motor) noexcept;
 
-/// How many motors the master reports on `chain`, or nothing if it did not report that chain. This
-/// separates "that slave is not answering" from "that slave reports fewer motors than the wiring
-/// expects", which is a firmware built from a different configuration.
+/// How many motors the master reports on `chain`, or nothing if that chain is not reporting usable
+/// data. v10 always emits every configured chain (Option A); one whose link is not ALIVE carries
+/// zero motors, which reads the same as an omitted chain -- nothing. This separates "that slave is
+/// not answering" from "that slave reports FEWER (but nonzero) motors than the wiring expects",
+/// which is a firmware built from a different configuration.
 [[nodiscard]] std::optional<std::uint8_t> chain_motor_count(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain) noexcept;
 

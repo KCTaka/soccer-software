@@ -1,6 +1,12 @@
 // Copyright 2026 UTRA-RoboSoccer
-// The wire codec against frames the firmware's own C code produced (test/golden), and the frame
-// scanner's recovery behaviour.
+// The host-side wire codec: CRC, fixed-point, the command encoder, framing, the resync FrameScanner
+// and the telemetry/status decoders.
+//
+// The cross-repo wire oracle is generated/fixtures/*.bin (the firmware's own bytes, round-tripped
+// in wire_pin_test). This file tests the HAND-WRITTEN host code the fixtures do not exercise:
+// build_frame's framing, the FrameScanner's resynchronisation, and parse_robot_tele /
+// parse_master_status. Frames are built at runtime with the (fixture-validated) codec, so the
+// framing is exercised without testing the codec against itself.
 
 #include <gtest/gtest.h>
 
@@ -42,6 +48,108 @@ std::vector<MessageType> scan_all(FrameScanner & scanner, std::span<const std::u
     }
   }
   return types;
+}
+
+// --- Canonical frames, built at runtime from the codec ---------------------------------------
+
+// A two-chain telemetry frame (chain 0: two motors, chain 1: one), carrying distinctive field
+// values so a decode mistake shows. Header seq 0x0007, ts 0x01020304.
+RobotTelemetry sample_telemetry()
+{
+  RobotTelemetry tele{};
+  tele.cycle_id = 0xFFFE;
+  tele.master_time_us = 0xDEADBEEF;
+  tele.last_cmd_seq_rx = 0x1111;
+  tele.cmd_seq_active = 0x2222;
+  tele.cmd_on_time = 5;
+  tele.cmd_late = 6;
+  tele.cmd_missing = 7;
+  tele.cmd_duplicate = 8;
+  tele.n_chains = 2;
+  tele.robot_state = static_cast<std::uint8_t>(RobotState::ROBOT_READY);
+
+  tele.chains[0].chain_id = 0;
+  tele.chains[0].n_motors = 2;
+  tele.chains[0].link = static_cast<std::uint8_t>(ChainLink::CHAIN_LINK_ALIVE);
+  tele.chains[0].spi_seq_echo = 7;
+  tele.chains[0].spi_resyncs = 1;
+  tele.chains[0].slave_time_us = 123456789U;
+  tele.chains[0].cmd_crc_errors = 2;
+  tele.chains[0].can_tx_errors = 3;
+  tele.chains[0].spi_tx_arm_fails = 4;
+
+  auto & m0 = tele.chains[0].motors[0];
+  m0.pos = 12345;
+  m0.vel = -250;
+  m0.tau = 1234;
+  m0.temp_c = 41;
+  m0.drive_state = static_cast<std::uint8_t>(DriveState::DRV_ENABLED);
+  m0.drive_fault = static_cast<std::uint8_t>(DriveFault::DRVF_NONE);
+  m0.rs_mode = 2;
+  m0.rs_fault_bits = 0x04;
+  m0.flags = 0x08;
+  m0.fb_age_ms = 3;
+  m0.rs_fault_word = 0x3022U;
+  m0.last_applied_seq = 0xBEEF;
+
+  auto & m1 = tele.chains[0].motors[1];
+  m1.pos = -31416;
+  m1.vel = 32767;
+  m1.tau = -32768;
+  m1.temp_c = 255;
+  m1.drive_state = static_cast<std::uint8_t>(DriveState::DRV_FAULT);
+  m1.drive_fault = static_cast<std::uint8_t>(DriveFault::DRVF_OVERTORQUE);
+  m1.fb_age_ms = 255;
+  m1.rs_fault_word = 0xFFFFFFFFU;
+
+  tele.chains[1].chain_id = 1;
+  tele.chains[1].n_motors = 1;
+  tele.chains[1].link = static_cast<std::uint8_t>(ChainLink::CHAIN_LINK_ALIVE);
+  tele.chains[1].motors[0].drive_state = static_cast<std::uint8_t>(DriveState::DRV_FAULT);
+  tele.chains[1].motors[0].drive_fault = static_cast<std::uint8_t>(DriveFault::DRVF_MASTER_LOST);
+  return tele;
+}
+
+// Serialises `tele` the way the master transmits it (fixed head + the n_chains chains actually
+// present) and wraps it in a MSG_ROBOT_TELE frame.
+std::vector<std::uint8_t> tele_frame(const RobotTelemetry & tele)
+{
+  const std::size_t payload_size = kTeleHeadSize + tele.n_chains * sizeof(TeleChain);
+  std::vector<std::uint8_t> payload(payload_size);
+  std::memcpy(payload.data(), &tele, payload_size);
+  std::vector<std::uint8_t> frame(kHeaderSize + payload_size);
+  const auto size = build_frame(
+    MessageType::MSG_ROBOT_TELE, 0x0007, NodeId::NODE_MASTER, NodeId::NODE_JETSON, 0x01020304U,
+    payload, frame);
+  frame.resize(size.value_or(0));
+  return frame;
+}
+
+MasterStatus sample_status()
+{
+  MasterStatus status{};
+  status.schema_hash = kSchemaHash;
+  status.slave_proto_mismatch = 0;
+  status.uptime_ms = 123456U;
+  status.link_errors = 9;
+  status.rx_frames = 1000;
+  status.master_poll_hz = 200;
+  status.telemetry_hz = 200;
+  status.slave_tick_hz = 200;
+  status.host_cmd_hz = 50;
+  return status;
+}
+
+std::vector<std::uint8_t> status_frame(const MasterStatus & status)
+{
+  std::array<std::uint8_t, sizeof(MasterStatus)> payload{};
+  std::memcpy(payload.data(), &status, sizeof(status));
+  std::vector<std::uint8_t> frame(kHeaderSize + sizeof(MasterStatus));
+  const auto size = build_frame(
+    MessageType::MSG_MASTER_STATUS, 0x0042, NodeId::NODE_MASTER, NodeId::NODE_JETSON, 5000U,
+    payload, frame);
+  frame.resize(size.value_or(0));
+  return frame;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +203,11 @@ TEST(WireFixedPoint, DecodeInvertsEncodeWithinOneLsb)
   EXPECT_NEAR(decode_i16(encoded.raw, kPosScale), 1.2345, 1.0 / kPosScale);
 }
 
-TEST(WireEncodeCommand, FullTupleMatchesTheGoldenMotorBytes)
+// ---------------------------------------------------------------------------
+// encode_command: the drive request and the tuple are independent (v10)
+// ---------------------------------------------------------------------------
+
+TEST(WireEncodeCommand, CarriesTheRequestByteAndTheFullTuple)
 {
   MitSetpoint setpoint;
   setpoint.position_rad = 0.5F;
@@ -104,9 +216,10 @@ TEST(WireEncodeCommand, FullTupleMatchesTheGoldenMotorBytes)
   setpoint.damping_nm_s_rad = 1.0F;
   setpoint.effort_nm = 2.5F;
 
-  const auto encoded = encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid);
+  const auto encoded = encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid);
   EXPECT_TRUE(encoded.representable);
-  EXPECT_EQ(encoded.command.mode_req, static_cast<std::uint8_t>(ModeRequest::kMit));
+  EXPECT_EQ(encoded.command.drive_req, static_cast<std::uint8_t>(DriveReq::DRV_REQ_ENABLE));
+  EXPECT_NE(encoded.command.flags & kCmdFlagValid, 0);
   EXPECT_EQ(encoded.command.pos, 5000);
   EXPECT_EQ(encoded.command.vel, -125);
   EXPECT_EQ(encoded.command.kp, 150);
@@ -118,150 +231,103 @@ TEST(WireEncodeCommand, PositionOutsideTheHomeFrameIsNotRepresentable)
 {
   MitSetpoint setpoint;
   setpoint.position_rad = 3.2F;  // fits the int16, but is not an angle in [-pi, pi]
-  EXPECT_FALSE(encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid).representable);
+  EXPECT_FALSE(encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid).representable);
 
   setpoint.position_rad = 3.1F;
-  EXPECT_TRUE(encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid).representable);
+  EXPECT_TRUE(encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid).representable);
 }
 
 TEST(WireEncodeCommand, AnyOutOfRangeFieldMakesTheWholeCommandUnrepresentable)
 {
   MitSetpoint setpoint;
   setpoint.stiffness_nm_rad = 7000.0F;
-  EXPECT_FALSE(encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid).representable);
+  EXPECT_FALSE(encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid).representable);
 
   setpoint = MitSetpoint{};
   setpoint.effort_nm = 400.0F;
-  EXPECT_FALSE(encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid).representable);
+  EXPECT_FALSE(encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid).representable);
 
   setpoint = MitSetpoint{};
   setpoint.velocity_rad_s = std::numeric_limits<float>::quiet_NaN();
-  EXPECT_FALSE(encode_command(ModeRequest::kMit, setpoint, kCmdFlagValid).representable);
+  EXPECT_FALSE(encode_command(DriveReq::DRV_REQ_ENABLE, setpoint, kCmdFlagValid).representable);
 }
 
 // ---------------------------------------------------------------------------
-// Golden frames: bytes built by the firmware
+// Decoding a frame the codec built
 // ---------------------------------------------------------------------------
 
-TEST(WireGolden, HostCommandFrameIsByteIdenticalToTheFirmwaresBuilder)
+TEST(WireDecode, TelemetryRoundTripsThroughFramingAndTheDecoder)
 {
-  CmdRobot cmd{};
-  cmd.cycle_id = 0x0102;
-  cmd.cmd_seq = 0x0304;
-  cmd.n_chains = 2;
-
-  MitSetpoint mit;
-  mit.position_rad = 0.5F;
-  mit.velocity_rad_s = -1.25F;
-  mit.stiffness_nm_rad = 15.0F;
-  mit.damping_nm_s_rad = 1.0F;
-  mit.effort_nm = 2.5F;
-
-  cmd.chains[0].chain_id = 0;
-  cmd.chains[0].n_motors = 2;
-  cmd.chains[0].motors[0] = encode_command(ModeRequest::kMit, mit, kCmdFlagValid).command;
-  cmd.chains[0].motors[1] =
-    encode_command(ModeRequest::kHold, {}, kCmdFlagValid | kCmdFlagFaultReset).command;
-
-  MitSetpoint damp;
-  damp.damping_nm_s_rad = 2.0F;
-  cmd.chains[1].chain_id = 1;
-  cmd.chains[1].n_motors = 1;
-  cmd.chains[1].motors[0] =
-    encode_command(ModeRequest::kDamped, damp, kCmdFlagValid | kCmdFlagUseConfigGains).command;
-
-  std::array<std::uint8_t, sizeof(CmdRobot)> payload{};
-  std::memcpy(payload.data(), &cmd, sizeof(cmd));
-
-  std::array<std::uint8_t, kRobotCmdFrameSize> frame{};
-  const auto size = build_frame(
-    MessageType::kRobotCmd, 0x1234, NodeId::kJetson, NodeId::kMaster, 0xA1B2C3D4, payload, frame);
-
-  ASSERT_TRUE(size.has_value());
-  EXPECT_EQ(*size, humanoid::transport_stm32::golden::kRobotCmdFrame.size());
-  EXPECT_EQ(frame, humanoid::transport_stm32::golden::kRobotCmdFrame);
-}
-
-TEST(WireGolden, TelemetryFrameDecodesToTheValuesTheFirmwarePacked)
-{
+  const auto frame = tele_frame(sample_telemetry());
   FrameScanner scanner;
-  const auto & bytes = humanoid::transport_stm32::golden::kRobotTeleFrame;
-  ASSERT_EQ(scanner.push(bytes_of(bytes)), bytes.size());
+  ASSERT_EQ(scanner.push(bytes_of(frame)), frame.size());
 
-  const auto frame = scanner.next();
-  ASSERT_TRUE(frame.has_value());
-  EXPECT_EQ(frame->type, MessageType::kRobotTele);
-  EXPECT_EQ(frame->seq, 0x0007);
-  EXPECT_EQ(frame->ts_ms, 0x01020304U);
+  const auto scanned = scanner.next();
+  ASSERT_TRUE(scanned.has_value());
+  EXPECT_EQ(scanned->type, MessageType::MSG_ROBOT_TELE);
+  EXPECT_EQ(scanned->seq, 0x0007);
+  EXPECT_EQ(scanned->ts_ms, 0x01020304U);
 
-  const auto tele = parse_robot_tele(frame->payload);
+  const auto tele = parse_robot_tele(scanned->payload);
   ASSERT_TRUE(tele.has_value());
-  EXPECT_EQ(tele->header.cycle_id, 0xFFFE);
-  EXPECT_EQ(tele->header.master_time_us, 0xDEADBEEFU);
-  EXPECT_EQ(tele->header.last_cmd_seq_rx, 0x1111);
-  EXPECT_EQ(tele->header.cmd_seq_active, 0x2222);
-  EXPECT_EQ(tele->header.cmd_on_time, 5);
-  EXPECT_EQ(tele->header.cmd_late, 6);
-  EXPECT_EQ(tele->header.cmd_missing, 7);
-  EXPECT_EQ(tele->header.cmd_duplicate, 8);
-  EXPECT_EQ(tele->header.n_chains, 2);
-  EXPECT_EQ(tele->header.robot_state, static_cast<std::uint8_t>(RobotState::kReady));
+  EXPECT_EQ(tele->cycle_id, 0xFFFE);
+  EXPECT_EQ(tele->master_time_us, 0xDEADBEEFU);
+  EXPECT_EQ(tele->last_cmd_seq_rx, 0x1111);
+  EXPECT_EQ(tele->cmd_seq_active, 0x2222);
+  EXPECT_EQ(tele->cmd_on_time, 5);
+  EXPECT_EQ(tele->cmd_duplicate, 8);
+  EXPECT_EQ(tele->n_chains, 2);
+  EXPECT_EQ(tele->robot_state, static_cast<std::uint8_t>(RobotState::ROBOT_READY));
 
   const auto & chain0 = tele->chains[0];
   EXPECT_EQ(chain0.chain_id, 0);
   EXPECT_EQ(chain0.n_motors, 2);
-  EXPECT_EQ(chain0.spi_seq_echo, 7);
-  EXPECT_EQ(chain0.spi_resyncs, 1);
+  EXPECT_EQ(chain0.link, static_cast<std::uint8_t>(ChainLink::CHAIN_LINK_ALIVE));
   EXPECT_EQ(chain0.slave_time_us, 123456789U);
-  EXPECT_EQ(chain0.cmd_crc_errors, 2);
   EXPECT_EQ(chain0.can_tx_errors, 3);
-  EXPECT_EQ(chain0.spi_tx_arm_fails, 4);
 
   const auto & m0 = chain0.motors[0];
   EXPECT_EQ(m0.pos, 12345);
   EXPECT_EQ(m0.vel, -250);
   EXPECT_EQ(m0.tau, 1234);
   EXPECT_EQ(m0.temp_c, 41);
-  EXPECT_EQ(m0.state, static_cast<std::uint8_t>(Lifecycle::kMit));
-  EXPECT_EQ(m0.cause, static_cast<std::uint8_t>(FaultCause::kNone));
-  EXPECT_EQ(m0.motor_mode, 2);
-  EXPECT_EQ(m0.motor_fault, 0x04);
-  EXPECT_EQ(m0.flags, 0x08 | 0x20);
+  EXPECT_EQ(m0.drive_state, static_cast<std::uint8_t>(DriveState::DRV_ENABLED));
+  EXPECT_EQ(m0.drive_fault, static_cast<std::uint8_t>(DriveFault::DRVF_NONE));
+  EXPECT_EQ(m0.rs_mode, 2);
+  EXPECT_EQ(m0.rs_fault_bits, 0x04);
   EXPECT_EQ(m0.fb_age_ms, 3);
-  EXPECT_EQ(m0.fault_word, 0x3022U);
+  EXPECT_EQ(m0.rs_fault_word, 0x3022U);
   EXPECT_EQ(m0.last_applied_seq, 0xBEEF);
 
   const auto & m1 = chain0.motors[1];
   EXPECT_EQ(m1.pos, -31416);
   EXPECT_EQ(m1.vel, 32767);
   EXPECT_EQ(m1.tau, -32768);
-  EXPECT_EQ(m1.temp_c, 255);
-  EXPECT_EQ(m1.cause, static_cast<std::uint8_t>(FaultCause::kWatchdog));
-  EXPECT_EQ(m1.fb_age_ms, 255);
-  EXPECT_EQ(m1.fault_word, 0xFFFFFFFFU);
+  EXPECT_EQ(m1.drive_state, static_cast<std::uint8_t>(DriveState::DRV_FAULT));
+  EXPECT_EQ(m1.drive_fault, static_cast<std::uint8_t>(DriveFault::DRVF_OVERTORQUE));
+  EXPECT_EQ(m1.rs_fault_word, 0xFFFFFFFFU);
 
   const auto & chain1 = tele->chains[1];
   EXPECT_EQ(chain1.chain_id, 1);
-  EXPECT_EQ(chain1.n_motors, 1);
-  EXPECT_EQ(chain1.motors[0].state, static_cast<std::uint8_t>(Lifecycle::kFault));
-  EXPECT_EQ(chain1.motors[0].cause, static_cast<std::uint8_t>(FaultCause::kOvertorque));
+  EXPECT_EQ(chain1.motors[0].drive_fault, static_cast<std::uint8_t>(DriveFault::DRVF_MASTER_LOST));
 
-  // Only the transmitted prefix is decoded; the rest of the wire maximum stays zero.
+  // Only the transmitted prefix is decoded; chains beyond n_chains stay zero.
   EXPECT_EQ(tele->chains[2].n_motors, 0);
 }
 
-TEST(WireGolden, MasterStatusDecodesTheConfiguredRates)
+TEST(WireDecode, MasterStatusDecodesTheConfiguredRatesAndSchemaHash)
 {
+  const auto frame = status_frame(sample_status());
   FrameScanner scanner;
-  ASSERT_GT(scanner.push(bytes_of(humanoid::transport_stm32::golden::kMasterStatusFrame)), 0U);
-  const auto frame = scanner.next();
-  ASSERT_TRUE(frame.has_value());
-  EXPECT_EQ(frame->type, MessageType::kMasterStatus);
+  ASSERT_GT(scanner.push(bytes_of(frame)), 0U);
+  const auto scanned = scanner.next();
+  ASSERT_TRUE(scanned.has_value());
+  EXPECT_EQ(scanned->type, MessageType::MSG_MASTER_STATUS);
 
-  const auto status = parse_master_status(frame->payload);
+  const auto status = parse_master_status(scanned->payload);
   ASSERT_TRUE(status.has_value());
-  EXPECT_EQ(status->robot_state, static_cast<std::uint8_t>(RobotState::kReady));
-  EXPECT_EQ(status->slave_alive, 0x03);
+  EXPECT_EQ(status->schema_hash, kSchemaHash);
+  EXPECT_EQ(status->slave_proto_mismatch, 0);
   EXPECT_EQ(status->uptime_ms, 123456U);
   EXPECT_EQ(status->master_poll_hz, 200);
   EXPECT_EQ(status->telemetry_hz, 200);
@@ -270,33 +336,34 @@ TEST(WireGolden, MasterStatusDecodesTheConfiguredRates)
 }
 
 // ---------------------------------------------------------------------------
-// Payload decoding
+// Payload decoding: rejection of malformed telemetry
 // ---------------------------------------------------------------------------
 
 TEST(WireParse, TelemetryShorterThanItsDeclaredChainsIsRejected)
 {
+  const auto frame = tele_frame(sample_telemetry());
   FrameScanner scanner;
-  ASSERT_GT(scanner.push(bytes_of(humanoid::transport_stm32::golden::kRobotTeleFrame)), 0U);
-  const auto frame = scanner.next();
-  ASSERT_TRUE(frame.has_value());
+  ASSERT_GT(scanner.push(bytes_of(frame)), 0U);
+  const auto scanned = scanner.next();
+  ASSERT_TRUE(scanned.has_value());
 
-  EXPECT_FALSE(parse_robot_tele(frame->payload.first(frame->payload.size() - 1)).has_value());
-  EXPECT_FALSE(parse_robot_tele(frame->payload.first(sizeof(TeleRobotHeader) - 1)).has_value());
+  EXPECT_FALSE(parse_robot_tele(scanned->payload.first(scanned->payload.size() - 1)).has_value());
+  EXPECT_FALSE(parse_robot_tele(scanned->payload.first(kTeleHeadSize - 1)).has_value());
 }
 
 TEST(WireParse, TelemetryDeclaringMoreChainsOrMotorsThanTheWireAllowsIsRejected)
 {
   std::array<std::uint8_t, kMaxPayload> payload{};
-  TeleRobotHeader header{};
-  header.n_chains = static_cast<std::uint8_t>(kMaxChains + 1);
-  std::memcpy(payload.data(), &header, sizeof(header));
+  RobotTelemetry head{};
+  head.n_chains = static_cast<std::uint8_t>(kMaxChains + 1);
+  std::memcpy(payload.data(), &head, kTeleHeadSize);
   EXPECT_FALSE(parse_robot_tele(payload).has_value());
 
-  header.n_chains = 1;
-  std::memcpy(payload.data(), &header, sizeof(header));
+  head.n_chains = 1;
+  std::memcpy(payload.data(), &head, kTeleHeadSize);
   TeleChain chain{};
   chain.n_motors = static_cast<std::uint8_t>(kMaxMotorsPerChain + 1);
-  std::memcpy(payload.data() + sizeof(header), &chain, sizeof(chain));
+  std::memcpy(payload.data() + kTeleHeadSize, &chain, sizeof(chain));
   EXPECT_FALSE(parse_robot_tele(payload).has_value());
 }
 
@@ -312,9 +379,9 @@ TEST(WireParse, MasterStatusShorterThanItsStructIsRejected)
 
 TEST(FrameScanner, YieldsBackToBackFramesInOrder)
 {
+  const auto tele = tele_frame(sample_telemetry());
+  const auto status = status_frame(sample_status());
   std::vector<std::uint8_t> stream;
-  const auto & tele = humanoid::transport_stm32::golden::kRobotTeleFrame;
-  const auto & status = humanoid::transport_stm32::golden::kMasterStatusFrame;
   stream.insert(stream.end(), tele.begin(), tele.end());
   stream.insert(stream.end(), status.begin(), status.end());
   stream.insert(stream.end(), tele.begin(), tele.end());
@@ -322,18 +389,19 @@ TEST(FrameScanner, YieldsBackToBackFramesInOrder)
   FrameScanner scanner;
   const auto types = scan_all(scanner, stream);
   ASSERT_EQ(types.size(), 3U);
-  EXPECT_EQ(types[0], MessageType::kRobotTele);
-  EXPECT_EQ(types[1], MessageType::kMasterStatus);
-  EXPECT_EQ(types[2], MessageType::kRobotTele);
+  EXPECT_EQ(types[0], MessageType::MSG_ROBOT_TELE);
+  EXPECT_EQ(types[1], MessageType::MSG_MASTER_STATUS);
+  EXPECT_EQ(types[2], MessageType::MSG_ROBOT_TELE);
   EXPECT_EQ(scanner.discarded_bytes(), 0U);
   EXPECT_EQ(scanner.resync_events(), 0U);
 }
 
 TEST(FrameScanner, AssemblesAFrameDeliveredOneByteAtATime)
 {
+  const auto tele = tele_frame(sample_telemetry());
   FrameScanner scanner;
   std::size_t frames = 0;
-  for (const std::uint8_t byte : humanoid::transport_stm32::golden::kRobotTeleFrame) {
+  for (const std::uint8_t byte : tele) {
     ASSERT_EQ(scanner.push({&byte, 1}), 1U);
     while (scanner.next()) {
       ++frames;
@@ -346,20 +414,20 @@ TEST(FrameScanner, AssemblesAFrameDeliveredOneByteAtATime)
 TEST(FrameScanner, ResyncsAfterLeadingGarbage)
 {
   std::vector<std::uint8_t> stream{0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x01, 0x02};
-  const auto & tele = humanoid::transport_stm32::golden::kRobotTeleFrame;
+  const auto tele = tele_frame(sample_telemetry());
   stream.insert(stream.end(), tele.begin(), tele.end());
 
   FrameScanner scanner;
   const auto types = scan_all(scanner, stream);
   ASSERT_EQ(types.size(), 1U);
-  EXPECT_EQ(types[0], MessageType::kRobotTele);
+  EXPECT_EQ(types[0], MessageType::MSG_ROBOT_TELE);
   EXPECT_EQ(scanner.discarded_bytes(), 7U);
   EXPECT_EQ(scanner.resync_events(), 1U);
 }
 
 TEST(FrameScanner, ACorruptedFrameCostsOneFrameNotTheStream)
 {
-  const auto & tele = humanoid::transport_stm32::golden::kRobotTeleFrame;
+  const auto tele = tele_frame(sample_telemetry());
   std::vector<std::uint8_t> stream(tele.begin(), tele.end());
   stream[kHeaderSize + 30] ^= 0x01;  // one flipped bit inside the first frame's payload
   stream.insert(stream.end(), tele.begin(), tele.end());
@@ -373,7 +441,7 @@ TEST(FrameScanner, ACorruptedFrameCostsOneFrameNotTheStream)
 
 TEST(FrameScanner, ALostByteCostsOneFrameNotTheStream)
 {
-  const auto & tele = humanoid::transport_stm32::golden::kRobotTeleFrame;
+  const auto tele = tele_frame(sample_telemetry());
   std::vector<std::uint8_t> stream(tele.begin(), tele.end());
   stream.erase(stream.begin() + 40);
   stream.insert(stream.end(), tele.begin(), tele.end());
@@ -387,7 +455,7 @@ TEST(FrameScanner, AnImplausibleLengthIsDroppedWithoutWaitingForItsBody)
   // A header claiming a payload larger than any frame of this protocol must not make the scanner
   // wait for bytes that will never come.
   MsgHeader header{};
-  header.type = static_cast<std::uint16_t>(MessageType::kRobotTele);
+  header.type = static_cast<std::uint16_t>(MessageType::MSG_ROBOT_TELE);
   header.len = static_cast<std::uint16_t>(kMaxPayload + 1);
   header.ver_flags = kProtocolVersion;
   std::array<std::uint8_t, kHeaderSize> bytes{};
@@ -399,15 +467,15 @@ TEST(FrameScanner, AnImplausibleLengthIsDroppedWithoutWaitingForItsBody)
   EXPECT_GE(scanner.discarded_bytes(), 1U);
 
   // And the next real frame is still found.
-  EXPECT_EQ(
-    scan_all(scanner, bytes_of(humanoid::transport_stm32::golden::kMasterStatusFrame)).size(), 1U);
+  const auto status = status_frame(sample_status());
+  EXPECT_EQ(scan_all(scanner, bytes_of(status)).size(), 1U);
 }
 
 TEST(FrameScanner, FramesOfAnotherProtocolVersionAreCountedAndNeverReturned)
 {
   std::array<std::uint8_t, 8> payload{1, 2, 3, 4, 5, 6, 7, 8};
   MsgHeader header{};
-  header.type = static_cast<std::uint16_t>(MessageType::kMasterStatus);
+  header.type = static_cast<std::uint16_t>(MessageType::MSG_MASTER_STATUS);
   header.len = static_cast<std::uint16_t>(payload.size());
   header.ver_flags = 7;  // an older master
   std::array<std::uint8_t, kHeaderSize> head_bytes{};
@@ -428,7 +496,7 @@ TEST(FrameScanner, FramesOfAnotherProtocolVersionAreCountedAndNeverReturned)
 TEST(FrameScanner, NeverRefusesBytesWhenDrainedBetweenPushes)
 {
   FrameScanner scanner;
-  const auto & tele = humanoid::transport_stm32::golden::kRobotTeleFrame;
+  const auto tele = tele_frame(sample_telemetry());
   std::size_t frames = 0;
   for (int i = 0; i < 100; ++i) {
     ASSERT_EQ(scanner.push(bytes_of(tele)), tele.size());

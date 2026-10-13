@@ -38,19 +38,39 @@ if [[ -n "$(git -C "$FW" status --porcelain)" ]]; then
     exit 1
 fi
 
+mkdir -p "$HERE/fixtures" "$HERE/firmware_sm"
 copy() { install -m 0644 "$FW/$1" "$HERE/$2"; echo "  vendored $2"; }
 echo "vendoring from $FW @ $FIRMWARE_TAG:"
 copy generated/cpp/robot_wire_gen.hpp        robot_wire_gen.hpp
 copy generated/cpp/fixtures/robot_cmd.bin    fixtures/robot_cmd.bin
 copy generated/cpp/fixtures/robot_tele.bin   fixtures/robot_tele.bin
 copy firmware/common/protocol.yaml           protocol.yaml
+# The firmware's PURE decision logic, wrapped verbatim by the fake master (isolated TU, because
+# protocol.h's macros would clobber the C++ wrapper). The emulator thus runs the real state
+# machine, not a hand-written mirror that could drift.
+copy firmware/common/include/drive_sm.h      firmware_sm/drive_sm.h
+copy firmware/common/include/host_watchdog.h firmware_sm/host_watchdog.h
+copy firmware/common/include/protocol.h      firmware_sm/protocol.h
+copy firmware/common/include/protocol_gen.h  firmware_sm/protocol_gen.h
+# The firmware timing constants the fake master must match (enable/clear/stop-ramp durations, the
+# host-death cycle count). The fake master sources them from here, through the shim, so a value
+# like HOST_LOST_CYCLES can never silently drift from the firmware. Config, not wire: these are NOT
+# part of SCHEMA_HASH, but ride the same pinned tag, and fw_boundary_test pins the enum values.
+copy firmware/common/include/motor_config.h  firmware_sm/motor_config.h
 
-# Fail loudly if the tag's header no longer matches the pinned hash.
-hdr_hash="$(grep -oiE 'PROTO_SCHEMA_HASH = 0x[0-9A-Fa-f]+' "$HERE/robot_wire_gen.hpp" \
-            | grep -oiE '0x[0-9A-Fa-f]+' | head -1)"
-if [[ "${hdr_hash,,}" != "${SCHEMA_HASH,,}" ]]; then
-    echo "vendor: $FIRMWARE_TAG header hash $hdr_hash != pinned $SCHEMA_HASH" >&2
-    echo "        the tag and FIRMWARE_PIN disagree — update the pin deliberately." >&2
-    exit 1
-fi
+# Fail loudly if the tag's headers no longer match the pinned hash (both the C++ mirror and the
+# C header the firmware SM compiles against).
+check_hash() {
+    local f="$1"
+    local h
+    h="$(grep -oiE 'PROTO_SCHEMA_HASH[ =]+0x[0-9A-Fa-f]+' "$HERE/$f" \
+         | grep -oiE '0x[0-9A-Fa-f]+' | head -1)"
+    if [[ "${h,,}" != "${SCHEMA_HASH,,}" ]]; then
+        echo "vendor: $FIRMWARE_TAG $f hash $h != pinned $SCHEMA_HASH" >&2
+        echo "        the tag and FIRMWARE_PIN disagree — update the pin deliberately." >&2
+        exit 1
+    fi
+}
+check_hash robot_wire_gen.hpp
+check_hash firmware_sm/protocol_gen.h
 echo "ok: vendored $FIRMWARE_TAG, schema $SCHEMA_HASH"

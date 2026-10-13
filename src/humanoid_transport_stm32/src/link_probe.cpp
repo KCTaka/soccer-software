@@ -45,9 +45,9 @@ bool probe_master(
   const auto last_frame = to ? to : from;
 
   out << std::format(
-    "protocol version {} (matches)\nmaster: {}, up {} ms, polls at {} Hz, telemetry {} Hz, "
-    "slave tick {} Hz, expects host commands at {} Hz\n",
-    wire::kProtocolVersion, wire::robot_state_name(status->robot_state), status->uptime_ms,
+    "protocol version {} (matches), schema 0x{:08X}\nmaster up {} ms, polls at {} Hz, "
+    "telemetry {} Hz, slave tick {} Hz, expects host commands at {} Hz\n",
+    wire::kProtocolVersion, status->schema_hash, status->uptime_ms,
     status->master_poll_hz, status->telemetry_hz, status->slave_tick_hz, status->host_cmd_hz);
 
   if (!last_frame) {
@@ -57,9 +57,9 @@ bool probe_master(
 
   if (from && to) {
     const auto cycles = static_cast<std::uint16_t>(
-      to->robot.header.cycle_id - from->robot.header.cycle_id);
-    const std::uint32_t span_us = to->robot.header.master_time_us -
-      from->robot.header.master_time_us;
+      to->robot.cycle_id - from->robot.cycle_id);
+    const std::uint32_t span_us = to->robot.master_time_us -
+      from->robot.master_time_us;
     out << std::format(
       "telemetry: {} master cycles in {:.3f} s of master time = {:.1f} Hz\n", cycles,
       span_us / 1e6, span_us > 0 ? cycles / (span_us / 1e6) : 0.0);
@@ -77,19 +77,20 @@ bool probe_master(
 
   const auto & robot = last_frame->robot;
   out << std::format("robot_state={}, {} chain(s) reporting\n",
-    wire::robot_state_name(robot.header.robot_state), robot.header.n_chains);
-  for (std::size_t c = 0; c < robot.header.n_chains; ++c) {
+    wire::robot_state_name(robot.robot_state), robot.n_chains);
+  for (std::size_t c = 0; c < robot.n_chains; ++c) {
     const auto & chain = robot.chains[c];
     out << std::format(
-      "  chain {}: {} motor(s), slave up {} us, cmd CRC errors {}, CAN TX errors {}\n",
-      chain.chain_id, chain.n_motors, chain.slave_time_us, chain.cmd_crc_errors,
-      chain.can_tx_errors);
+      "  chain {}: link {}, {} motor(s), slave up {} us, cmd CRC errors {}, CAN TX errors {}\n",
+      chain.chain_id, wire::chain_link_name(chain.link), chain.n_motors, chain.slave_time_us,
+      chain.cmd_crc_errors, chain.can_tx_errors);
     for (std::size_t m = 0; m < chain.n_motors; ++m) {
       const auto & motor = chain.motors[m];
       out << std::format(
-        "    motor {}: {:<11} cause={:<11} drive_fault=0x{:02X} flags=0x{:02X} age={:>3} ms  "
+        "    motor {}: {:<11} fault={:<14} rs_bits=0x{:02X} flags=0x{:02X} age={:>3} ms  "
         "pos={:+.4f} rad vel={:+.2f} rad/s tau={:+.2f} N*m temp={} C\n",
-        m, wire::lifecycle_name(motor.state), wire::cause_name(motor.cause), motor.motor_fault,
+        m, wire::drive_state_name(motor.drive_state), wire::drive_fault_name(motor.drive_fault),
+        motor.rs_fault_bits,
         motor.flags, motor.fb_age_ms, wire::decode_i16(motor.pos, wire::kPosScale),
         wire::decode_i16(motor.vel, wire::kVelScale),
         wire::decode_i16(motor.tau, wire::kTauScale), motor.temp_c);

@@ -63,7 +63,7 @@ TEST_F(MasterLinkTest, OpensAndReceivesStatusAndTelemetry)
   const auto frame = link.wait_for_frame(0, 1s);
   ASSERT_TRUE(frame.has_value());
   EXPECT_TRUE(frame->valid);
-  EXPECT_EQ(frame->robot.header.n_chains, 1);
+  EXPECT_EQ(frame->robot.n_chains, 1);
   EXPECT_EQ(frame->robot.chains[0].n_motors, 2);
 
   EXPECT_EQ(link.counters().framing_errors, 0U);
@@ -94,15 +94,16 @@ TEST_F(MasterLinkTest, DeliversACommandFrameToTheMaster)
   command.n_chains = 1;
   command.chains[0].chain_id = 0;
   command.chains[0].n_motors = 1;
-  command.chains[0].motors[0].mode_req = static_cast<std::uint8_t>(wire::ModeRequest::kHold);
+  command.chains[0].motors[0].drive_req =
+    static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE);
   command.chains[0].motors[0].flags = wire::kCmdFlagValid;
 
   std::array<std::uint8_t, sizeof(command)> payload{};
   std::memcpy(payload.data(), &command, sizeof(command));
   std::array<std::uint8_t, wire::kRobotCmdFrameSize> frame{};
   ASSERT_TRUE(wire::build_frame(
-      wire::MessageType::kRobotCmd, 1, wire::NodeId::kJetson, wire::NodeId::kMaster, 0, payload,
-      frame).has_value());
+      wire::MessageType::MSG_ROBOT_CMD, 1, wire::NodeId::NODE_JETSON, wire::NodeId::NODE_MASTER, 0,
+      payload, frame).has_value());
 
   ASSERT_EQ(
     link.send(frame, std::chrono::steady_clock::now() + 100ms), WriteStatus::kOk);
@@ -121,12 +122,12 @@ TEST_F(MasterLinkTest, WaitForNewerReturnsEachFrameInOrder)
   auto frame = link.wait_for_frame(0, 1s);
   ASSERT_TRUE(frame.has_value());
 
-  std::uint16_t cycle = frame->robot.header.cycle_id;
+  std::uint16_t cycle = frame->robot.cycle_id;
   for (int i = 0; i < 20; ++i) {
     const auto next = link.wait_for_newer(cycle, std::chrono::steady_clock::now() + 200ms);
     ASSERT_TRUE(next.has_value()) << "frame " << i;
-    EXPECT_GT(static_cast<std::int16_t>(next->robot.header.cycle_id - cycle), 0);
-    cycle = next->robot.header.cycle_id;
+    EXPECT_GT(static_cast<std::int16_t>(next->robot.cycle_id - cycle), 0);
+    cycle = next->robot.cycle_id;
   }
 }
 
@@ -142,7 +143,7 @@ TEST_F(MasterLinkTest, WaitForNewerReturnsAtTheDeadlineWhenTheMasterIsSilent)
 
   const auto start = std::chrono::steady_clock::now();
   const auto deadline = start + 30ms;
-  const auto result = link.wait_for_newer(latest->robot.header.cycle_id, deadline);
+  const auto result = link.wait_for_newer(latest->robot.cycle_id, deadline);
   const auto end = std::chrono::steady_clock::now();
 
   EXPECT_FALSE(result.has_value());
@@ -234,7 +235,7 @@ TEST_F(MasterLinkTest, ReportsAnUnpluggedDevice)
   ASSERT_TRUE(latest.has_value());
   const auto start = std::chrono::steady_clock::now();
   const auto result =
-    link.wait_for_newer(latest->robot.header.cycle_id, start + 1s);
+    link.wait_for_newer(latest->robot.cycle_id, start + 1s);
   EXPECT_FALSE(result.has_value());
   EXPECT_LT(std::chrono::steady_clock::now() - start, 200ms);
 }

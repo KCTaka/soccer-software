@@ -123,7 +123,7 @@ std::optional<TelemetryFrame> MasterLink::wait_for_newer(
   for (;; ) {
     if (const auto frame = rt_frames_.read()) {
       // Signed 16-bit difference: correct across the cycle counter's wrap.
-      if (static_cast<std::int16_t>(frame->robot.header.cycle_id - after_cycle) > 0) {
+      if (static_cast<std::int16_t>(frame->robot.cycle_id - after_cycle) > 0) {
         return frame;
       }
     }
@@ -227,7 +227,7 @@ void MasterLink::run()
 void MasterLink::handle_frame(const wire::FrameScanner::Frame & frame)
 {
   switch (frame.type) {
-    case wire::MessageType::kMasterStatus:
+    case wire::MessageType::MSG_MASTER_STATUS:
       if (const auto status = wire::parse_master_status(frame.payload)) {
         const std::scoped_lock lock{mutex_};
         status_ = *status;
@@ -236,24 +236,24 @@ void MasterLink::handle_frame(const wire::FrameScanner::Frame & frame)
         ++malformed_payloads_;
       }
       break;
-    case wire::MessageType::kRobotTele:
+    case wire::MessageType::MSG_ROBOT_TELE:
       if (const auto robot = wire::parse_robot_tele(frame.payload)) {
         handle_telemetry(*robot);
       } else {
         ++malformed_payloads_;
       }
       break;
-    case wire::MessageType::kPing:
-    case wire::MessageType::kSlaveStatus:
-    case wire::MessageType::kRobotCmd:
+    case wire::MessageType::MSG_PING:
+    case wire::MessageType::MSG_SLAVE_STATUS:
+    case wire::MessageType::MSG_ROBOT_CMD:
       break;  // nothing here reads them
   }
 }
 
 void MasterLink::handle_telemetry(const wire::RobotTelemetry & robot)
 {
-  const std::uint16_t cycle = robot.header.cycle_id;
-  const std::uint32_t master_time_us = robot.header.master_time_us;
+  const std::uint16_t cycle = robot.cycle_id;
+  const std::uint32_t master_time_us = robot.master_time_us;
 
   if (have_previous_) {
     // Signed differences are correct across the wrap of the 16-bit cycle and the 32-bit clock

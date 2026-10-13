@@ -176,7 +176,7 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
     }
     const bool is_isolated = ((isolated >> j) & 1U) != 0U;
     const wire::EncodedCommand encoded = wire::encode_command(
-      wire::ModeRequest::kMit, to_setpoint(wiring, command.joints[j]), wire::kCmdFlagValid);
+      wire::DriveReq::DRV_REQ_ENABLE, to_setpoint(wiring, command.joints[j]), wire::kCmdFlagValid);
     const JointRequest request = plan_request(Phase::kRunning, is_isolated, encoded.representable);
     slot_of(wire_command, wiring) = request.send_tuple ? encoded.command : plain_request(request);
     if (!encoded.representable && !is_isolated) {
@@ -197,12 +197,12 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
       transport::TransportError::kHardwareFault : transport::TransportError::kTimeout;
     return result;
   }
-  last_cycle_ = frame->robot.header.cycle_id;
+  last_cycle_ = frame->robot.cycle_id;
 
   // --- Interpret. feedback is untouched on every error below, so a failed exchange can never be
   // mistaken for a current sample: its sequence stays behind the command's. ---
   if (link_.master_reset_seen() ||
-    frame->robot.header.robot_state == static_cast<std::uint8_t>(wire::RobotState::kHostLost))
+    frame->robot.robot_state == static_cast<std::uint8_t>(wire::RobotState::ROBOT_HOST_LOST))
   {
     result.error = transport::TransportError::kHardwareFault;
     return result;
@@ -236,8 +236,9 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
     return result;
   }
   if (!tuples_representable) {
-    // The offending joints were sent DAMPED rather than clamped. Failing the exchange makes the
-    // caller count the cycle as bad, so a SafetyKernel that lets this through trips protective.
+    // The offending joints were sent clamped (encode saturates to the wire limits), not silently
+    // dropped. Failing the exchange makes the caller count the cycle as bad, so a SafetyKernel that
+    // lets this through trips protective. (P8.3 clamps to the manifest envelope and holds instead.)
     result.error = transport::TransportError::kManifestMismatch;
     return result;
   }
@@ -511,7 +512,7 @@ bool Stm32SerialTransport::check_master(const Parameters & parameters)
     }
   }
 
-  last_cycle_ = frame->robot.header.cycle_id;
+  last_cycle_ = frame->robot.cycle_id;
   return true;
 }
 
@@ -565,7 +566,7 @@ bool Stm32SerialTransport::run_activation_step(
       continue;
     }
     seen = link_.frame_count();
-    cycle = frame->robot.header.cycle_id;
+    cycle = frame->robot.cycle_id;
     last_frame = frame;
 
     const ArmingVerdict verdict = phase == Phase::kClearing ?
@@ -582,10 +583,11 @@ bool Stm32SerialTransport::run_activation_step(
           const JointWiring & wiring = layout_.joints[verdict.joint];
           const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
           const bool wound =
-            motor && motor->cause == static_cast<std::uint8_t>(wire::FaultCause::kWound);
+            motor && motor->drive_fault == static_cast<std::uint8_t>(wire::DriveFault::DRVF_WOUND);
           return fail(std::format(
               "joint '{}' failed while {}: its motor is faulted (cause {}){}",
-              joint_name(verdict.joint), step, motor ? wire::cause_name(motor->cause) : "?",
+              joint_name(verdict.joint), step,
+            motor ? wire::drive_fault_name(motor->drive_fault) : "?",
               wound ? ": the shaft is wound beyond a single turn and must be re-zeroed offline" :
               ""));
         }
@@ -598,7 +600,7 @@ bool Stm32SerialTransport::run_activation_step(
 std::string Stm32SerialTransport::explain_waiting(
   Phase phase, std::uint8_t joint, const std::optional<TelemetryFrame> & frame) const
 {
-  const char * const target = phase == Phase::kClearing ? "IDLE" : "HOLD";
+  const char * const target = phase == Phase::kClearing ? "DISABLED" : "ENABLED";
   const auto max_age_ms = std::chrono::duration<double, std::milli>(feedback_max_age_).count();
   const std::string head = std::format(
     "joint '{}' never reported {} with feedback fresher than {} ms", joint_name(joint), target,
@@ -612,13 +614,14 @@ std::string Stm32SerialTransport::explain_waiting(
     return std::format("{}; chain {} is not reporting", head, wiring.chain);
   }
   std::string text = std::format(
-    "{} (last seen {}, cause {}, feedback age {} ms)", head, wire::lifecycle_name(motor->state),
-    wire::cause_name(motor->cause), motor->fb_age_ms);
+    "{} (last seen {}, cause {}, feedback age {} ms)", head,
+      wire::drive_state_name(motor->drive_state),
+    wire::drive_fault_name(motor->drive_fault), motor->fb_age_ms);
   // The slave rejects HOLD on an IDLE motor only when it did not discover that motor at boot. It
   // never rediscovers one, so a drive powered after its slave can only be armed after a slave
   // reset.
   const bool hold_rejected = phase == Phase::kArming &&
-    motor->state == static_cast<std::uint8_t>(wire::Lifecycle::kIdle) &&
+    motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_DISABLED) &&
     (motor->flags & wire::kTeleFlagRequestRejected) != 0;
   if (!reports_within(*motor, feedback_max_age_)) {
     text += ": its drive is not answering on CAN. Is it powered, and on the bus?";
@@ -646,13 +649,15 @@ std::optional<std::uint8_t> Stm32SerialTransport::release_motors(std::chrono::mi
       continue;
     }
     seen = link_.frame_count();
-    cycle = frame->robot.header.cycle_id;
+    cycle = frame->robot.cycle_id;
 
     bool all_idle = true;
     for (std::uint8_t j = 0; j < joint_count_; ++j) {
       const JointWiring & wiring = layout_.joints[j];
       const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
-      if (!motor || motor->state != static_cast<std::uint8_t>(wire::Lifecycle::kIdle)) {
+      if (!motor ||
+        motor->drive_state != static_cast<std::uint8_t>(wire::DriveState::DRV_DISABLED))
+      {
         all_idle = false;
         unconfirmed = j;
         break;
@@ -693,7 +698,8 @@ WriteStatus Stm32SerialTransport::transmit(
     std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::steady_clock::now().time_since_epoch()).count());
   const auto size = wire::build_frame(
-    wire::MessageType::kRobotCmd, header_seq_++, wire::NodeId::kJetson, wire::NodeId::kMaster,
+    wire::MessageType::MSG_ROBOT_CMD, header_seq_++, wire::NodeId::NODE_JETSON,
+      wire::NodeId::NODE_MASTER,
     ts_ms, payload, tx_buffer_);
   if (!size) {
     return WriteStatus::kError;
@@ -748,17 +754,16 @@ std::chrono::milliseconds to_milliseconds(double seconds)
   return std::chrono::milliseconds{static_cast<std::int64_t>(std::lround(seconds * 1000.0))};
 }
 
-// A request that carries no setpoint: IDLE, HOLD, or DAMPED on the slave's own gains.
+// A request that carries no MIT tuple: DISABLE, ENABLE, STOP or RESET. The drive request always
+// applies; kCmdFlagValid is deliberately NOT set, because in v10 it marks the tuple as live, and
+// this slot carries none.
 humanoid::transport_stm32::wire::CmdMotor plain_request(
   const humanoid::transport_stm32::JointRequest & request) noexcept
 {
   namespace wire = humanoid::transport_stm32::wire;
   wire::CmdMotor motor{};
-  motor.mode_req = static_cast<std::uint8_t>(request.mode);
-  motor.flags = wire::kCmdFlagValid;
-  if (request.fault_reset) {
-    motor.flags = static_cast<std::uint8_t>(motor.flags | wire::kCmdFlagFaultReset);
-  }
+  motor.drive_req = static_cast<std::uint8_t>(request.request);
+  motor.flags = 0U;
   if (request.use_config_gains) {
     motor.flags = static_cast<std::uint8_t>(motor.flags | wire::kCmdFlagUseConfigGains);
   }

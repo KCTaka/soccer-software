@@ -71,7 +71,7 @@ TEST(Stm32Parameters, ConfigureReadsTheDeviceAndTheWiringFromRosParameters)
   const auto sent = g_fake_master->last_command();
   ASSERT_TRUE(sent.has_value());
   EXPECT_EQ(sent->chains[0].motors[1].pos, 2000);  // -1 * 0.3 + 0.5 = 0.2 rad
-  EXPECT_EQ(g_fake_master->state(1, 0), wire::Lifecycle::kMit);
+  EXPECT_EQ(g_fake_master->state(1, 0), wire::DriveState::DRV_ENABLED);
   transport.deactivate();
 }
 

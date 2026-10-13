@@ -154,9 +154,9 @@ protected:
   }
 
   // One exchange, then whether the master reports that motor idle.
-  bool exchange_and_check_idle(std::uint8_t chain, std::uint8_t motor)
+  bool exchange_and_check_disabled(std::uint8_t chain, std::uint8_t motor)
   {
-    return exchange().ok() && fake->state(chain, motor) == wire::Lifecycle::kIdle;
+    return exchange().ok() && fake->state(chain, motor) == wire::DriveState::DRV_DISABLED;
   }
 
   template<typename Predicate>
@@ -289,14 +289,15 @@ TEST_F(TransportTest, TheFullTupleReachesTheMasterInJointAndWireUnits)
   ASSERT_TRUE(wire_command.has_value());
   EXPECT_EQ(wire_command->n_chains, 2);
   const auto & motor = wire_command->chains[0].motors[1];  // joint 1: chain 0, motor 1
-  EXPECT_EQ(motor.mode_req, static_cast<std::uint8_t>(wire::ModeRequest::kMit));
+  EXPECT_EQ(motor.drive_req, static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE));
   EXPECT_EQ(motor.pos, 2000);   // -1 * 0.3 + 0.5 = 0.2 rad
   EXPECT_EQ(motor.vel, -200);   // sign flips motion
   EXPECT_EQ(motor.tau_ff, -150);
   EXPECT_EQ(motor.kp, 400);     // gains keep their sign
   EXPECT_EQ(motor.kd, 200);
   EXPECT_NE(motor.flags & wire::kCmdFlagValid, 0);
-  EXPECT_EQ(motor.flags & wire::kCmdFlagFaultReset, 0);  // running never resets a fault
+  // Running asks ENABLE every cycle and never RESET, so a mid-run fault stays latched (v10).
+  EXPECT_EQ(motor.drive_req, static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE));
 }
 
 TEST_F(TransportTest, FeedbackComesBackInJointUnits)
@@ -463,42 +464,42 @@ TEST_F(TransportTest, ActivateRefusesAnUnconfiguredTransport)
 // Activation and deactivation
 // ---------------------------------------------------------------------------
 
-TEST_F(TransportTest, ActivationArmsEveryMotorIntoHold)
+TEST_F(TransportTest, ActivationArmsEveryMotorIntoEnabled)
 {
   bring_up();
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kHold);
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kHold);
-  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kHold);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_ENABLED);
 }
 
-TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyIdle)
+TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyDisable)
 {
   params.monitor_only = true;
   ASSERT_TRUE(configure());
   ASSERT_TRUE(transport->activate());  // connects and streams; never runs the arming sequence
 
-  // Activation armed nothing: every motor is still IDLE at the master.
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kIdle);
+  // Activation armed nothing: every motor is still DISABLED at the master.
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
 
   // Many running cycles keep streaming telemetry and still never arm.
   for (int i = 0; i < 50; ++i) {
     EXPECT_TRUE(exchange().ok());
   }
 
-  // Had any cycle sent HOLD or MIT, the master's state machine would have armed that motor.
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kIdle);
+  // Had any cycle sent ENABLE, the master's state machine would have armed that motor.
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
 
-  // And the wire itself carried IDLE for every wired slot, never HOLD/MIT.
+  // And the wire itself carried DISABLE for every wired slot, never ENABLE.
   const auto last = fake->last_command();
   ASSERT_TRUE(last.has_value());
-  const auto idle = static_cast<std::uint8_t>(wire::ModeRequest::kIdle);
-  EXPECT_EQ(last->chains[0].motors[0].mode_req, idle);
-  EXPECT_EQ(last->chains[0].motors[1].mode_req, idle);
-  EXPECT_EQ(last->chains[1].motors[0].mode_req, idle);
+  const auto disable = static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_DISABLE);
+  EXPECT_EQ(last->chains[0].motors[0].drive_req, disable);
+  EXPECT_EQ(last->chains[0].motors[1].drive_req, disable);
+  EXPECT_EQ(last->chains[1].motors[0].drive_req, disable);
 }
 
 TEST_F(TransportTest, ActivationSurvivesASlaveGoingSilentWhileItArms)
@@ -507,7 +508,7 @@ TEST_F(TransportTest, ActivationSurvivesASlaveGoingSilentWhileItArms)
   config.arming_silence_cycles = 8;  // the firmware's ~40 ms blocking arm handshake
   start_fake(config);
   bring_up();
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kHold);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, ActivationFailsAndLeavesNothingArmedWhenAShaftIsWound)
@@ -519,10 +520,12 @@ TEST_F(TransportTest, ActivationFailsAndLeavesNothingArmedWhenAShaftIsWound)
   EXPECT_FALSE(transport->health_snapshot().active);
   // The motors that did arm are released again.
   EXPECT_TRUE(eventually([&] {
-      return fake->state(0, 0) == wire::Lifecycle::kIdle &&
-             fake->state(1, 0) == wire::Lifecycle::kIdle;
+      return fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
+             fake->state(1, 0) == wire::DriveState::DRV_DISABLED;
     }));
-  EXPECT_EQ(fake->cause(0, 1), wire::FaultCause::kNone);  // the release cleared the latched fault
+  // v10: a release is a DISABLE, which is a no-op on a FAULT motor, so the WOUND fault stays
+  // latched. A wound shaft is cleared only by the RESET in a later activation (and re-zeroing).
+  EXPECT_EQ(fake->fault(0, 1), wire::DriveFault::DRVF_WOUND);
 }
 
 TEST_F(TransportTest, ActivationFailsWhenAChainStopsAnsweringAndLeavesNothingArmed)
@@ -539,32 +542,24 @@ TEST_F(TransportTest, ActivationFailsWhenAChainStopsAnsweringAndLeavesNothingArm
   // Nothing is left armed, including the motor on the chain that stopped answering: the release
   // keeps asking for IDLE even though it can never see the answer.
   EXPECT_TRUE(eventually([&] {
-      return fake->state(0, 0) == wire::Lifecycle::kIdle &&
-             fake->state(0, 1) == wire::Lifecycle::kIdle && fake->state(1,
-        0) == wire::Lifecycle::kIdle;
+      return fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
+             fake->state(0, 1) == wire::DriveState::DRV_DISABLED && fake->state(1,
+        0) == wire::DriveState::DRV_DISABLED;
     }));
 }
 
 TEST_F(TransportTest, ActivationClearsAFaultLatchedByAPreviousSession)
 {
-  fake->force_fault(0, 0, wire::FaultCause::kOvertorque);
+  fake->force_fault(0, 0, wire::DriveFault::DRVF_OVERTORQUE);
   ASSERT_TRUE(configure());
   ASSERT_TRUE(transport->activate());  // the fault reset in the clearing request clears it
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kHold);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 }
 
-TEST_F(TransportTest, ArmingHoldsAFaultedMotorWhereItIsNotWhereItFaulted)
-{
-  // The leg was moved while the motor sat faulted. The slave does not poll a FAULT motor, so its
-  // idea of the position is still the one from the moment of the fault.
-  fake->force_fault(0, 0, wire::FaultCause::kOvertorque);
-  fake->set_measured(0, 0, 0.8, 0.0, 0.0);
-  ASSERT_TRUE(configure());
-  ASSERT_TRUE(transport->activate());
-
-  EXPECT_NEAR(fake->hold_position(0, 0), 0.8, 1e-3);
-  EXPECT_NEAR(fake->shaft_position(0, 0), 0.8, 1e-3);  // arming did not step it to 0
-}
+// (Retired for P8.2, returns in P8.3) ArmingHoldsAFaultedMotorWhereItIsNotWhereItFaulted: arming
+// holding at the captured position needs the captured-hold tuple streamed from the first ENABLE
+// (plan_request kArming sends ENABLE with NO tuple until P8.3), so there is nothing to assert about
+// hold_position here yet. The capture-once test lives with the P8.3 lifecycle.
 
 TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredIsNeverArmed)
 {
@@ -577,17 +572,18 @@ TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredIsNeverArmed)
 
   EXPECT_FALSE(transport->activate());
   EXPECT_FALSE(transport->health_snapshot().active);
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ABSENT);  // never discovered -> ABSENT
   EXPECT_NEAR(fake->shaft_position(0, 1), 0.6, 1e-3);
   EXPECT_TRUE(eventually([&] {
-      return fake->state(0, 0) == wire::Lifecycle::kIdle &&
-             fake->state(1, 0) == wire::Lifecycle::kIdle;
+      return fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
+             fake->state(1, 0) == wire::DriveState::DRV_DISABLED;
     }));
 }
 
 TEST_F(TransportTest, AMotorWithNoDriveBehindItIsNeverReportedArmed)
 {
-  // The slave reports HOLD for 100 ms after arming a motor whose drive never answers.
+  // A motor the slave never discovered ages to ABSENT; an ENABLE for it is refused, so it never
+  // reaches ENABLED.
   params.arming_timeout = 400ms;
   fake->set_undiscovered(1, 0);
   fake->set_drive_answers(1, 0, false);
@@ -595,7 +591,7 @@ TEST_F(TransportTest, AMotorWithNoDriveBehindItIsNeverReportedArmed)
 
   EXPECT_FALSE(transport->activate());
   EXPECT_FALSE(transport->health_snapshot().active);
-  EXPECT_NE(fake->state(1, 0), wire::Lifecycle::kHold);
+  EXPECT_NE(fake->state(1, 0), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, ActivationFailsWhenADriveStopsAnsweringBeforeItArms)
@@ -607,8 +603,8 @@ TEST_F(TransportTest, ActivationFailsWhenADriveStopsAnsweringBeforeItArms)
   std::this_thread::sleep_for(50ms);
 
   EXPECT_FALSE(transport->activate());
-  EXPECT_NE(fake->state(0, 1), wire::Lifecycle::kHold);
-  EXPECT_NE(fake->state(0, 1), wire::Lifecycle::kMit);
+  EXPECT_NE(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
+  EXPECT_NE(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, ActivationIsIdempotent)
@@ -622,12 +618,12 @@ TEST_F(TransportTest, DeactivationIdlesEveryMotorAndWaitsForTheMasterToSayIt)
 {
   bring_up();
   ASSERT_TRUE(exchange_many(5).ok());
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kMit);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 
   transport->deactivate();
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kIdle);
-  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
   EXPECT_EQ(exchange().error, TransportError::kNotActive);
 }
 
@@ -638,7 +634,7 @@ TEST_F(TransportTest, ADeactivatedTransportCanBeActivatedAgain)
   transport->deactivate();
   ASSERT_TRUE(transport->activate());
   EXPECT_TRUE(exchange_many(3).ok());
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kMit);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, DestroyingAnActiveTransportIdlesTheMotors)
@@ -646,7 +642,7 @@ TEST_F(TransportTest, DestroyingAnActiveTransportIdlesTheMotors)
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   transport.reset();
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
 }
 
 // ---------------------------------------------------------------------------
@@ -679,7 +675,10 @@ TEST_F(TransportTest, ExchangeRecoversWhenTheMasterComesBack)
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   fake->set_silent(true);
-  EXPECT_EQ(exchange(30ms).error, TransportError::kTimeout);
+  // A transient telemetry gap, shorter than the master's host-death window (HOST_LOST_CYCLES = 5,
+  // 25 ms): the host times out but the master does not latch HOST_LOST, so a plain exchange
+  // recovers. A gap beyond that window needs a re-activation (AStalledHostLoop... covers it).
+  EXPECT_EQ(exchange(15ms).error, TransportError::kTimeout);
   fake->set_silent(false);
   EXPECT_TRUE(exchange_many(3).ok());
 }
@@ -744,7 +743,7 @@ TEST_F(TransportTest, AStalledHostLoopTripsTheMastersDeadManAndIsReportedAsAFaul
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
 
-  // No exchanges for longer than the firmware's host-death limit of 12 cycles (60 ms).
+  // No exchanges for longer than the firmware's host-death limit (HOST_LOST_CYCLES = 5, 25 ms).
   std::this_thread::sleep_for(150ms);
   ASSERT_TRUE(fake->host_lost());
 
@@ -815,9 +814,9 @@ TEST_F(TransportTest, JointDisableIdlesThatMotorAndNoOtherAndIsAcknowledgedInThe
   const auto epoch_before = feedback.availability_epoch;
 
   EXPECT_TRUE(transport->request_joint_disable(1));
-  ASSERT_TRUE(eventually([&] {return exchange_and_check_idle(0, 1);}));
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kMit);
-  EXPECT_EQ(fake->state(1, 0), wire::Lifecycle::kMit);
+  ASSERT_TRUE(eventually([&] {return exchange_and_check_disabled(0, 1);}));
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_ENABLED);
 
   ASSERT_TRUE(eventually([&] {return exchange().ok() && !feedback.availability_mask.test(1);}));
   EXPECT_TRUE(feedback.availability_mask.test(0));
@@ -829,9 +828,9 @@ TEST_F(TransportTest, AnIsolatedJointStaysIsolatedAndIsNeverRearmed)
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   EXPECT_TRUE(transport->request_joint_disable(0));
-  ASSERT_TRUE(eventually([&] {return exchange_and_check_idle(0, 0);}));
+  ASSERT_TRUE(eventually([&] {return exchange_and_check_disabled(0, 0);}));
   ASSERT_TRUE(exchange_many(30).ok());
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kIdle);
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
 }
 
 TEST_F(TransportTest, DisableAllIdlesEveryMotor)
@@ -840,9 +839,9 @@ TEST_F(TransportTest, DisableAllIdlesEveryMotor)
   ASSERT_TRUE(exchange_many(3).ok());
   EXPECT_TRUE(transport->request_all_disable());
   ASSERT_TRUE(eventually([&] {
-      return exchange().ok() && fake->state(0, 0) == wire::Lifecycle::kIdle &&
-             fake->state(0, 1) == wire::Lifecycle::kIdle && fake->state(1,
-        0) == wire::Lifecycle::kIdle;
+      return exchange().ok() && fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
+             fake->state(0, 1) == wire::DriveState::DRV_DISABLED && fake->state(1,
+        0) == wire::DriveState::DRV_DISABLED;
     }));
 }
 
@@ -860,7 +859,7 @@ TEST_F(TransportTest, AFaultedMotorIsReportedAndNeverRearmed)
 {
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
-  fake->force_fault(0, 0, wire::FaultCause::kOvertorque);
+  fake->force_fault(0, 0, wire::DriveFault::DRVF_OVERTORQUE);
 
   ASSERT_TRUE(eventually([&] {
       return exchange().ok() &&
@@ -869,19 +868,23 @@ TEST_F(TransportTest, AFaultedMotorIsReportedAndNeverRearmed)
     }));
   const auto bits = feedback.joints[0].fault_bits;
   EXPECT_EQ(bits >> humanoid::transport_stm32::kFaultCauseShift,
-    static_cast<unsigned>(wire::FaultCause::kOvertorque));
+    static_cast<unsigned>(wire::DriveFault::DRVF_OVERTORQUE));
   EXPECT_FALSE(feedback.availability_mask.test(0));
   // The slave stops polling a FAULT motor, so its sample keeps saying "faulted" but ages out.
   EXPECT_TRUE(eventually([&] {return exchange().ok() && !feedback.joints[0].fresh;}));
   EXPECT_NE(feedback.joints[0].fault_bits & humanoid::transport_stm32::kFaultBitFirmwareFault, 0);
 
   ASSERT_TRUE(exchange_many(30).ok());
-  EXPECT_EQ(fake->state(0, 0), wire::Lifecycle::kFault);  // 30 MIT requests did not rearm it
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kMit);    // and its neighbours carry on
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_FAULT);  // 30 MIT requests did not rearm it
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);    // and its neighbours carry on
 }
 
-TEST_F(TransportTest, ATupleTheWireCannotCarryIsReplacedByDampingNeverClamped)
+TEST_F(TransportTest, ATupleTheWireCannotCarryFailsTheCycleAndNeverSilentlySucceeds)
 {
+  // v10: an out-of-range tuple is clamped and the cycle is FAILED (kManifestMismatch) so the caller
+  // counts it bad and a SafetyKernel that lets it through trips protective. There is no DAMPED
+  // request any more. (P8.3 clamps to the manifest envelope and holds; here the invariant under
+  // test is only that the bad cycle is reported and the feedback is not advanced.)
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   const auto last_good = feedback.sequence;
@@ -895,26 +898,31 @@ TEST_F(TransportTest, ATupleTheWireCannotCarryIsReplacedByDampingNeverClamped)
   EXPECT_EQ(result.error, TransportError::kManifestMismatch);
   EXPECT_EQ(feedback.sequence, last_good);  // the cycle is counted as bad by the caller
 
-  // The offending joint is damped on the slave's own gains; its neighbours are untouched.
-  ASSERT_TRUE(eventually([&] {
-      static_cast<void>(exchange());
-      return fake->state(0, 0) == wire::Lifecycle::kDamped;
-    }));
-  EXPECT_EQ(fake->state(0, 1), wire::Lifecycle::kMit);
-  const auto wire_command = fake->last_command();
-  ASSERT_TRUE(wire_command.has_value());
-  EXPECT_NE(wire_command->chains[0].motors[0].flags & wire::kCmdFlagUseConfigGains, 0);
+  // The offending joint is not faulted by the clamp, and its neighbour keeps running. (Every
+  // further exchange also fails, since the bad stiffness stays in the batch, so we do not assert
+  // ok() here -- only that nothing faulted.)
+  for (int i = 0; i < 5; ++i) {
+    static_cast<void>(exchange());
+  }
+  EXPECT_NE(fake->state(0, 0), wire::DriveState::DRV_FAULT);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
-TEST_F(TransportTest, ANonFiniteCommandIsNeverSentAsATuple)
+TEST_F(TransportTest, ANonFiniteCommandFailsTheCycle)
 {
+  // v10: a non-finite field makes the whole command unrepresentable, so the cycle fails and is
+  // counted bad. (P8.3 substitutes the captured hold tuple; here only the failure is asserted.)
   bring_up();
+  ASSERT_TRUE(exchange_many(3).ok());
+  const auto last_good = feedback.sequence;
+
   command.joints[2].position_rad = std::numeric_limits<double>::quiet_NaN();
-  EXPECT_EQ(exchange().error, TransportError::kManifestMismatch);
-  ASSERT_TRUE(eventually([&] {
-      static_cast<void>(exchange());
-      return fake->state(1, 0) == wire::Lifecycle::kDamped;
-    }));
+  command.sequence = last_good + 1;
+  command.joint_count = kJoints;
+  EXPECT_EQ(
+    transport->exchange(command, feedback, std::chrono::steady_clock::now() + 100ms).error,
+    TransportError::kManifestMismatch);
+  EXPECT_EQ(feedback.sequence, last_good);
 }
 
 TEST_F(TransportTest, ABatchOfTheWrongSizeIsRejected)

@@ -19,7 +19,7 @@ namespace
 bool is_known_type(std::uint16_t type) noexcept;
 std::uint16_t frame_crc(const MsgHeader & header, std::span<const std::uint8_t> payload) noexcept;
 
-constexpr std::uint16_t kCrcPoly = 0x1021U;
+constexpr std::uint16_t kCrcPoly = robot_wire::PROTO_CRC_POLY;
 
 // Defined here, not at the bottom: a constant expression needs the function's definition.
 constexpr std::array<std::uint16_t, 256> make_crc_table() noexcept
@@ -90,7 +90,7 @@ double decode_i16(std::int16_t raw, float scale) noexcept
 }
 
 EncodedCommand encode_command(
-  ModeRequest mode, const MitSetpoint & setpoint, std::uint8_t flags) noexcept
+  DriveReq request, const MitSetpoint & setpoint, std::uint8_t flags) noexcept
 {
   const auto pos = encode_i16(setpoint.position_rad, kPosScale);
   const auto vel = encode_i16(setpoint.velocity_rad_s, kVelScale);
@@ -104,7 +104,7 @@ EncodedCommand encode_command(
     std::abs(static_cast<double>(setpoint.position_rad)) <= std::numbers::pi;
 
   EncodedCommand encoded{};
-  encoded.command.mode_req = static_cast<std::uint8_t>(mode);
+  encoded.command.drive_req = static_cast<std::uint8_t>(request);
   encoded.command.pos = pos.raw;
   encoded.command.vel = vel.raw;
   encoded.command.kp = kp.raw;
@@ -220,23 +220,23 @@ void FrameScanner::drop(std::size_t count) noexcept
 
 std::optional<RobotTelemetry> parse_robot_tele(std::span<const std::uint8_t> payload) noexcept
 {
-  if (payload.size() < sizeof(TeleRobotHeader)) {
+  if (payload.size() < kTeleHeadSize) {
     return std::nullopt;
   }
 
   RobotTelemetry telemetry{};
-  std::memcpy(&telemetry.header, payload.data(), sizeof(TeleRobotHeader));
+  std::memcpy(&telemetry, payload.data(), kTeleHeadSize);
 
-  const std::size_t chain_count = telemetry.header.n_chains;
+  const std::size_t chain_count = telemetry.n_chains;
   if (chain_count > kMaxChains ||
-    payload.size() < sizeof(TeleRobotHeader) + chain_count * sizeof(TeleChain))
+    payload.size() < kTeleHeadSize + chain_count * sizeof(TeleChain))
   {
     return std::nullopt;
   }
 
   for (std::size_t i = 0; i < chain_count; ++i) {
     std::memcpy(
-      &telemetry.chains[i], payload.data() + sizeof(TeleRobotHeader) + i * sizeof(TeleChain),
+      &telemetry.chains[i], payload.data() + kTeleHeadSize + i * sizeof(TeleChain),
       sizeof(TeleChain));
     if (telemetry.chains[i].n_motors > kMaxMotorsPerChain) {
       return std::nullopt;
@@ -255,33 +255,44 @@ std::optional<MasterStatus> parse_master_status(std::span<const std::uint8_t> pa
   return status;
 }
 
-const char * lifecycle_name(std::uint8_t state) noexcept
+const char * drive_state_name(std::uint8_t state) noexcept
 {
-  switch (static_cast<Lifecycle>(state)) {
-    case Lifecycle::kBoot: return "BOOT";
-    case Lifecycle::kDiscovering: return "DISCOVERING";
-    case Lifecycle::kIdle: return "IDLE";
-    case Lifecycle::kHold: return "HOLD";
-    case Lifecycle::kMit: return "MIT";
-    case Lifecycle::kDamped: return "DAMPED";
-    case Lifecycle::kToZero: return "TO_ZERO";
-    case Lifecycle::kFault: return "FAULT";
+  switch (static_cast<DriveState>(state)) {
+    case DriveState::DRV_BOOT: return "BOOT";
+    case DriveState::DRV_DISCOVERING: return "DISCOVERING";
+    case DriveState::DRV_ABSENT: return "ABSENT";
+    case DriveState::DRV_DISABLED: return "DISABLED";
+    case DriveState::DRV_ENABLING: return "ENABLING";
+    case DriveState::DRV_ENABLED: return "ENABLED";
+    case DriveState::DRV_STOPPING: return "STOPPING";
+    case DriveState::DRV_CLEARING: return "CLEARING";
+    case DriveState::DRV_FAULT: return "FAULT";
   }
   return "UNKNOWN";
 }
 
-const char * cause_name(std::uint8_t cause) noexcept
+const char * drive_fault_name(std::uint8_t fault) noexcept
 {
-  switch (static_cast<FaultCause>(cause)) {
-    case FaultCause::kNone: return "NONE";
-    case FaultCause::kOvertorque: return "OVERTORQUE";
-    case FaultCause::kCanTimeout: return "CAN_TIMEOUT";
-    case FaultCause::kWatchdog: return "WATCHDOG";
-    case FaultCause::kMotorFault: return "MOTOR_FAULT";
-    case FaultCause::kZeroTimeout: return "ZERO_TIMEOUT";
-    case FaultCause::kNotEnabled: return "NOT_ENABLED";
-    case FaultCause::kWound: return "WOUND";
-    case FaultCause::kMasterLost: return "MASTER_LOST";
+  switch (static_cast<DriveFault>(fault)) {
+    case DriveFault::DRVF_NONE: return "NONE";
+    case DriveFault::DRVF_CAN_TIMEOUT: return "CAN_TIMEOUT";
+    case DriveFault::DRVF_MASTER_LOST: return "MASTER_LOST";
+    case DriveFault::DRVF_ENABLE_FAILED: return "ENABLE_FAILED";
+    case DriveFault::DRVF_NOT_ENABLED: return "NOT_ENABLED";
+    case DriveFault::DRVF_OVERTORQUE: return "OVERTORQUE";
+    case DriveFault::DRVF_MOTOR_REPORTED: return "MOTOR_REPORTED";
+    case DriveFault::DRVF_WOUND: return "WOUND";
+  }
+  return "UNKNOWN";
+}
+
+const char * drive_req_name(std::uint8_t req) noexcept
+{
+  switch (static_cast<DriveReq>(req)) {
+    case DriveReq::DRV_REQ_DISABLE: return "DISABLE";
+    case DriveReq::DRV_REQ_ENABLE: return "ENABLE";
+    case DriveReq::DRV_REQ_STOP: return "STOP";
+    case DriveReq::DRV_REQ_RESET: return "RESET";
   }
   return "UNKNOWN";
 }
@@ -289,10 +300,21 @@ const char * cause_name(std::uint8_t cause) noexcept
 const char * robot_state_name(std::uint8_t state) noexcept
 {
   switch (static_cast<RobotState>(state)) {
-    case RobotState::kInit: return "INIT";
-    case RobotState::kReady: return "READY";
-    case RobotState::kDegraded: return "DEGRADED";
-    case RobotState::kHostLost: return "HOST_LOST";
+    case RobotState::ROBOT_INIT: return "INIT";
+    case RobotState::ROBOT_READY: return "READY";
+    case RobotState::ROBOT_DEGRADED: return "DEGRADED";
+    case RobotState::ROBOT_HOST_LOST: return "HOST_LOST";
+    case RobotState::ROBOT_PROTO_MISMATCH: return "PROTO_MISMATCH";
+  }
+  return "UNKNOWN";
+}
+
+const char * chain_link_name(std::uint8_t link) noexcept
+{
+  switch (static_cast<ChainLink>(link)) {
+    case ChainLink::CHAIN_LINK_LOST: return "LOST";
+    case ChainLink::CHAIN_LINK_ALIVE: return "ALIVE";
+    case ChainLink::CHAIN_LINK_MISMATCH: return "MISMATCH";
   }
   return "UNKNOWN";
 }
@@ -307,11 +329,11 @@ namespace
 bool is_known_type(std::uint16_t type) noexcept
 {
   switch (static_cast<MessageType>(type)) {
-    case MessageType::kPing:
-    case MessageType::kMasterStatus:
-    case MessageType::kSlaveStatus:
-    case MessageType::kRobotCmd:
-    case MessageType::kRobotTele:
+    case MessageType::MSG_PING:
+    case MessageType::MSG_MASTER_STATUS:
+    case MessageType::MSG_SLAVE_STATUS:
+    case MessageType::MSG_ROBOT_CMD:
+    case MessageType::MSG_ROBOT_TELE:
       return true;
   }
   return false;
