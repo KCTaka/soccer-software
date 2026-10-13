@@ -33,5 +33,17 @@ robots:
     stm32_wiring: true
     safety_manifest_path: config/bench_2s_10m/safety_manifest.yaml
     safety_manifest_package: humanoid_bringup
+  bench_1s_5m:
+    source_kind: authored
+    ingest_config: null
+    source: model/robots/bench_1s_5m/source/robot_model.yaml
+    overlay: null
+    generated: model/robots/bench_1s_5m/generated
+    assets_dir: null
+    firmware_config: true
+    firmware_setup: 1s_5m
+    stm32_wiring: true
+    safety_manifest_path: config/bench_1s_5m/safety_manifest.yaml
+    safety_manifest_package: humanoid_bringup
 
 default_robot: unitree_g1
