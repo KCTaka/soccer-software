@@ -92,9 +92,10 @@ bool Stm32SerialTransport::activate()
   }
 
   if (!arm_motors()) {
-    // Never leave a motor armed behind a failed activation.
-    if (const auto stuck = release_motors(parameters_.release_timeout)) {
-      warn(std::format("joint '{}' did not confirm IDLE after the failed activation",
+    // Never leave a motor armed behind a failed activation. Immediate DISABLE, not a ramp: nothing
+    // useful is running, and the caller is already in an error path.
+    if (const auto stuck = release_motors(Phase::kReleasing, parameters_.release_timeout)) {
+      warn(std::format("joint '{}' did not confirm DISABLED after the failed activation",
         joint_name(*stuck)));
     }
     return false;
@@ -110,10 +111,15 @@ void Stm32SerialTransport::deactivate()
   if (!active_.exchange(false)) {
     return;
   }
-  if (const auto stuck = release_motors(parameters_.release_timeout)) {
-    warn(std::format(
-        "joint '{}' did not confirm IDLE within {} ms of deactivation", joint_name(*stuck),
-        parameters_.release_timeout.count()));
+  // Ramp down gently (STOP: ENABLED -> STOPPING -> DISABLED). Any joint that has not reached
+  // DISABLED by the release timeout is forced with an immediate DISABLE, so deactivation always
+  // ends with the motors off even if a ramp stalls.
+  if (release_motors(Phase::kStopping, parameters_.release_timeout)) {
+    if (const auto stuck = release_motors(Phase::kReleasing, parameters_.release_timeout)) {
+      warn(std::format(
+          "joint '{}' did not confirm DISABLED within {} ms of deactivation", joint_name(*stuck),
+          parameters_.release_timeout.count()));
+    }
   }
 }
 
@@ -595,10 +601,12 @@ bool Stm32SerialTransport::frame_health(const TelemetryFrame & frame, std::strin
 
 bool Stm32SerialTransport::arm_motors()
 {
-  // Two steps, never merged into one request: see plan_request. One timeout covers both.
+  // Clear to DISABLED, capture the hold target once, then arm to ENABLED while streaming that hold.
+  // Never merged into one request: see plan_request. One timeout covers all three.
   const auto start = std::chrono::steady_clock::now();
   const auto give_up = start + parameters_.arming_timeout;
   if (!run_activation_step(Phase::kClearing, start, give_up) ||
+    !capture_hold(give_up) ||
     !run_activation_step(Phase::kArming, start, give_up))
   {
     return false;
@@ -608,6 +616,43 @@ bool Stm32SerialTransport::arm_motors()
     availability_.set(j);
   }
   return true;
+}
+
+bool Stm32SerialTransport::capture_hold(MonotonicStamp give_up)
+{
+  // The first fresh frame after clearing: every motor is DISABLED and the slave is polling it, so
+  // its reported position is current, not the stale one it held while faulted. Record it once as
+  // the hold target. Nothing is armed here, so the master's host-death watchdog cannot trip while
+  // we wait without sending.
+  std::uint64_t seen = link_.frame_count();
+  while (std::chrono::steady_clock::now() < give_up && !link_.failed()) {
+    const auto frame = link_.wait_for_frame(seen, kFrameWait);
+    if (!frame) {
+      continue;
+    }
+    seen = link_.frame_count();
+
+    std::array<std::int16_t, transport::kMaxJoints> captured{};
+    bool all_ready = true;
+    for (std::uint8_t j = 0; j < joint_count_; ++j) {
+      const JointWiring & wiring = layout_.joints[j];
+      const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
+      if (!motor ||
+        motor->drive_state != static_cast<std::uint8_t>(wire::DriveState::DRV_DISABLED) ||
+        !reports_within(*motor, feedback_max_age_))
+      {
+        all_ready = false;
+        break;
+      }
+      captured[j] = motor->pos;
+    }
+    if (all_ready) {
+      hold_pos_ = captured;
+      last_cycle_ = frame->robot.cycle_id;
+      return true;
+    }
+  }
+  return fail("timed out capturing the hold position: a joint did not settle to DISABLED");
 }
 
 bool Stm32SerialTransport::run_activation_step(
@@ -706,7 +751,8 @@ std::string Stm32SerialTransport::explain_waiting(
   return text;
 }
 
-std::optional<std::uint8_t> Stm32SerialTransport::release_motors(std::chrono::milliseconds timeout)
+std::optional<std::uint8_t> Stm32SerialTransport::release_motors(
+  Phase phase, std::chrono::milliseconds timeout)
 {
   const auto give_up = std::chrono::steady_clock::now() + timeout;
   std::uint64_t seen = link_.frame_count();
@@ -714,7 +760,7 @@ std::optional<std::uint8_t> Stm32SerialTransport::release_motors(std::chrono::mi
   std::uint8_t unconfirmed = 0;
 
   while (std::chrono::steady_clock::now() < give_up && !link_.failed()) {
-    if (!send_phase_frame(Phase::kReleasing, cycle)) {
+    if (!send_phase_frame(phase, cycle)) {
       break;
     }
     const auto frame = link_.wait_for_frame(seen, kFrameWait);
@@ -748,7 +794,25 @@ bool Stm32SerialTransport::send_phase_frame(Phase phase, std::uint16_t cycle_id)
   wire::CmdRobot command = blank_command(cycle_id);
   for (std::uint8_t j = 0; j < joint_count_; ++j) {
     const JointWiring & wiring = layout_.joints[j];
-    slot_of(command, wiring) = plain_request(plan_request(phase, false, true));
+    const JointRequest request = plan_request(phase, false, true);
+    wire::CmdMotor & slot = slot_of(command, wiring);
+    if (request.send_tuple) {
+      // Arming: hold at the captured position. kp/kd are 0 on the wire because USE_CONFIG_GAINS
+      // tells the slave to apply its own configured gains -- the single source of hold gains.
+      // TODO(SSOT): those gains are the firmware's default_kp/default_kd (model ->
+      // firmware_config.yaml); when the robot-model SSOT work lands they should be named hold gains
+      // and derived per joint, and this USE_CONFIG_GAINS flag revisited.
+      slot.drive_req = static_cast<std::uint8_t>(request.request);
+      slot.pos = hold_pos_[j];
+      slot.vel = 0;
+      slot.kp = 0;
+      slot.kd = 0;
+      slot.tau_ff = 0;
+      slot.flags = static_cast<std::uint8_t>(
+        wire::kCmdFlagValid | (request.use_config_gains ? wire::kCmdFlagUseConfigGains : 0));
+    } else {
+      slot = plain_request(request);
+    }
   }
   return transmit(command, std::chrono::steady_clock::now() + kFrameWait) == WriteStatus::kOk;
 }

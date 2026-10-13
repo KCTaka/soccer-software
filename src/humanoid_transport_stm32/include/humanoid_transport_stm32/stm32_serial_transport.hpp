@@ -105,7 +105,8 @@ public:
   /// takes two steps.
   [[nodiscard]] bool activate() override;
 
-  /// Idles every motor and waits for the master to confirm it.
+  /// Ramps every motor down with STOP and waits for the master to confirm DISABLED, falling back to
+  /// an immediate DISABLE for any joint that has not landed by the release timeout.
   void deactivate() override;
 
   [[nodiscard]] transport::TransportCapabilities capabilities() const override;
@@ -141,13 +142,20 @@ private:
 
   // --- Lifecycle, non-real-time ---
   [[nodiscard]] bool arm_motors();
+  /// Records each wired joint's reported position once, from the first fresh frame after clearing
+  /// reached DISABLED, as the hold target arming streams. Fails if no such frame arrives by
+  /// `give_up`. Captured once -- never re-sampled per cycle -- so a loaded joint cannot drag the
+  /// target as it sags.
+  [[nodiscard]] bool capture_hold(MonotonicStamp give_up);
   /// Streams `phase`'s request until every joint reaches its target, one fails, or `give_up`.
   [[nodiscard]] bool run_activation_step(Phase phase, MonotonicStamp start, MonotonicStamp give_up);
   /// Why `joint` has not reached `phase`'s target, from the last frame seen, for the timeout.
   [[nodiscard]] std::string explain_waiting(
     Phase phase, std::uint8_t joint, const std::optional<TelemetryFrame> & frame) const;
-  /// Streams IDLE until every motor reports it. Returns the first joint that never did.
-  [[nodiscard]] std::optional<std::uint8_t> release_motors(std::chrono::milliseconds timeout);
+  /// Streams `phase`'s request (kStopping or kReleasing) until every motor reports DISABLED.
+  /// Returns the first joint that never did.
+  [[nodiscard]] std::optional<std::uint8_t> release_motors(
+    Phase phase, std::chrono::milliseconds timeout);
   [[nodiscard]] bool send_phase_frame(Phase phase, std::uint16_t cycle_id) noexcept;
   [[nodiscard]] std::string joint_name(std::uint8_t joint) const;
 
@@ -196,6 +204,9 @@ private:
   /// cycle_id of the last telemetry frame consumed: the next command echoes it, and the next
   /// frame must be ahead of it.
   std::uint16_t last_cycle_{0};
+  /// Per-joint wire position captured at the clearing->arming handover, streamed as the hold target
+  /// through arming. Set once by capture_hold(); never re-sampled per cycle.
+  std::array<std::int16_t, transport::kMaxJoints> hold_pos_{};
   std::bitset<transport::kMaxJoints> availability_;
 };
 

@@ -596,10 +596,37 @@ TEST_F(TransportTest, ActivationClearsAFaultLatchedByAPreviousSession)
   EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 }
 
-// (Retired for P8.2, returns in P8.3) ArmingHoldsAFaultedMotorWhereItIsNotWhereItFaulted: arming
-// holding at the captured position needs the captured-hold tuple streamed from the first ENABLE
-// (plan_request kArming sends ENABLE with NO tuple until P8.3), so there is nothing to assert about
-// hold_position here yet. The capture-once test lives with the P8.3 lifecycle.
+TEST_F(TransportTest, ArmingHoldsAFaultedMotorWhereItIsNotWhereItFaulted)
+{
+  // The leg was moved while the motor sat faulted. The slave does not poll a FAULT motor, so its
+  // position only becomes current once clearing drops it to DISABLED. Arming must hold at that
+  // freshly-polled position (captured after DISABLED, not a stale mid-CLEARING frame), not step it
+  // to zero.
+  fake->force_fault(0, 0, wire::DriveFault::DRVF_OVERTORQUE);
+  fake->set_measured(0, 0, 0.8, 0.0, 0.0);
+  ASSERT_TRUE(configure());
+  ASSERT_TRUE(transport->activate());
+
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
+  EXPECT_NEAR(fake->hold_position(0, 0), 0.8, 1e-3);
+  EXPECT_NEAR(fake->shaft_position(0, 0), 0.8, 1e-3);  // arming did not step it to 0
+}
+
+TEST_F(TransportTest, ArmingStreamsTheCapturedHoldTupleWithConfigGains)
+{
+  fake->set_measured(0, 0, 0.5, 0.0, 0.0);
+  bring_up();
+
+  const auto cmd = fake->last_command();  // the last frame sent is the arming hold
+  ASSERT_TRUE(cmd.has_value());
+  const auto & m = cmd->chains[0].motors[0];
+  EXPECT_EQ(m.drive_req, static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE));
+  EXPECT_NE(m.flags & wire::kCmdFlagValid, 0);
+  EXPECT_NE(m.flags & wire::kCmdFlagUseConfigGains, 0);
+  EXPECT_EQ(m.pos, wire::encode_i16(0.5F, wire::kPosScale).raw);  // held at the captured position
+  EXPECT_EQ(m.kp, 0);  // gains deferred to the slave's config
+  EXPECT_EQ(m.kd, 0);
+}
 
 TEST_F(TransportTest, AMotorItsSlaveNeverDiscoveredFailsConfigureAndIsNeverArmed)
 {
@@ -650,11 +677,26 @@ TEST_F(TransportTest, DeactivationIdlesEveryMotorAndWaitsForTheMasterToSayIt)
   ASSERT_TRUE(exchange_many(5).ok());
   EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 
-  transport->deactivate();
+  transport->deactivate();  // STOP ramp (300 ms) lands within the 500 ms release timeout
   EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
   EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
   EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
   EXPECT_EQ(exchange().error, TransportError::kNotActive);
+}
+
+TEST_F(TransportTest, DeactivationFallsBackToDisableWhenTheStopRampDoesNotLandInTime)
+{
+  params.release_timeout = 50ms;  // shorter than the 300 ms stop ramp, forcing the DISABLE fallback
+  bring_up();
+  ASSERT_TRUE(exchange_many(3).ok());
+  ASSERT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
+
+  transport->deactivate();
+  // Even though the ramp could not finish in 50 ms, the immediate-DISABLE fallback leaves every
+  // motor off.
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
+  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
 }
 
 TEST_F(TransportTest, ADeactivatedTransportCanBeActivatedAgain)

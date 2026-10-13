@@ -18,13 +18,15 @@
 namespace humanoid::transport_stm32
 {
 
-/// What the transport is doing with the motors. activate() runs kClearing then kArming;
-/// exchange() runs only in kRunning.
+/// What the transport is doing with the motors. activate() runs kClearing then kArming; exchange()
+/// runs only in kRunning; deactivate() runs kStopping (ramp) then kReleasing (immediate) as a
+/// fallback.
 enum class Phase : std::uint8_t
 {
   kClearing,
   kArming,
   kRunning,
+  kStopping,
   kReleasing,
 };
 
@@ -47,12 +49,16 @@ struct JointRequest
 ///               the operator's acknowledgement (ADR-002). The slave polls a DISABLED motor every
 ///               tick, so once clearing reaches DISABLED the reported position is current again.
 ///   kArming     ENABLE while streaming the VALID captured-hold tuple every cycle (ENABLED is limp
-///               until the first valid tuple, so the tuple must flow from the first ENABLE). A
-///               motor latched in FAULT is not re-armed here; clearing must reach DISABLED first.
+///               until the first valid tuple, so the tuple must flow from the first ENABLE). The
+///               tuple holds at the position captured when clearing reached DISABLED, with
+///               USE_CONFIG_GAINS so the slave applies its own gains (the single source of hold
+///               gains; see the transport). A motor latched in FAULT is not re-armed here; clearing
+///               must reach DISABLED first.
 ///   kRunning    ENABLE with the live tuple. An isolated motor is asked for DISABLE. A tuple the
-///               wire cannot carry is clamped to the manifest envelope by the caller (which counts
-///               a bad cycle), not turned into a damping request here.
-///   kReleasing  DISABLE.
+///               wire cannot carry fails the cycle in the caller (which counts a bad cycle), not
+///               turned into a damping request here.
+///   kStopping   STOP: ramp an ENABLED motor down (STOPPING -> DISABLED) for a gentle deactivation.
+///   kReleasing  DISABLE (immediate): the deactivation fallback if the ramp does not land in time.
 [[nodiscard]] constexpr JointRequest plan_request(
   Phase phase, bool isolated, bool /*tuple_representable*/) noexcept
 {
@@ -60,9 +66,11 @@ struct JointRequest
     case Phase::kClearing:
       return {wire::DriveReq::DRV_REQ_RESET, false, false};
     case Phase::kArming:
-      // ENABLE and wait for ENABLED. P8.3 streams the captured VALID hold tuple here so the motor
-      // holds instead of coming up limp; until then arming is not safe to run on hardware.
-      return {wire::DriveReq::DRV_REQ_ENABLE, false, false};
+      // ENABLE streaming the captured hold tuple; USE_CONFIG_GAINS so the slave's configured gains
+      // hold the joint. The caller fills the captured position into the tuple.
+      return {wire::DriveReq::DRV_REQ_ENABLE, true, true};
+    case Phase::kStopping:
+      return {wire::DriveReq::DRV_REQ_STOP, false, false};
     case Phase::kReleasing:
       return {wire::DriveReq::DRV_REQ_DISABLE, false, false};
     case Phase::kRunning:

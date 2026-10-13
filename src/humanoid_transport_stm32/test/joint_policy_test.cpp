@@ -70,11 +70,20 @@ TEST(PlanRequest, ClearingRequestsResetWithNoTuple)
   EXPECT_FALSE(r.send_tuple);
 }
 
-TEST(PlanRequest, ArmingRequestsEnableWithoutTupleForNow)
+TEST(PlanRequest, ArmingRequestsEnableStreamingTheCapturedHoldWithConfigGains)
 {
-  // ENABLE and wait for ENABLED. P8.3 streams the captured hold tuple here; until then no tuple.
+  // ENABLE and stream the captured hold tuple so the motor holds instead of coming up limp;
+  // USE_CONFIG_GAINS defers the gains to the slave's config.
   const auto r = plan_request(Phase::kArming, false, true);
   EXPECT_EQ(r.request, DriveReq::DRV_REQ_ENABLE);
+  EXPECT_TRUE(r.send_tuple);
+  EXPECT_TRUE(r.use_config_gains);
+}
+
+TEST(PlanRequest, StoppingRequestsStopWithNoTuple)
+{
+  const auto r = plan_request(Phase::kStopping, false, true);
+  EXPECT_EQ(r.request, DriveReq::DRV_REQ_STOP);
   EXPECT_FALSE(r.send_tuple);
 }
 
