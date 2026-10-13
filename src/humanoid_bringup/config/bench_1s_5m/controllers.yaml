@@ -1,0 +1,35 @@
+# Shared controller/hardware config for the bench_1s_5m dial board, used by all three bench modes
+# (sim / monitor / live). The launch adds the per-mode pieces: the generated stm32_wiring.yaml and
+# {serial_device, monitor_only} for monitor/live, and swaps the hardware plugin to mock for sim.
+#
+# mit_controller is the bench's motion controller (full five-field MIT tuple per joint, so it owns
+# each joint whole — see ADR-001). No joint_trajectory_controller: JTC commands only position and
+# cannot claim the gain interfaces, so it is left out of the bench for now.
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz; checked against humanoid_transport/timing.hpp at configure
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    humanoid_mit_controller:
+      type: humanoid_mit_controller/MitImpedanceController
+# The HumanoidActuatorSystem hardware component's node (ros2_control names it after the URDF's
+# <ros2_control name>, lower-cased). Ignored in sim, where the plugin is mock_components.
+humanoidactuatorsystem:
+  ros__parameters:
+    transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
+    accepted_degradation: "none"
+humanoid_mit_controller:
+  ros__parameters:
+    # Bench impedance: kp 15 N*m/rad, kd 1 N*m*s/rad on every joint (matches the slave's configured
+    # default_kp/default_kd). The pre-first-reference fallback holds at the measured position with
+    # these gains, so a joint is never limp.
+    default_kp: 15.0
+    default_kd: 1.0
+    joints:
+      - bench_j1
+      - bench_j2
+      - bench_j3
+      - bench_j4
+      - bench_j5
+    default_stiffness: 0.0
+    default_damping: 0.0
