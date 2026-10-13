@@ -839,31 +839,23 @@ TEST_F(TransportTest, AnUnpluggedDeviceIsAHardwareFault)
   EXPECT_TRUE(eventually([&] {return exchange(50ms).error == TransportError::kHardwareFault;}));
 }
 
-TEST_F(TransportTest, AChainThatStopsAnsweringLeavesItsJointsStaleAndUnavailable)
+TEST_F(TransportTest, AChainThatStopsAnsweringFailsTheCycle)
 {
+  // A wired joint whose chain goes silent (its motor stops being reported) fails the whole cycle:
+  // a legged controller assumes every joint is commanded, so it must not run a joint short.
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   fake->drop_chain(1, true);
-
-  humanoid::transport::ExchangeResult result;
-  ASSERT_TRUE(eventually([&] {
-      result = exchange();
-      return result.ok() && !feedback.joints[2].fresh;
-    }));
-  EXPECT_EQ(result.joints_reported, 2);
-  EXPECT_TRUE(feedback.joints[0].fresh);
-  EXPECT_FALSE(feedback.availability_mask.test(2));
-  EXPECT_TRUE(feedback.availability_mask.test(0));
-  EXPECT_GE(feedback.availability_epoch, 1U);
+  EXPECT_TRUE(eventually([&] {return exchange().error == TransportError::kHardwareFault;}));
 }
 
-TEST_F(TransportTest, AllChainsSilentIsAnIncompleteBatch)
+TEST_F(TransportTest, AllChainsSilentFailsTheCycle)
 {
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   fake->drop_chain(0, true);
   fake->drop_chain(1, true);
-  EXPECT_TRUE(eventually([&] {return exchange().error == TransportError::kIncompleteBatch;}));
+  EXPECT_TRUE(eventually([&] {return exchange().error == TransportError::kHardwareFault;}));
 }
 
 TEST_F(TransportTest, AStaleDriveIsNotFresh)
@@ -927,36 +919,35 @@ TEST_F(TransportTest, DisableRequestsFailForAJointThatDoesNotExistOrWhenInactive
   EXPECT_TRUE(transport->request_joint_disable(kJoints - 1));
 }
 
-TEST_F(TransportTest, AFaultedMotorIsReportedAndNeverRearmed)
+TEST_F(TransportTest, AFaultedMotorFailsTheCycleAndIsNeverRearmed)
 {
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   fake->force_fault(0, 0, wire::DriveFault::DRVF_OVERTORQUE);
 
-  ASSERT_TRUE(eventually([&] {
-      return exchange().ok() &&
-             (feedback.joints[0].fault_bits & humanoid::transport_stm32::kFaultBitFirmwareFault) !=
-             0;
-    }));
-  const auto bits = feedback.joints[0].fault_bits;
-  EXPECT_EQ(bits >> humanoid::transport_stm32::kFaultCauseShift,
-    static_cast<unsigned>(wire::DriveFault::DRVF_OVERTORQUE));
-  EXPECT_FALSE(feedback.availability_mask.test(0));
-  // The slave stops polling a FAULT motor, so its sample keeps saying "faulted" but ages out.
-  EXPECT_TRUE(eventually([&] {return exchange().ok() && !feedback.joints[0].fresh;}));
-  EXPECT_NE(feedback.joints[0].fault_bits & humanoid::transport_stm32::kFaultBitFirmwareFault, 0);
+  // A joint that faults mid-run fails the cycle (kHardwareFault): the actuator system escalates to
+  // protective after its bad-cycle budget rather than running a joint short. Recovery is an
+  // explicit re-activation, never an automatic re-arm.
+  ASSERT_TRUE(eventually([&] {return exchange().error == TransportError::kHardwareFault;}));
 
-  ASSERT_TRUE(exchange_many(30).ok());
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_FAULT);  // 30 MIT requests did not rearm it
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);    // and its neighbours carry on
+  // Each failing exchange still transmits the command before detecting the fault, so the faulted
+  // motor is asked for ENABLE every cycle -- and is never re-armed (FAULT rejects ENABLE), while
+  // its neighbour, which never faulted, keeps running.
+  for (int i = 0; i < 30; ++i) {
+    static_cast<void>(exchange());
+  }
+  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_FAULT);
+  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, ATupleTheWireCannotCarryFailsTheCycleAndNeverSilentlySucceeds)
 {
-  // v10: an out-of-range tuple is clamped and the cycle is FAILED (kManifestMismatch) so the caller
-  // counts it bad and a SafetyKernel that lets it through trips protective. There is no DAMPED
-  // request any more. (P8.3 clamps to the manifest envelope and holds; here the invariant under
-  // test is only that the bad cycle is reported and the feedback is not advanced.)
+  // v10: an out-of-range tuple is sent clamped (encode saturates) and the cycle is FAILED
+  // (kManifestMismatch) so the caller counts it bad and a SafetyKernel that lets it through trips
+  // protective. There is no DAMPED request any more. In the integrated system the safety kernel's
+  // projection keeps every command inside the manifest envelope (which configure proved the wire
+  // can carry), so this transport check is a defensive backstop reached only by a test that
+  // bypasses the kernel, as here.
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   const auto last_good = feedback.sequence;
@@ -983,7 +974,9 @@ TEST_F(TransportTest, ATupleTheWireCannotCarryFailsTheCycleAndNeverSilentlySucce
 TEST_F(TransportTest, ANonFiniteCommandFailsTheCycle)
 {
   // v10: a non-finite field makes the whole command unrepresentable, so the cycle fails and is
-  // counted bad. (P8.3 substitutes the captured hold tuple; here only the failure is asserted.)
+  // counted bad. In the integrated system the actuator layer catches a non-finite command from a
+  // claimed controller first (protective) and never passes it to the transport; this is the
+  // transport's own backstop, reached by bypassing that layer.
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   const auto last_good = feedback.sequence;

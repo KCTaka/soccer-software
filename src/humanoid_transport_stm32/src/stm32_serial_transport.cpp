@@ -207,8 +207,11 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
 
   // --- Interpret. feedback is untouched on every error below, so a failed exchange can never be
   // mistaken for a current sample: its sequence stays behind the command's. ---
+  // A reset master, a host-death trip, or a slave failing the version gate (PROTO_MISMATCH) are
+  // robot-wide hardware faults.
   if (link_.master_reset_seen() ||
-    frame->robot.robot_state == static_cast<std::uint8_t>(wire::RobotState::ROBOT_HOST_LOST))
+    frame->robot.robot_state == static_cast<std::uint8_t>(wire::RobotState::ROBOT_HOST_LOST) ||
+    frame->robot.robot_state == static_cast<std::uint8_t>(wire::RobotState::ROBOT_PROTO_MISMATCH))
   {
     result.error = transport::TransportError::kHardwareFault;
     return result;
@@ -220,6 +223,7 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
   std::uint8_t fresh = 0;
   for (std::uint8_t j = 0; j < joint_count_; ++j) {
     const JointWiring & wiring = layout_.joints[j];
+    const bool is_isolated = ((isolated >> j) & 1U) != 0U;
     const auto motors_on_chain = chain_motor_count(frame->robot, wiring.chain);
     if (motors_on_chain && *motors_on_chain <= wiring.motor) {
       // The chain answers but has fewer motors than the wiring: firmware built for another robot.
@@ -227,6 +231,20 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
       return result;
     }
     const auto motor = find_motor(frame->robot, wiring.chain, wiring.motor);
+    // A joint we are supposed to command that has faulted, aged out to ABSENT, or gone silent with
+    // its chain (no motor reported) fails the whole cycle: a legged controller assumes every joint
+    // is commanded, so partial operation would be unsafe. Recovery is deactivate -> activate (which
+    // runs RESET), never an automatic re-arm. An isolated joint is the operator's explicit opt-out,
+    // so it is exempt (it is intentionally DISABLED and out of the availability mask).
+    if (!is_isolated) {
+      const bool dead = !motor ||
+        motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_FAULT) ||
+        motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_ABSENT);
+      if (dead) {
+        result.error = transport::TransportError::kHardwareFault;
+        return result;
+      }
+    }
     const JointReading reading = read_joint(wiring, motor, feedback_max_age_);
     readings[j] = reading.feedback;
     if (motor) {
@@ -235,16 +253,19 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
     if (reading.feedback.fresh) {
       ++fresh;
     }
-    available.set(j, reading.commandable && ((isolated >> j) & 1U) == 0U);
+    available.set(j, reading.commandable && !is_isolated);
   }
   if (present == 0) {
     result.error = transport::TransportError::kIncompleteBatch;
     return result;
   }
   if (!tuples_representable) {
-    // The offending joints were sent clamped (encode saturates to the wire limits), not silently
-    // dropped. Failing the exchange makes the caller count the cycle as bad, so a SafetyKernel that
-    // lets this through trips protective. (P8.3 clamps to the manifest envelope and holds instead.)
+    // A tuple the wire cannot carry was sent clamped (encode saturates), not silently dropped, and
+    // the cycle is failed so the caller counts it bad and a SafetyKernel that lets it through trips
+    // protective. In the integrated system this is unreachable -- the safety kernel's projection
+    // already bounds every command into the manifest envelope, which configure proved the wire can
+    // carry -- so this is a defensive backstop, not the clamp-to-manifest the plan once proposed
+    // (that would duplicate the kernel's job on the RT path).
     result.error = transport::TransportError::kManifestMismatch;
     return result;
   }
