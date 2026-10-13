@@ -123,8 +123,11 @@ controller_interface::CallbackReturn MitImpedanceController::on_activate(
     }
     cmd.velocity_rad_s = 0.0;
     cmd.effort_nm = 0.0;
-    cmd.stiffness_nm_rad = 0.0;
-    cmd.damping_nm_s_rad = 0.0;
+    // Hold at the captured position with this controller's own gains, not zeros: a zero-gain
+    // fallback is limp, and a limp hold on a loaded joint sags. kp_/kd_ are the resolved per-joint
+    // impedance gains (default_kp/default_kd when no per-joint array is given).
+    cmd.stiffness_nm_rad = kp_[j];
+    cmd.damping_nm_s_rad = kd_[j];
   }
   have_fallback_ = true;
 
