@@ -21,7 +21,7 @@ namespace humanoid::actuator_system
 using ManifestOrError = std::variant<transport::SafetyManifest, std::string>;
 
 /// Parses `manifest` for `joint_names`, whose order sets the envelope order. The manifest must
-/// cover exactly those joints. manifest_digest is left empty.
+/// cover exactly those joints.
 [[nodiscard]] ManifestOrError parse_safety_manifest(
   const YAML::Node & manifest, std::span<const std::string> joint_names);
 

@@ -58,7 +58,6 @@ struct SafetyManifest
   /// ADR-002: three consecutive missing or invalid 5 ms cycles is command loss.
   std::uint8_t max_consecutive_bad_cycles{3U};
   std::uint32_t feedback_max_age_us{0U};
-  Digest manifest_digest{};
 };
 
 }  // namespace humanoid::transport
