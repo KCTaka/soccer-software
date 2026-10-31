@@ -310,11 +310,6 @@ def ingest(config_path, out_path, overlay_out_path):
         "links": ctx.links,
         "joints": ctx.joints,
         "actuators": ctx.actuators,
-        "simulation": {"mjcf_compiler": {
-            "balanceinertia": False, "boundmass": 0, "boundinertia": 0,
-            "settotalmass": -1, "inertiafromgeom": "false",
-            "strippath": False, "angle": "radian",
-            "fusestatic": "false", "discardvisual": False}},
     }
     if ctx.imu is not None:
         model["imu"] = ctx.imu

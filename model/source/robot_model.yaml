@@ -3285,17 +3285,6 @@ actuators:
   thermal:
     derating_curve: NR
     measured: false
-simulation:
-  mjcf_compiler:
-    balanceinertia: false
-    boundmass: 0
-    boundinertia: 0
-    settotalmass: -1
-    inertiafromgeom: 'false'
-    strippath: false
-    angle: radian
-    fusestatic: 'false'
-    discardvisual: false
 imu:
   name: imu
   link: pelvis

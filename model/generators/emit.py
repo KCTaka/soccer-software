@@ -2,7 +2,7 @@
 
 MJCF is emitted with NO <actuator> section: MujocoActuatorTransport applies the MIT
 tuple as joint torque via qfrc_applied (ADR-007 seam, ADR-001 tuple). Compiler flags
-come from the pinned simulation block; see AMEND-1 and model-gate-0 §5.5.
+are the pinned MJCF_COMPILER; see AMEND-1 and model-gate-0 §5.5.
 """
 import hashlib
 import math
@@ -21,6 +21,19 @@ PROV_KP_MAX, PROV_KD_MAX = 500.0, 10.0
 PROV_SLEW_NM_S, PROV_POWER_W = 500.0, 400.0
 CMD_INTERFACES = ("position", "velocity", "effort", "stiffness", "damping")
 STATE_INTERFACES = ("position", "velocity", "effort")
+# MJCF <compiler> attributes, all explicit: MuJoCo must never rewrite the model's inertial data, and
+# never fall back to a default that differs between URDF and MJCF input.
+MJCF_COMPILER = (
+    ("angle", "radian"),           # the model's unit; the default differs between URDF and MJCF
+    ("balanceinertia", "false"),   # true silently averages an invalid diagonal inertia
+    ("boundmass", "0"),            # a positive bound silently raises a small mass
+    ("boundinertia", "0"),         # a positive bound silently raises a small inertia
+    ("settotalmass", "-1"),        # a positive value silently rescales every mass
+    ("inertiafromgeom", "false"),  # inertia comes from the model, never from collision geometry
+    ("fusestatic", "false"),       # fusing bodies loses the link identity URDF and firmware share
+    ("strippath", "false"),        # the default differs between URDF and MJCF
+    ("discardvisual", "false"),    # the default differs between URDF and MJCF
+)
 # The interface names imu_sensor_broadcaster reads; kImuStateFields in batch_types.hpp spells the
 # same list, and the hardware contract rejects a description that differs.
 IMU_INTERFACES = (
@@ -248,20 +261,12 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
     joints = model["joints"]
     kids = children_by_parent(joints)
     joint_by_child = {j["child_link"]: j for j in joints}
-    sim = model["simulation"]["mjcf_compiler"]
     imu = model.get("imu")
 
     mj = ET.Element("mujoco", model=model["robot"]["name"])
     comp = ET.SubElement(mj, "compiler")
-    comp.set("angle", sim["angle"])
-    comp.set("balanceinertia", "true" if sim["balanceinertia"] else "false")
-    comp.set("boundmass", f"{sim['boundmass']}")
-    comp.set("boundinertia", f"{sim['boundinertia']}")
-    comp.set("settotalmass", f"{sim['settotalmass']}")
-    comp.set("inertiafromgeom", sim["inertiafromgeom"])
-    comp.set("fusestatic", sim["fusestatic"])
-    comp.set("strippath", "true" if sim["strippath"] else "false")
-    comp.set("discardvisual", "true" if sim["discardvisual"] else "false")
+    for key, value in MJCF_COMPILER:
+        comp.set(key, value)
     comp.set("meshdir", assets_rel.replace("\\", "/"))
     # 1 ms physics: 5 substeps per 5 ms control period (ADR-007-03, asserted at configure).
     ET.SubElement(mj, "option", timestep="0.001", integrator="implicitfast")
