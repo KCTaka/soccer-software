@@ -3,23 +3,12 @@ robot:
   name: bench_1s_5m
   root_link: extrusion_base
   total_mass_measured_kg: null
-provenance:
-  generated_from:
-  - 'hand-authored: model/robots/bench_1s_5m/source/robot_model.yaml'
-  ingest_tool_version: 0.1.0
-  source_digests: {}
 links:
 - name: extrusion_base
   parent_joint: null
   mass:
     cad_kg: 2.16
     measured_kg: null
-    provenance: &id001
-      cad_system: derived
-      document_id: bench fixture 2s_10m (hand-authored dial board)
-      version_or_configuration: 2s_10m-v1
-      exported_at: '2026-10-07T00:00:00Z'
-      exported_by: hand-authored
   com_m:
   - 0.0
   - 0.0
@@ -37,7 +26,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -61,7 +49,6 @@ links:
   mass:
     cad_kg: 0.02
     measured_kg: null
-    provenance: *id001
   com_m:
   - 0.0
   - 0.06
@@ -79,7 +66,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -103,7 +89,6 @@ links:
   mass:
     cad_kg: 0.02
     measured_kg: null
-    provenance: *id001
   com_m:
   - 0.0
   - 0.06
@@ -121,7 +106,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -145,7 +129,6 @@ links:
   mass:
     cad_kg: 0.02
     measured_kg: null
-    provenance: *id001
   com_m:
   - 0.0
   - 0.06
@@ -163,7 +146,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -187,7 +169,6 @@ links:
   mass:
     cad_kg: 0.02
     measured_kg: null
-    provenance: *id001
   com_m:
   - 0.0
   - 0.06
@@ -205,7 +186,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -229,7 +209,6 @@ links:
   mass:
     cad_kg: 0.02
     measured_kg: null
-    provenance: *id001
   com_m:
   - 0.0
   - 0.06
@@ -247,7 +226,6 @@ links:
     ixy_kg_m2: 0.0
     ixz_kg_m2: 0.0
     iyz_kg_m2: 0.0
-    provenance: *id001
   visual_mesh: null
   collision:
     primitives:
@@ -309,7 +287,6 @@ joints:
   calibration:
     zero_offset_rad: 0.0
     zero_pose_value_rad: 0.0
-    measured_at: null
   actuator: bench_j1
 - name: bench_j2
   type: revolute
@@ -353,7 +330,6 @@ joints:
   calibration:
     zero_offset_rad: 0.0
     zero_pose_value_rad: 0.0
-    measured_at: null
   actuator: bench_j2
 - name: bench_j3
   type: revolute
@@ -397,7 +373,6 @@ joints:
   calibration:
     zero_offset_rad: 0.0
     zero_pose_value_rad: 0.0
-    measured_at: null
   actuator: bench_j3
 - name: bench_j4
   type: revolute
@@ -441,7 +416,6 @@ joints:
   calibration:
     zero_offset_rad: 0.0
     zero_pose_value_rad: 0.0
-    measured_at: null
   actuator: bench_j4
 - name: bench_j5
   type: revolute
@@ -485,7 +459,6 @@ joints:
   calibration:
     zero_offset_rad: 0.0
     zero_pose_value_rad: 0.0
-    measured_at: null
   actuator: bench_j5
 actuators:
 - name: bench_j1

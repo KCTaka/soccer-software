@@ -1,6 +1,5 @@
-generated_from:
-- https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/source/menagerie/unitree_g1/g1.xml
-source_digest: 3c2616550a31f33e84d3c80b8e913ac5618c8888019b0c9490dae93493e647f3
+# Imported from https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/source/menagerie/unitree_g1/g1.xml
+# by `python3 -m model.generators.ingest`. Edit this file directly; re-importing overwrites edits.
 meshes:
   pelvis: pelvis.STL
   pelvis_contour_link: pelvis_contour_link.STL

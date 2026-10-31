@@ -1,5 +1,4 @@
 """Shared helpers. Stdlib only."""
-import hashlib
 import math
 
 def vec(s, n, default):
@@ -34,13 +33,6 @@ def rpy_to_quat(rpy):
     cy, sy = math.cos(y / 2), math.sin(y / 2)
     return [cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
             cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy]
-
-def sha256_file(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 def num_or(v, default=0.0):
     """Values may be the literal 'NR' in provisional models."""
