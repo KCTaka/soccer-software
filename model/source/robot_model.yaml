@@ -969,8 +969,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1012,8 +1010,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1055,8 +1051,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1098,8 +1092,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1141,8 +1133,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1184,8 +1174,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1227,8 +1215,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1270,8 +1256,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1313,8 +1297,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1356,8 +1338,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1399,8 +1379,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1442,8 +1420,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1485,8 +1461,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1528,8 +1502,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1571,8 +1543,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1614,8 +1584,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1657,8 +1625,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1700,8 +1666,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1743,8 +1707,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1786,8 +1748,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1829,8 +1789,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1872,8 +1830,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1915,8 +1871,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -1958,8 +1912,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2001,8 +1953,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2044,8 +1994,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2087,8 +2035,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2130,8 +2076,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2173,8 +2117,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: 1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
@@ -2187,1104 +2129,118 @@ actuators:
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 0
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_hip_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 1
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_hip_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 2
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_knee_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 3
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_ankle_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 4
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_ankle_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 5
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_hip_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 6
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_hip_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 7
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_hip_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 8
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_knee_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 9
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_ankle_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 10
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_ankle_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 11
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: waist_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 12
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: waist_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 13
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: waist_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 14
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_shoulder_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 15
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_shoulder_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 16
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_shoulder_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 17
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_elbow_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 18
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_wrist_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 19
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_wrist_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 20
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: left_wrist_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 21
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_shoulder_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 22
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_shoulder_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 23
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_shoulder_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 24
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_elbow_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 25
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_wrist_roll_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 26
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_wrist_pitch_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 27
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: right_wrist_yaw_joint
   motor_class: PROVISIONAL
   bus_segment: sim0
   can_node_id: 28
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 imu:
   name: imu
   link: pelvis

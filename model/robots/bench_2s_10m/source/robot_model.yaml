@@ -479,8 +479,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -522,8 +520,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -565,8 +561,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -608,8 +602,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -651,8 +643,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -694,8 +684,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -737,8 +725,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -780,8 +766,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -823,8 +807,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -866,8 +848,6 @@ joints:
   transmission:
     gear_ratio: 1.0
     direction_sign: -1
-    backlash_rad: NR
-    stiffness_nm_rad: NR
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
@@ -889,40 +869,6 @@ actuators:
     velocity_max_rad_s: 44.0
     torque_max_nm: 17.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j2
   motor_class: RS02
   bus_segment: slave0
@@ -936,40 +882,6 @@ actuators:
     velocity_max_rad_s: 44.0
     torque_max_nm: 17.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j3
   motor_class: RS00
   bus_segment: slave0
@@ -983,40 +895,6 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j4
   motor_class: RS00
   bus_segment: slave0
@@ -1030,40 +908,6 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j5
   motor_class: RS00
   bus_segment: slave0
@@ -1077,40 +921,6 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j6
   motor_class: RS02
   bus_segment: slave1
@@ -1124,40 +934,6 @@ actuators:
     velocity_max_rad_s: 44.0
     torque_max_nm: 17.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j7
   motor_class: RS02
   bus_segment: slave1
@@ -1171,40 +947,6 @@ actuators:
     velocity_max_rad_s: 44.0
     torque_max_nm: 17.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j8
   motor_class: RS00
   bus_segment: slave1
@@ -1218,40 +960,6 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j9
   motor_class: RS00
   bus_segment: slave1
@@ -1265,40 +973,6 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false
 - name: bench_j10
   motor_class: RS00
   bus_segment: slave1
@@ -1312,37 +986,3 @@ actuators:
     velocity_max_rad_s: 33.0
     torque_max_nm: 14.0
     position_max_rad: 12.57
-  mit_encoding:
-    verified_by: NR
-    position:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    velocity:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    effort:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    stiffness:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    damping:
-      bits: NR
-      min: NR
-      max: NR
-      endianness: NR
-    frames_per_cycle_command: NR
-    frames_per_cycle_feedback: NR
-    dlc_command_bytes: NR
-    dlc_feedback_bytes: NR
-  thermal:
-    derating_curve: NR
-    measured: false

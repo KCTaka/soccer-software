@@ -107,7 +107,7 @@ def make_limits(lo, hi, torque_nm, ctx, fixed=False):
         "software_lower_rad": lo + margin, "software_upper_rad": hi - margin,
         "velocity_rad_s": 1.0 if fixed else PROVISIONAL_VELOCITY_RAD_S,
         "velocity_limit_origin": "drive",
-        "effort_continuous_nm": torque_nm,  # optimistic: no thermal data (NR)
+        "effort_continuous_nm": torque_nm,  # optimistic: no thermal data
         "effort_peak_nm": torque_nm,
         "effort_peak_duration_s": 1.0,
     }
@@ -116,8 +116,6 @@ def make_transmission(attrs, joint_name=None):
     return {
         "gear_ratio": 1.0,          # provisional: sim plant is the ground truth
         "direction_sign": -1 if joint_name in MIRRORED_TRANSMISSION_JOINTS else 1,
-        "backlash_rad": "NR",
-        "stiffness_nm_rad": "NR",
         "friction_coulomb_nm": float(attrs.get("frictionloss", 0.0)),
         "friction_viscous_nm_s_rad": float(attrs.get("damping", 0.0)),
         "armature_kg_m2": float(attrs.get("armature", 0.0)),
@@ -289,17 +287,9 @@ def ingest(config_path, out_path, overlay_out_path):
             continue
         act = ctx.actuator_by_joint.get(j["name"])
         act_name = (act["name"] if act else f"{j['name']}_act").lower().replace("-", "_")
-        nr_enc = {"bits": "NR", "min": "NR", "max": "NR", "endianness": "NR"}
         ctx.actuators.append({
             "name": act_name, "motor_class": "PROVISIONAL",
             "bus_segment": "sim0", "can_node_id": len(ctx.actuators),
-            "mit_encoding": {
-                "verified_by": "NR",
-                "position": dict(nr_enc), "velocity": dict(nr_enc), "effort": dict(nr_enc),
-                "stiffness": dict(nr_enc), "damping": dict(nr_enc),
-                "frames_per_cycle_command": "NR", "frames_per_cycle_feedback": "NR",
-                "dlc_command_bytes": "NR", "dlc_feedback_bytes": "NR"},
-            "thermal": {"derating_curve": "NR", "measured": False},
         })
         j["actuator"] = act_name
 
