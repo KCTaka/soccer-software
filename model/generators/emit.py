@@ -60,17 +60,6 @@ def children_by_parent(joints):
 def fmt(xs):
     return " ".join(f"{x:.10g}" for x in xs)
 
-def _inertial_xml(link):
-    inertia, com = link["inertia"], link["com_m"]
-    e = ET.Element("inertial")
-    if inertia["reference_frame"] == "principal":
-        e.set("origin", "")  # replaced below; kept explicit for clarity
-        e.attrib.clear()
-        rpy = inertia["principal_axes_rpy_rad"]
-        e.set("xyz", fmt(com)); e.set("rpy", fmt(rpy))
-        e2 = ET.SubElement(link_elem_placeholder := e, "mass") if False else None
-    return e  # placeholder; real construction below
-
 def emit_urdf(model, out_path, assets_dir,
               safety_manifest_path="config/safety_manifest.yaml",
               safety_manifest_package="humanoid_bringup"):
@@ -90,9 +79,8 @@ def emit_urdf(model, out_path, assets_dir,
         le = ET.SubElement(robot, "link", name=l["name"])
         ie = ET.SubElement(le, "inertial")
         inertia, com = l["inertia"], l["com_m"]
-        rpy = inertia["principal_axes_rpy_rad"] or [0, 0, 0]
         ie.set("xyz", fmt(com))
-        ie.set("rpy", fmt(rpy))
+        ie.set("rpy", fmt([0, 0, 0]))  # the tensor's axes are the link frame's
         ET.SubElement(ie, "mass", value=f"{l['mass_kg']:.10g}")
         ET.SubElement(
             ie,
@@ -100,9 +88,9 @@ def emit_urdf(model, out_path, assets_dir,
             ixx=f"{inertia['ixx_kg_m2']:.10g}",
             iyy=f"{inertia['iyy_kg_m2']:.10g}",
             izz=f"{inertia['izz_kg_m2']:.10g}",
-            ixy="0",
-            ixz="0",
-            iyz="0",
+            ixy=f"{inertia['ixy_kg_m2']:.10g}",
+            ixz=f"{inertia['ixz_kg_m2']:.10g}",
+            iyz=f"{inertia['iyz_kg_m2']:.10g}",
         )
 
         mesh = l.get("visual_mesh")
@@ -300,14 +288,9 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
         inertia, com = l["inertia"], l["com_m"]
         ie = ET.SubElement(be, "inertial")
         ie.set("pos", fmt(com)); ie.set("mass", f"{l['mass_kg']:.10g}")
-        if inertia["reference_frame"] == "principal":
-            ie.set("quat", fmt(rpy_to_quat(inertia["principal_axes_rpy_rad"])))
-            ie.set("diaginertia", fmt([inertia["ixx_kg_m2"], inertia["iyy_kg_m2"],
-                                       inertia["izz_kg_m2"]]))
-        else:
-            ie.set("fullinertia", fmt([inertia["ixx_kg_m2"], inertia["iyy_kg_m2"],
-                                       inertia["izz_kg_m2"], inertia["ixy_kg_m2"],
-                                       inertia["ixz_kg_m2"], inertia["iyz_kg_m2"]]))
+        ie.set("fullinertia", fmt([inertia["ixx_kg_m2"], inertia["iyy_kg_m2"],
+                                   inertia["izz_kg_m2"], inertia["ixy_kg_m2"],
+                                   inertia["ixz_kg_m2"], inertia["iyz_kg_m2"]]))
         add_geoms(be, link_name)
         if imu is not None and imu["link"] == link_name:
             ET.SubElement(be, "site", name=imu["name"], pos=fmt(imu["pos_m"]),
