@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from .common import num_or, quat_to_rpy, rpy_to_quat
+from .common import quat_to_rpy, rpy_to_quat
 
 TIMING_HPP = "src/humanoid_transport/include/humanoid_transport/timing.hpp"
 
@@ -211,8 +211,8 @@ def emit_urdf(model, out_path, assets_dir,
         ET.SubElement(
             je,
             "dynamics",
-            damping=f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}",
-            friction=f"{num_or(tr['friction_coulomb_nm']):.10g}",
+            damping=f"{tr['friction_viscous_nm_s_rad']:.10g}",
+            friction=f"{tr['friction_coulomb_nm']:.10g}",
         )
 
     imu = model.get("imu")
@@ -321,9 +321,9 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
                                    axis=fmt(j["axis"]),
                                    range=f"{j['limits']['hard_stop_lower_rad']:.10g} "
                                          f"{j['limits']['hard_stop_upper_rad']:.10g}")
-                je.set("damping", f"{num_or(tr['friction_viscous_nm_s_rad']):.10g}")
-                je.set("frictionloss", f"{num_or(tr['friction_coulomb_nm']):.10g}")
-                je.set("armature", f"{num_or(tr.get('armature_kg_m2'), default=0.0):.10g}")
+                je.set("damping", f"{tr['friction_viscous_nm_s_rad']:.10g}")
+                je.set("frictionloss", f"{tr['friction_coulomb_nm']:.10g}")
+                je.set("armature", f"{tr['armature_kg_m2']:.10g}")
         for cj in kids.get(link_name, []):
             add_body(be, cj["child_link"], False)
 

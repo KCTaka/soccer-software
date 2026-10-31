@@ -14,10 +14,6 @@
   ],
 
   "$defs": {
-    "nr": {
-      "const": "NR",
-      "description": "Not reported. Never means zero. Records which gates the absence blocks."
-    },
     "identifier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]{0,62}$",
@@ -32,9 +28,6 @@
     "unit_vector3": {
       "$ref": "#/$defs/vector3",
       "description": "Must normalise to 1 within 1e-9. JSON Schema cannot express this; validator check K-02."
-    },
-    "number_or_nr": {
-      "oneOf": [{ "type": "number" }, { "$ref": "#/$defs/nr" }]
     },
 
     "inertia": {
@@ -256,27 +249,19 @@
           "required": [
             "gear_ratio",
             "direction_sign",
-            "backlash_rad",
-            "stiffness_nm_rad",
             "friction_coulomb_nm",
-            "friction_viscous_nm_s_rad"
+            "friction_viscous_nm_s_rad",
+            "armature_kg_m2"
           ],
           "properties": {
             "gear_ratio": { "type": "number", "exclusiveMinimum": 0 },
-            "armature_kg_m2": {
-              "oneOf": [
-                { "type": "number", "minimum": 0 },
-                { "$ref": "#/$defs/nr" }
-              ]
-            },
             "direction_sign": {
               "enum": [-1, 1],
               "description": "Kept separate from gear_ratio magnitude so a sign error cannot hide inside a ratio and so G1 can verify it independently."
             },
-            "backlash_rad": { "$ref": "#/$defs/number_or_nr" },
-            "stiffness_nm_rad": { "$ref": "#/$defs/number_or_nr" },
-            "friction_coulomb_nm": { "$ref": "#/$defs/number_or_nr" },
-            "friction_viscous_nm_s_rad": { "$ref": "#/$defs/number_or_nr" }
+            "friction_coulomb_nm": { "type": "number", "minimum": 0 },
+            "friction_viscous_nm_s_rad": { "type": "number", "minimum": 0 },
+            "armature_kg_m2": { "type": "number", "minimum": 0 }
           }
         },
         "calibration": {
@@ -305,9 +290,7 @@
         "name",
         "motor_class",
         "bus_segment",
-        "can_node_id",
-        "mit_encoding",
-        "thermal"
+        "can_node_id"
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
@@ -350,111 +333,6 @@
             "torque_max_nm": { "type": "number", "exclusiveMinimum": 0 },
             "position_max_rad": { "type": "number", "exclusiveMinimum": 0 }
           }
-        },
-        "mit_encoding": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "UNVERIFIED until the section 6 bench test completes. Every field here is a hypothesis, not a specification. `verified_by` must name a bench record before G3 can pass.",
-          "required": [
-            "verified_by",
-            "position",
-            "velocity",
-            "effort",
-            "stiffness",
-            "damping",
-            "frames_per_cycle_command",
-            "frames_per_cycle_feedback",
-            "dlc_command_bytes",
-            "dlc_feedback_bytes"
-          ],
-          "properties": {
-            "verified_by": {
-              "oneOf": [
-                { "type": "string", "minLength": 1, "not": { "const": "NR" } },
-                { "$ref": "#/$defs/nr" }
-              ]
-            },
-            "position": { "$ref": "#/$defs/field_encoding" },
-            "velocity": { "$ref": "#/$defs/field_encoding" },
-            "effort": { "$ref": "#/$defs/field_encoding" },
-            "stiffness": { "$ref": "#/$defs/field_encoding" },
-            "damping": { "$ref": "#/$defs/field_encoding" },
-            "frames_per_cycle_command": {
-              "oneOf": [
-                { "type": "integer", "minimum": 1 },
-                { "$ref": "#/$defs/nr" }
-              ],
-              "description": "The integer that determines whether the current bus topology can carry the robot. HW-13 assumes 1 and that assumption is unverified."
-            },
-            "frames_per_cycle_feedback": {
-              "oneOf": [
-                { "type": "integer", "minimum": 1 },
-                { "$ref": "#/$defs/nr" }
-              ]
-            },
-            "dlc_command_bytes": {
-              "oneOf": [
-                { "type": "integer", "minimum": 0, "maximum": 64 },
-                { "$ref": "#/$defs/nr" }
-              ]
-            },
-            "dlc_feedback_bytes": {
-              "oneOf": [
-                { "type": "integer", "minimum": 0, "maximum": 64 },
-                { "$ref": "#/$defs/nr" }
-              ]
-            }
-          }
-        },
-        "thermal": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["derating_curve", "measured"],
-          "description": "ADR-002 defines allowed torque as a function of temperature and voltage. Without a derating curve that function is a constant, and the safety envelope is weaker than it claims.",
-          "properties": {
-            "derating_curve": {
-              "oneOf": [
-                {
-                  "type": "array",
-                  "minItems": 2,
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["temperature_c", "max_torque_nm"],
-                    "properties": {
-                      "temperature_c": { "type": "number" },
-                      "max_torque_nm": {
-                        "type": "number",
-                        "exclusiveMinimum": 0
-                      }
-                    }
-                  }
-                },
-                { "$ref": "#/$defs/nr" }
-              ]
-            },
-            "measured": { "type": "boolean" }
-          }
-        }
-      }
-    },
-
-    "field_encoding": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["bits", "min", "max", "endianness"],
-      "description": "Determines the quantisation floor of every command the robot can express.",
-      "properties": {
-        "bits": {
-          "oneOf": [
-            { "type": "integer", "minimum": 1, "maximum": 64 },
-            { "$ref": "#/$defs/nr" }
-          ]
-        },
-        "min": { "$ref": "#/$defs/number_or_nr" },
-        "max": { "$ref": "#/$defs/number_or_nr" },
-        "endianness": {
-          "oneOf": [{ "enum": ["little", "big"] }, { "$ref": "#/$defs/nr" }]
         }
       }
     }

@@ -33,7 +33,3 @@ def rpy_to_quat(rpy):
     cy, sy = math.cos(y / 2), math.sin(y / 2)
     return [cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
             cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy]
-
-def num_or(v, default=0.0):
-    """Values may be the literal 'NR' in provisional models."""
-    return default if v == "NR" or v is None else float(v)
