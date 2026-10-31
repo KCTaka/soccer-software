@@ -227,7 +227,11 @@
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
-        "motor_class": { "enum": ["RS00", "RS02", "RS03", "RS05", "RS06", "PROVISIONAL"] },
+        "motor_class": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A motor model in model/motors.yaml, whose drive limits this actuator has, or PROVISIONAL for a simulated actuator with none. Validator check A-06."
+        },
         "bus_segment": {
           "type": "string",
           "minLength": 1,
@@ -244,28 +248,15 @@
           "minimum": 0,
           "description": "Explicit 0-based order of this motor within its bus_segment. Not derived from can_node_id. The STM32 transport's `motor` index. Validator checks (bus_segment, slot) uniqueness and 0..n-1 contiguity per segment."
         },
-        "drive": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Measured drive capabilities and default gains. Present for a physical actuator; absent for a provisional/sim one, which then falls back to the generator's provisional envelope constants.",
-          "required": [
-            "default_kp",
-            "default_kd",
-            "kp_max",
-            "kd_max",
-            "velocity_max_rad_s",
-            "torque_max_nm",
-            "position_max_rad"
-          ],
-          "properties": {
-            "default_kp": { "type": "number", "minimum": 0 },
-            "default_kd": { "type": "number", "minimum": 0 },
-            "kp_max": { "type": "number", "exclusiveMinimum": 0 },
-            "kd_max": { "type": "number", "exclusiveMinimum": 0 },
-            "velocity_max_rad_s": { "type": "number", "exclusiveMinimum": 0 },
-            "torque_max_nm": { "type": "number", "exclusiveMinimum": 0 },
-            "position_max_rad": { "type": "number", "exclusiveMinimum": 0 }
-          }
+        "default_kp": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Hold stiffness for this joint, within its motor model's kp_max (A-04). A per-joint value because it depends on the load the motor drives."
+        },
+        "default_kd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Hold damping for this joint, within its motor model's kd_max (A-04)."
         }
       }
     }

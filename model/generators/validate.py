@@ -23,7 +23,7 @@ def _principal_minors(m):
             [m[a][a] * m[b][b] - m[a][b] ** 2 for a, b in ((0, 1), (0, 2), (1, 2))],
             det)
 
-def structural_checks(model):
+def structural_checks(model, motor_limits):
     errs, warns = [], []
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
@@ -104,8 +104,8 @@ def structural_checks(model):
             errs.append(f"A-02: duplicate can_node_id {key}")
         seen.add(key)
 
-    # A-03 / A-04 / A-05: physical actuators with explicit slot + drive (e.g. the bench). Skipped
-    # for provisional/sim actuators, which carry neither.
+    # A-03 / A-04 / A-05 / A-06: physical actuators with an explicit slot and a motor model from
+    # model/motors.yaml (e.g. the bench). PROVISIONAL sim actuators carry neither.
     joint_by_act = {j["actuator"]: j for j in joints if j["actuator"] is not None}
     slots_by_segment = {}
     for a in model["actuators"]:
@@ -117,24 +117,27 @@ def structural_checks(model):
         if sorted(slots) != list(range(len(slots))):
             errs.append(f"A-03: segment {seg} slots {sorted(slots)} are not contiguous 0..n-1")
     for a in model["actuators"]:
-        d = a.get("drive")
+        d = motor_limits.get(a["motor_class"])
         if d is None:
+            if a["motor_class"] != "PROVISIONAL":
+                errs.append(f"A-06: actuator {a['name']} motor_class {a['motor_class']} is not in "
+                            "model/motors.yaml")
             continue
-        if d["default_kp"] > d["kp_max"]:
-            errs.append(f"A-04: actuator {a['name']} default_kp {d['default_kp']} > kp_max "
+        if a.get("default_kp", 0.0) > d["kp_max"]:
+            errs.append(f"A-04: actuator {a['name']} default_kp {a['default_kp']} > kp_max "
                         f"{d['kp_max']}")
-        if d["default_kd"] > d["kd_max"]:
-            errs.append(f"A-04: actuator {a['name']} default_kd {d['default_kd']} > kd_max "
+        if a.get("default_kd", 0.0) > d["kd_max"]:
+            errs.append(f"A-04: actuator {a['name']} default_kd {a['default_kd']} > kd_max "
                         f"{d['kd_max']}")
         j = joint_by_act.get(a["name"])
         if j is not None:
             lim = j["limits"]
             if lim["velocity_rad_s"] > d["velocity_max_rad_s"]:
                 errs.append(f"A-05: joint {j['name']} velocity {lim['velocity_rad_s']} exceeds "
-                            f"drive velocity_max {d['velocity_max_rad_s']}")
+                            f"{a['motor_class']} velocity_max {d['velocity_max_rad_s']}")
             if lim["effort_peak_nm"] > d["torque_max_nm"]:
                 errs.append(f"A-05: joint {j['name']} effort_peak {lim['effort_peak_nm']} exceeds "
-                            f"drive torque_max {d['torque_max_nm']}")
+                            f"{a['motor_class']} torque_max {d['torque_max_nm']}")
 
     # S-01 / S-02: the IMU sits on a declared link, with a unit orientation.
     imu = model.get("imu")

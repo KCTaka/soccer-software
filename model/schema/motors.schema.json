@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/humanoid-soccer/model/schema/motors.schema.json",
+  "title": "UTRA RoboSoccer Motor Catalog Schema",
+  "description": "Schema for model/motors.yaml: the drive limits of each motor model, keyed by the name an actuator's `motor_class` uses. PROVISIONAL is reserved for simulated actuators with no drive.",
+  "type": "object",
+  "propertyNames": { "pattern": "^[A-Z][A-Z0-9_]*$", "not": { "const": "PROVISIONAL" } },
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "kp_max",
+      "kd_max",
+      "velocity_max_rad_s",
+      "torque_max_nm",
+      "position_max_rad"
+    ],
+    "properties": {
+      "kp_max": { "type": "number", "exclusiveMinimum": 0 },
+      "kd_max": { "type": "number", "exclusiveMinimum": 0 },
+      "velocity_max_rad_s": { "type": "number", "exclusiveMinimum": 0 },
+      "torque_max_nm": { "type": "number", "exclusiveMinimum": 0 },
+      "position_max_rad": { "type": "number", "exclusiveMinimum": 0 }
+    }
+  }
+}

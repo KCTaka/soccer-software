@@ -705,128 +705,68 @@ actuators:
   bus_segment: slave0
   can_node_id: 1
   slot: 0
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 44.0
-    torque_max_nm: 17.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j2
   motor_class: RS02
   bus_segment: slave0
   can_node_id: 2
   slot: 1
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 44.0
-    torque_max_nm: 17.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j3
   motor_class: RS00
   bus_segment: slave0
   can_node_id: 3
   slot: 2
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j4
   motor_class: RS00
   bus_segment: slave0
   can_node_id: 4
   slot: 3
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j5
   motor_class: RS00
   bus_segment: slave0
   can_node_id: 5
   slot: 4
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j6
   motor_class: RS02
   bus_segment: slave1
   can_node_id: 6
   slot: 0
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 44.0
-    torque_max_nm: 17.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j7
   motor_class: RS02
   bus_segment: slave1
   can_node_id: 7
   slot: 1
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 44.0
-    torque_max_nm: 17.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j8
   motor_class: RS00
   bus_segment: slave1
   can_node_id: 8
   slot: 2
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j9
   motor_class: RS00
   bus_segment: slave1
   can_node_id: 9
   slot: 3
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0
 - name: bench_j10
   motor_class: RS00
   bus_segment: slave1
   can_node_id: 10
   slot: 4
-  drive:
-    default_kp: 15.0
-    default_kd: 1.0
-    kp_max: 500.0
-    kd_max: 5.0
-    velocity_max_rad_s: 33.0
-    torque_max_nm: 14.0
-    position_max_rad: 12.57
+  default_kp: 15.0
+  default_kd: 1.0

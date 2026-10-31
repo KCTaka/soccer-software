@@ -1,0 +1,16 @@
+# Drive limits per motor model, shared by every robot that uses it; an actuator names its model in
+# `motor_class`. They are the firmware's per-model command ranges (firmware_config `models` and
+# `shared_ranges`) and the safety manifest's stiffness and damping caps. Schema:
+# model/schema/motors.schema.json.
+RS00:
+  kp_max: 500.0
+  kd_max: 5.0
+  velocity_max_rad_s: 33.0
+  torque_max_nm: 14.0
+  position_max_rad: 12.57
+RS02:
+  kp_max: 500.0
+  kd_max: 5.0
+  velocity_max_rad_s: 44.0
+  torque_max_nm: 17.0
+  position_max_rad: 12.57

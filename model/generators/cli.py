@@ -13,6 +13,8 @@ from . import emit, validate
 
 REGISTRY = "model/robots.yaml"
 SCHEMA = "model/schema/robot_model.schema.json"
+MOTORS = "model/motors.yaml"
+MOTORS_SCHEMA = "model/schema/motors.schema.json"
 
 def _registry():
     with open(REGISTRY) as f:
@@ -29,12 +31,16 @@ def _robot(name):
     r["name"] = name
     return r
 
+def _motor_limits():
+    with open(MOTORS) as f:
+        return yaml.safe_load(f)
+
 def _all_robots():
     reg = _registry()
     return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
 
-def _generate(r, out_dir):
-    emit.generate(r["source"], r["overlay"], out_dir, r["assets_dir"],
+def _generate(r, motor_limits, out_dir):
+    emit.generate(r["source"], r["overlay"], motor_limits, out_dir, r["assets_dir"],
                   urdf=r["urdf"], mjcf=r["mjcf"],
                   firmware_config=r.get("firmware_config", False),
                   firmware_setup=r.get("firmware_setup"),
@@ -44,14 +50,14 @@ def _generate(r, out_dir):
 
 def cmd_generate(args):
     r = _robot(args.robot)
-    _generate(r, r["generated"])
+    _generate(r, _motor_limits(), r["generated"])
 
-def _check_one(r, mj_smoke):
+def _check_one(r, motor_limits, mj_smoke):
     print(f"--- {r['name']} ---")
     with open(r["source"]) as f:
         model = yaml.safe_load(f)
     errs = validate.schema_validate(model, SCHEMA)
-    s_errs, warns = validate.structural_checks(model)
+    s_errs, warns = validate.structural_checks(model, motor_limits)
     errs += s_errs
     for w in warns:
         print(f"WARN: {w}")
@@ -76,7 +82,7 @@ def _check_one(r, mj_smoke):
     # ADR-009-07: regenerate into a temp dir and diff.
     with tempfile.TemporaryDirectory() as td:
         t_out = os.path.join(td, "gen")
-        _generate(r, t_out)
+        _generate(r, motor_limits, t_out)
         for f in os.listdir(t_out):
             if not filecmp.cmp(os.path.join(r["generated"], f), os.path.join(t_out, f),
                                shallow=False):
@@ -87,8 +93,12 @@ def _check_one(r, mj_smoke):
     return True
 
 def cmd_check(args):
+    motor_limits = _motor_limits()
+    errs = validate.schema_validate(motor_limits, MOTORS_SCHEMA)
+    for e in errs:
+        print(f"ERROR: {MOTORS}: {e}", file=sys.stderr)
     robots = [_robot(args.robot)] if args.robot else _all_robots()
-    ok = all(_check_one(r, args.mj_smoke) for r in robots)
+    ok = not errs and all(_check_one(r, motor_limits, args.mj_smoke) for r in robots)
     if not ok:
         sys.exit(1)
     print("check OK: all robots pass schema, structural checks, and regenerate-and-diff")
