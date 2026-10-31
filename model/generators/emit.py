@@ -333,16 +333,16 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
 
-def emit_safety_manifest(model, out_path):
-    # Per-joint gain caps come from the actuator's measured `drive` block when present; a
-    # provisional/sim actuator without one falls back to the global PROV_* envelope.
+def emit_safety_manifest(model, motor_limits, out_path):
+    # Per-joint gain caps come from the actuator's motor model in model/motors.yaml; a PROVISIONAL
+    # sim actuator has none and falls back to the global PROV_* envelope.
     act_by_name = {a["name"]: a for a in model["actuators"]}
     envelopes = {}
     for j in model["joints"]:
         if j["type"] == "fixed":
             continue
         lim = j["limits"]
-        drive = (act_by_name.get(j["actuator"]) or {}).get("drive")
+        drive = motor_limits.get(act_by_name[j["actuator"]]["motor_class"])
         envelopes[j["name"]] = {
             "position_min_rad": lim["software_lower_rad"],
             "position_max_rad": lim["software_upper_rad"],
@@ -375,19 +375,20 @@ def control_rate_hz():
         raise ValueError(f"kControlRateHz not found in {TIMING_HPP}")
     return int(m.group(1))
 
-def emit_firmware_config(model, out_path, setup):
+def emit_firmware_config(model, motor_limits, out_path, setup):
     """A config artifact the firmware repo consumes (it is committed there with its hash).
     Everything is derived from robot_model.yaml; the firmware never hand-edits it, and the hash
     lets its generator refuse a tampered copy."""
     act_by_name = {a["name"]: a for a in model["actuators"]}
     joint_by_act = {j["actuator"]: j for j in model["joints"] if j["actuator"] is not None}
 
-    # Per-model drive ranges and the shared Kp/Kd/position ranges, reconstructed from the drives.
+    # Per-model drive ranges and the shared Kp/Kd/position ranges, from the motor models used.
     models, shared = {}, None
     for a in model["actuators"]:
-        d = a.get("drive")
-        if d is None:
-            raise ValueError(f"actuator {a['name']} has no drive block; firmware_config needs it")
+        d = motor_limits.get(a["motor_class"])
+        if d is None or "default_kp" not in a or "default_kd" not in a:
+            raise ValueError(f"actuator {a['name']} needs a model/motors.yaml motor_class and "
+                             "default_kp/default_kd for firmware_config")
         v, t = d["velocity_max_rad_s"], d["torque_max_nm"]
         models.setdefault(a["motor_class"],
                           {"v_min": -v, "v_max": v, "t_min": -t, "t_max": t})
@@ -403,14 +404,14 @@ def emit_firmware_config(model, out_path, setup):
                         key=lambda a: a["slot"])
         rows = []
         for a in motors:
-            j, d = joint_by_act[a["name"]], a["drive"]
+            j = joint_by_act[a["name"]]
             lim = j["limits"]
             rows.append({
                 "idx": a["slot"], "can_id": a["can_node_id"], "model": a["motor_class"],
                 "joint_name": j["name"],
                 "soft_min": lim["software_lower_rad"], "soft_max": lim["software_upper_rad"],
                 "max_vel": lim["velocity_rad_s"], "max_tau": lim["effort_peak_nm"],
-                "default_kp": d["default_kp"], "default_kd": d["default_kd"],
+                "default_kp": a["default_kp"], "default_kd": a["default_kd"],
             })
         slaves.append({"slave": seg, "motors": rows})
 
@@ -464,9 +465,9 @@ def emit_stm32_wiring(model, out_path):
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
 
-def generate(src, overlay_path, out_dir, assets_dir, urdf, mjcf, firmware_config=False,
-             firmware_setup=None, stm32_wiring=False, safety_manifest_path=None,
-             safety_manifest_package=None):
+def generate(src, overlay_path, motor_limits, out_dir, assets_dir, urdf, mjcf,
+             firmware_config=False, firmware_setup=None, stm32_wiring=False,
+             safety_manifest_path=None, safety_manifest_package=None):
     model, overlay = load(src, overlay_path)
     os.makedirs(out_dir, exist_ok=True)
     written = []
@@ -488,12 +489,13 @@ def generate(src, overlay_path, out_dir, assets_dir, urdf, mjcf, firmware_config
         emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)
         written.append("robot.mjcf")
 
-    emit_safety_manifest(model, os.path.join(out_dir, "safety_manifest.yaml"))
+    emit_safety_manifest(model, motor_limits, os.path.join(out_dir, "safety_manifest.yaml"))
     written.append("safety_manifest.yaml")
 
     if firmware_config:
         setup = firmware_setup or model["robot"]["name"]
-        emit_firmware_config(model, os.path.join(out_dir, "firmware_config.yaml"), setup)
+        emit_firmware_config(model, motor_limits, os.path.join(out_dir, "firmware_config.yaml"),
+                             setup)
         written += ["firmware_config.yaml", "firmware_config.yaml.sha256"]
 
     if stm32_wiring:
