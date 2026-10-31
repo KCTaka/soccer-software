@@ -93,7 +93,7 @@ def emit_urdf(model, out_path, assets_dir,
         rpy = inertia["principal_axes_rpy_rad"] or [0, 0, 0]
         ie.set("xyz", fmt(com))
         ie.set("rpy", fmt(rpy))
-        ET.SubElement(ie, "mass", value=f"{l['mass']['cad_kg']:.10g}")
+        ET.SubElement(ie, "mass", value=f"{l['mass_kg']:.10g}")
         ET.SubElement(
             ie,
             "inertia",
@@ -299,7 +299,7 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
             ET.SubElement(be, "freejoint", name="root")
         inertia, com = l["inertia"], l["com_m"]
         ie = ET.SubElement(be, "inertial")
-        ie.set("pos", fmt(com)); ie.set("mass", f"{l['mass']['cad_kg']:.10g}")
+        ie.set("pos", fmt(com)); ie.set("mass", f"{l['mass_kg']:.10g}")
         if inertia["reference_frame"] == "principal":
             ie.set("quat", fmt(rpy_to_quat(inertia["principal_axes_rpy_rad"])))
             ie.set("diaginertia", fmt([inertia["ixx_kg_m2"], inertia["iyy_kg_m2"],

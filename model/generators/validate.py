@@ -65,15 +65,10 @@ def structural_checks(model):
             if any(m[k][k] < -1e-12 for k in range(3)):
                 errs.append(f"M-02: link {l['name']} negative diagonal inertia")
 
-    # M-03: masses positive; report the sum (reconciliation needs measured total).
-    total = 0.0
+    # M-03: masses positive.
     for l in links.values():
-        m = l["mass"]["cad_kg"]
-        if m <= 0:
+        if l["mass_kg"] <= 0:
             errs.append(f"M-03: link {l['name']} non-positive mass")
-        total += m
-    if model["robot"]["total_mass_measured_kg"] is None:
-        warns.append(f"M-03: no measured total mass; sum of link masses = {total:.3f} kg")
 
     # J-01 / J-02.
     for j in joints:
@@ -140,4 +135,4 @@ def structural_checks(model):
             errs.append(f"S-01: imu quaternion norm {n}")
 
     warns.append("C-01: sole polygon check skipped (provisional model; no sole geometry)")
-    return errs, warns, total
+    return errs, warns

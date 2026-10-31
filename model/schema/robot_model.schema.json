@@ -72,22 +72,6 @@
       }
     },
 
-    "mass": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Both a CAD value and a weighed value are required to be present as keys. `measured_kg` may be null before the part exists, but the key may not be absent - absence is indistinguishable from an oversight.",
-      "required": ["cad_kg", "measured_kg"],
-      "properties": {
-        "cad_kg": { "type": "number", "exclusiveMinimum": 0 },
-        "measured_kg": {
-          "oneOf": [
-            { "type": "number", "exclusiveMinimum": 0 },
-            { "type": "null" }
-          ]
-        }
-      }
-    },
-
     "frame": {
       "type": "object",
       "additionalProperties": false,
@@ -104,7 +88,7 @@
       "required": [
         "name",
         "parent_joint",
-        "mass",
+        "mass_kg",
         "com_m",
         "inertia",
         "visual_mesh",
@@ -116,7 +100,11 @@
           "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }],
           "description": "Null for exactly one link, the root. Validator check K-01."
         },
-        "mass": { "$ref": "#/$defs/mass" },
+        "mass_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Best estimate: weighed once the part exists, CAD before. Mass, COM, and inertia describe one body, so a weighed mass that replaces a CAD one scales the CAD inertia by the same ratio unless the inertia is re-derived."
+        },
         "com_m": {
           "$ref": "#/$defs/vector3",
           "description": "Centre of mass in this link's frame."
@@ -315,19 +303,11 @@
       "additionalProperties": false,
       "required": [
         "name",
-        "root_link",
-        "total_mass_measured_kg"
+        "root_link"
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
-        "root_link": { "$ref": "#/$defs/identifier" },
-        "total_mass_measured_kg": {
-          "oneOf": [
-            { "type": "number", "exclusiveMinimum": 0 },
-            { "type": "null" }
-          ],
-          "description": "Weighed, not summed. Reconciled against the sum of link masses in G2."
-        }
+        "root_link": { "$ref": "#/$defs/identifier" }
       }
     },
 
