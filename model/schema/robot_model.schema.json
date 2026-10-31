@@ -29,10 +29,8 @@
     "inertia": {
       "type": "object",
       "additionalProperties": false,
-      "description": "The reference point is REQUIRED and has no default. This is the single most common silent error in a robot model: an inertia tensor taken about the link origin but consumed as if it were about the centre of mass differs by the parallel-axis term m(|r|^2 I - r r^T), which is the same order as the tensor itself for a typical limb segment.",
+      "description": "Inertia tensor about the link's centre of mass (`com_m`), with axes parallel to the link frame: the form CAD exports, and the one URDF and MJCF `fullinertia` take. The products are tensor elements (ixy = -integral of x*y dm); some CAD tools report the product of inertia (+integral of x*y dm), which has the opposite sign. Validator checks M-01/M-02 reject a tensor no rigid body can have.",
       "required": [
-        "reference_point",
-        "reference_frame",
         "ixx_kg_m2",
         "iyy_kg_m2",
         "izz_kg_m2",
@@ -41,34 +39,12 @@
         "iyz_kg_m2"
       ],
       "properties": {
-        "reference_point": {
-          "enum": ["com", "link_origin"],
-          "description": "Exactly two permitted values so the exporter cannot omit the decision and the ingester cannot assume it. When `link_origin`, the ingest tool applies the parallel-axis shift and records that it did."
-        },
-        "reference_frame": {
-          "enum": ["link", "principal"],
-          "description": "`link` means resolved in the link frame defined by this link's `frame` block. `principal` means the tensor is diagonal in its own principal axes, which then requires `principal_axes_rpy_rad`."
-        },
-        "principal_axes_rpy_rad": {
-          "oneOf": [{ "$ref": "#/$defs/vector3" }, { "type": "null" }],
-          "description": "Required to be non-null when reference_frame is `principal`. Validator check M-04."
-        },
         "ixx_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
         "iyy_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
         "izz_kg_m2": { "type": "number", "exclusiveMinimum": 0 },
         "ixy_kg_m2": { "type": "number" },
         "ixz_kg_m2": { "type": "number" },
         "iyz_kg_m2": { "type": "number" }
-      },
-      "if": {
-        "properties": { "reference_frame": { "const": "principal" } },
-        "required": ["reference_frame"]
-      },
-      "then": {
-        "properties": {
-          "principal_axes_rpy_rad": { "$ref": "#/$defs/vector3" }
-        },
-        "required": ["principal_axes_rpy_rad"]
       }
     },
 

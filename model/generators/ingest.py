@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from .common import quat_to_rpy, vec, geom_size
+from .common import quat_to_matrix, quat_to_rpy, vec, geom_size
 
 SCHEMA_VERSION = "1.0.0"
 GEOM_EXTRA_ATTRS = ("size", "mesh", "friction", "condim", "solref", "solimp",
@@ -145,16 +145,16 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
     iquat = vec(inertial.get("quat"), 4, [1, 0, 0, 0])
     diag, full = inertial.get("diaginertia"), inertial.get("fullinertia")
     if diag:
+        # Principal moments in a frame rotated by `quat`; the model keeps link-frame axes:
+        # I = R diag(d) R^T.
         d = vec(diag, 3, None)
-        inertia = {"reference_point": "com", "reference_frame": "principal",
-                   "principal_axes_rpy_rad": quat_to_rpy(iquat),
-                   "ixx_kg_m2": d[0], "iyy_kg_m2": d[1], "izz_kg_m2": d[2],
-                   "ixy_kg_m2": 0.0, "ixz_kg_m2": 0.0, "iyz_kg_m2": 0.0}
+        r = quat_to_matrix(iquat)
+        t = [[sum(r[a][k] * d[k] * r[b][k] for k in range(3)) for b in range(3)] for a in range(3)]
+        inertia = {"ixx_kg_m2": t[0][0], "iyy_kg_m2": t[1][1], "izz_kg_m2": t[2][2],
+                   "ixy_kg_m2": t[0][1], "ixz_kg_m2": t[0][2], "iyz_kg_m2": t[1][2]}
     elif full:
         ixx, iyy, izz, ixy, ixz, iyz = vec(full, 6, None)
-        inertia = {"reference_point": "com", "reference_frame": "link",
-                   "principal_axes_rpy_rad": None,
-                   "ixx_kg_m2": ixx, "iyy_kg_m2": iyy, "izz_kg_m2": izz,
+        inertia = {"ixx_kg_m2": ixx, "iyy_kg_m2": iyy, "izz_kg_m2": izz,
                    "ixy_kg_m2": ixy, "ixz_kg_m2": ixz, "iyz_kg_m2": iyz}
     else:
         raise ValueError(f"body {name}: inertial has neither diaginertia nor fullinertia")

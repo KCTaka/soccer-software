@@ -26,6 +26,14 @@ def quat_to_rpy(q):
     yaw = math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
     return [roll, pitch, yaw]
 
+def quat_to_matrix(q):
+    """Rotation matrix of a (w, x, y, z) quaternion, normalised first as MuJoCo does."""
+    n = math.sqrt(sum(c * c for c in q))
+    w, x, y, z = (c / n for c in q)
+    return [[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+            [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
+            [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]]
+
 def rpy_to_quat(rpy):
     r, p, y = rpy
     cr, sr = math.cos(r / 2), math.sin(r / 2)

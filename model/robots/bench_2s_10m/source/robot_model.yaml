@@ -14,12 +14,6 @@ links:
   - 0.0
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 0.0005760000000000001
     iyy_kg_m2: 0.045288
     izz_kg_m2: 0.045288
@@ -52,12 +46,6 @@ links:
   - 0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -90,12 +78,6 @@ links:
   - 0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -128,12 +110,6 @@ links:
   - 0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -166,12 +142,6 @@ links:
   - 0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -204,12 +174,6 @@ links:
   - 0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -242,12 +206,6 @@ links:
   - -0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -280,12 +238,6 @@ links:
   - -0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -318,12 +270,6 @@ links:
   - -0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -356,12 +302,6 @@ links:
   - -0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
@@ -394,12 +334,6 @@ links:
   - -0.06
   - 0.0
   inertia:
-    reference_point: com
-    reference_frame: principal
-    principal_axes_rpy_rad:
-    - 0.0
-    - 0.0
-    - 0.0
     ixx_kg_m2: 2.400666666666667e-05
     iyy_kg_m2: 1.1333333333333334e-07
     izz_kg_m2: 2.4106666666666667e-05
