@@ -8,6 +8,7 @@
 # MuJoCo Menagerie with `python3 -m model.generators.ingest` (see model/source/ingest.yaml); that
 # import is a one-off tool, not part of `check`.
 #
+# urdf, mjcf: emit <generated>/robot.urdf, robot.mjcf.
 # firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
 robots:
   unitree_g1:
@@ -15,12 +16,16 @@ robots:
     overlay: model/source/menagerie_contact_overlay.yaml
     generated: model/generated
     assets_dir: model/source/menagerie/unitree_g1/assets
+    urdf: true
+    mjcf: true
     firmware_config: false
   bench_2s_10m:
     source: model/robots/bench_2s_10m/source/robot_model.yaml
     overlay: null
     generated: model/robots/bench_2s_10m/generated
     assets_dir: null
+    urdf: true
+    mjcf: false
     firmware_config: true
     firmware_setup: 2s_10m
     stm32_wiring: true
@@ -31,6 +36,8 @@ robots:
     overlay: null
     generated: model/robots/bench_1s_5m/generated
     assets_dir: null
+    urdf: true
+    mjcf: false
     firmware_config: true
     firmware_setup: 1s_5m
     stm32_wiring: true

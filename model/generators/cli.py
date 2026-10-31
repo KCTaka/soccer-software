@@ -33,14 +33,18 @@ def _all_robots():
     reg = _registry()
     return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
 
-def cmd_generate(args):
-    r = _robot(args.robot)
-    emit.generate(r["source"], r["overlay"], r["generated"], r["assets_dir"],
+def _generate(r, out_dir):
+    emit.generate(r["source"], r["overlay"], out_dir, r["assets_dir"],
+                  urdf=r["urdf"], mjcf=r["mjcf"],
                   firmware_config=r.get("firmware_config", False),
                   firmware_setup=r.get("firmware_setup"),
                   stm32_wiring=r.get("stm32_wiring", False),
                   safety_manifest_path=r.get("safety_manifest_path"),
                   safety_manifest_package=r.get("safety_manifest_package"))
+
+def cmd_generate(args):
+    r = _robot(args.robot)
+    _generate(r, r["generated"])
 
 def _check_one(r, mj_smoke):
     print(f"--- {r['name']} ---")
@@ -72,12 +76,7 @@ def _check_one(r, mj_smoke):
     # ADR-009-07: regenerate into a temp dir and diff.
     with tempfile.TemporaryDirectory() as td:
         t_out = os.path.join(td, "gen")
-        emit.generate(r["source"], r["overlay"], t_out, r["assets_dir"],
-                      firmware_config=r.get("firmware_config", False),
-                      firmware_setup=r.get("firmware_setup"),
-                      stm32_wiring=r.get("stm32_wiring", False),
-                      safety_manifest_path=r.get("safety_manifest_path"),
-                      safety_manifest_package=r.get("safety_manifest_package"))
+        _generate(r, t_out)
         for f in os.listdir(t_out):
             if not filecmp.cmp(os.path.join(r["generated"], f), os.path.join(t_out, f),
                                shallow=False):
