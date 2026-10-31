@@ -3285,18 +3285,6 @@ actuators:
   thermal:
     derating_curve: NR
     measured: false
-closed_loops: []
-emission:
-  urdf:
-    enabled: true
-    mode: full_tree
-    excluded_links: []
-  mjcf:
-    enabled: true
-  sdf:
-    enabled: false
-  usd:
-    enabled: false
 simulation:
   mjcf_compiler:
     balanceinertia: false

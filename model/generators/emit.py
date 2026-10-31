@@ -476,14 +476,14 @@ def emit_stm32_wiring(model, out_path):
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
 
-def generate(src, overlay_path, out_dir, assets_dir, firmware_config=False, firmware_setup=None,
-             stm32_wiring=False, safety_manifest_path=None, safety_manifest_package=None):
+def generate(src, overlay_path, out_dir, assets_dir, urdf, mjcf, firmware_config=False,
+             firmware_setup=None, stm32_wiring=False, safety_manifest_path=None,
+             safety_manifest_package=None):
     model, overlay = load(src, overlay_path)
     os.makedirs(out_dir, exist_ok=True)
-    emission = model["emission"]
     written = []
 
-    if emission["urdf"]["enabled"]:
+    if urdf:
         # URDF gets assets_dir to build package:// URIs with .STL extensions. The safety-manifest
         # path/package override is per-robot; the defaults keep G1's ros2_control block unchanged.
         urdf_kwargs = {}
@@ -494,7 +494,7 @@ def generate(src, overlay_path, out_dir, assets_dir, firmware_config=False, firm
         emit_urdf(model, os.path.join(out_dir, "robot.urdf"), assets_dir, **urdf_kwargs)
         written.append("robot.urdf")
 
-    if emission["mjcf"]["enabled"]:
+    if mjcf:
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
         assets_rel = os.path.relpath(assets_dir, "model/generated").replace("\\", "/")
         emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)

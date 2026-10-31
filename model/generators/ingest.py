@@ -310,12 +310,6 @@ def ingest(config_path, out_path, overlay_out_path):
         "links": ctx.links,
         "joints": ctx.joints,
         "actuators": ctx.actuators,
-        "closed_loops": [],
-        "emission": {
-            "urdf": {"enabled": True, "mode": "full_tree", "excluded_links": []},
-            "mjcf": {"enabled": True},
-            "sdf": {"enabled": False},
-            "usd": {"enabled": False}},
         "simulation": {"mjcf_compiler": {
             "balanceinertia": False, "boundmass": 0, "boundinertia": 0,
             "settotalmass": -1, "inertiafromgeom": "false",

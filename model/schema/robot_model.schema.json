@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/humanoid-soccer/model/schema/robot_model.schema.json",
   "title": "UTRA RoboSoccer Model Schema",
-  "description": "Schema for model/robot_model.yaml. This file is THE source of truth; URDF, MJCF, SDF, USD, ros2_control configuration, the safety manifest, and the firmware joint table are all generated siblings and are never inputs. Draft 2020-12. NOTE: no `default` keyword appears anywhere in this schema. A default is a silent value, and every silent value in this pipeline is a defect.",
+  "description": "Schema for model/robot_model.yaml. This file is THE source of truth; URDF, MJCF, ros2_control configuration, the safety manifest, and the firmware joint table are all generated siblings and are never inputs. Draft 2020-12. NOTE: no `default` keyword appears anywhere in this schema. A default is a silent value, and every silent value in this pipeline is a defect.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,8 +11,6 @@
     "links",
     "joints",
     "actuators",
-    "closed_loops",
-    "emission",
     "simulation"
   ],
 
@@ -460,37 +458,6 @@
           "oneOf": [{ "enum": ["little", "big"] }, { "$ref": "#/$defs/nr" }]
         }
       }
-    },
-
-    "closed_loop": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "kind", "member_links", "constraint", "urdf_policy"],
-      "properties": {
-        "name": { "$ref": "#/$defs/identifier" },
-        "kind": {
-          "enum": ["four_bar", "parallel_ankle", "differential", "other"]
-        },
-        "member_links": {
-          "type": "array",
-          "minItems": 2,
-          "items": { "$ref": "#/$defs/identifier" }
-        },
-        "constraint": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["mjcf_equality", "anchor_link", "anchor_point_m"],
-          "properties": {
-            "mjcf_equality": { "enum": ["connect", "weld", "joint"] },
-            "anchor_link": { "$ref": "#/$defs/identifier" },
-            "anchor_point_m": { "$ref": "#/$defs/vector3" }
-          }
-        },
-        "urdf_policy": {
-          "const": "exclude_subassembly",
-          "description": "The only permitted policy. URDF cannot represent a closed loop; approximating it as a serial chain is silently wrong, and failing the whole build is unnecessary when MJCF and SDF both represent it natively."
-        }
-      }
     }
   },
 
@@ -549,51 +516,6 @@
           "minItems": 4,
           "maxItems": 4,
           "description": "Sensor orientation in the frame of `link`, w first. Must normalise to 1; validator check S-01."
-        }
-      }
-    },
-
-    "closed_loops": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/closed_loop" },
-      "description": "Baseline is an empty array: open serial chains. A non-empty array forces emission.urdf.mode to partial_with_exclusions."
-    },
-
-    "emission": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["urdf", "mjcf", "sdf", "usd"],
-      "properties": {
-        "urdf": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["enabled", "mode", "excluded_links"],
-          "properties": {
-            "enabled": { "type": "boolean" },
-            "mode": { "enum": ["full_tree", "partial_with_exclusions"] },
-            "excluded_links": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/identifier" }
-            }
-          }
-        },
-        "mjcf": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["enabled"],
-          "properties": { "enabled": { "type": "boolean" } }
-        },
-        "sdf": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["enabled"],
-          "properties": { "enabled": { "type": "boolean" } }
-        },
-        "usd": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["enabled"],
-          "properties": { "enabled": { "type": "boolean" } }
         }
       }
     },
@@ -659,47 +581,5 @@
         }
       }
     }
-  },
-
-  "allOf": [
-    {
-      "if": {
-        "properties": { "closed_loops": { "minItems": 1 } },
-        "required": ["closed_loops"]
-      },
-      "then": {
-        "properties": {
-          "emission": {
-            "properties": {
-              "urdf": {
-                "properties": { "mode": { "const": "partial_with_exclusions" } }
-              }
-            }
-          }
-        },
-        "description": "A declared closed loop forces partial URDF emission. The two cannot disagree."
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "emission": {
-            "properties": {
-              "urdf": { "properties": { "mode": { "const": "full_tree" } } }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "emission": {
-            "properties": {
-              "urdf": { "properties": { "excluded_links": { "maxItems": 0 } } }
-            }
-          }
-        },
-        "description": "A full-tree URDF may not exclude links."
-      }
-    }
-  ]
+  }
 }
