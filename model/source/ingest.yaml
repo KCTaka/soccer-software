@@ -1,5 +1,6 @@
-# Hand-authored. Determinism rule (model-gate-0 §5.4): exported_at and
-# ingest_tool_version are CONSTANTS here, never read from the clock or tool.
+# Config for the one-off Menagerie import (python3 -m model.generators.ingest).
+# Determinism rule (model-gate-0 §5.4): exported_at and ingest_tool_version are CONSTANTS here,
+# never read from the clock or tool.
 model_name: unitree_g1
 source:
   repository: https://github.com/google-deepmind/mujoco_menagerie
