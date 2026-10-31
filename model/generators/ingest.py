@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from .common import quat_to_rpy, sha256_file, vec, geom_size
+from .common import quat_to_rpy, vec, geom_size
 
 SCHEMA_VERSION = "1.0.0"
 GEOM_EXTRA_ATTRS = ("size", "mesh", "friction", "condim", "solref", "solimp",
@@ -217,8 +217,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                     "photo": None, "verified_by": None},
                 "limits": make_limits(lo, hi, torque, ctx),
                 "transmission": make_transmission(attrs, joint_name),
-                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0,
-                                "measured_at": None},
+                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},
                 "actuator": None,  # filled after actuator entries exist
             }
         else:
@@ -232,20 +231,18 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                                        "photo": None, "verified_by": None},
                 "limits": make_limits(0.0, 0.0, PROVISIONAL_TORQUE_NM, ctx, fixed=True),
                 "transmission": make_transmission({}),
-                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0,
-                                "measured_at": None},
+                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},
                 "actuator": None,
             }
     if joint_obj is not None:
         ctx.joints.append(joint_obj)
 
-    provenance = ctx.provenance
     ctx.links.append({
         "name": name,
         "parent_joint": joint_name,
-        "mass": {"cad_kg": mass, "measured_kg": None, "provenance": provenance},
+        "mass": {"cad_kg": mass, "measured_kg": None},
         "com_m": com,
-        "inertia": dict(inertia, provenance=provenance),
+        "inertia": inertia,
         "visual_mesh": mesh_name,
         "collision": {"primitives": prims, "mesh": mesh_name},
     })
@@ -265,10 +262,10 @@ def ingest(config_path, out_path, overlay_out_path):
             compiler.get("angle", "radian") == "degree") else 1.0
 
     ctx = Ctx()
-    src_ref = f"{cfg['source']['repository']}@{cfg['source']['commit']}:{mjcf_path}"
-    ctx.provenance = {"cad_system": "derived", "document_id": src_ref,
-                      "version_or_configuration": cfg["source"]["commit"],
-                      "exported_at": cfg["exported_at"], "exported_by": cfg["exported_by"]}
+    # Where the file came from, as a comment: nothing downstream reads it.
+    header = (f"# Imported from {cfg['source']['repository']}@{cfg['source']['commit']}:"
+              f"{mjcf_path}\n# by `python3 -m model.generators.ingest`. Edit this file directly; "
+              "re-importing overwrites edits.\n")
 
     ctx.imu_site = cfg["source"].get("imu_site")
     parse_assets(root, ctx)
@@ -306,20 +303,10 @@ def ingest(config_path, out_path, overlay_out_path):
         })
         j["actuator"] = act_name
 
-    digests = {mjcf_path: sha256_file(mjcf_path)}
-    assets_dir = cfg["source"]["assets_dir"]
-    for mesh_file in sorted(ctx.meshes.values()):
-        p = os.path.join(assets_dir, mesh_file)
-        if os.path.exists(p):
-            digests[p] = sha256_file(p)
-
     model = {
         "schema_version": SCHEMA_VERSION,
         "robot": {"name": cfg["model_name"], "root_link": ctx.root_link,
                   "total_mass_measured_kg": None},
-        "provenance": {"generated_from": [src_ref],
-                       "ingest_tool_version": cfg["ingest_tool_version"],
-                       "source_digests": digests},
         "links": ctx.links,
         "joints": ctx.joints,
         "actuators": ctx.actuators,
@@ -338,13 +325,12 @@ def ingest(config_path, out_path, overlay_out_path):
     if ctx.imu is not None:
         model["imu"] = ctx.imu
     with open(out_path, "w") as f:
+        f.write(header)
         yaml.safe_dump(model, f, sort_keys=False, width=1000, allow_unicode=True)
 
-    overlay = {"generated_from": [src_ref],
-               "source_digest": digests[mjcf_path],
-               "meshes": ctx.meshes,
-               "bodies": ctx.overlay}
+    overlay = {"meshes": ctx.meshes, "bodies": ctx.overlay}
     with open(overlay_out_path, "w") as f:
+        f.write(header)
         yaml.safe_dump(overlay, f, sort_keys=False, width=1000, allow_unicode=True)
 
     for w in ctx.warnings:
