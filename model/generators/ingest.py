@@ -1,4 +1,10 @@
-"""Ingest MuJoCo Menagerie MJCF -> model/source/robot_model.yaml (+ contact overlay).
+"""Import a MuJoCo Menagerie MJCF into a robot_model.yaml (+ contact overlay).
+
+  python3 -m model.generators.ingest CONFIG MODEL_OUT OVERLAY_OUT
+
+A one-off conversion tool, not part of `check`: its output is a starting point, and from then on
+the written robot_model.yaml is the hand-edited source of truth. Re-running it overwrites any hand
+edits, so diff before committing.
 
 Assumptions to verify on first run (parser is defensive, but confirm):
   - one movable joint per body; free joint only on the root body
@@ -248,16 +254,6 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
     for child in body.findall("body"):
         walk_body(child, name, eff_class, angle, ctx, joint_defaults, geom_defaults)
 
-def normalize(src_path, out_path):
-    """Identity ingest for an authored robot: the source is the truth, so just re-emit it in
-    canonical form. Regenerate-and-diff then flags a hand-edit that is not canonical, the same way
-    it flags a stale Menagerie ingest."""
-    with open(src_path) as f:
-        model = yaml.safe_load(f)
-    with open(out_path, "w") as f:
-        yaml.safe_dump(model, f, sort_keys=False, width=1000, allow_unicode=True)
-
-
 def ingest(config_path, out_path, overlay_out_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
@@ -358,3 +354,14 @@ def ingest(config_path, out_path, overlay_out_path):
         print("WARN: source has no free joint on root; emitter will add one", file=sys.stderr)
     print(f"ingested {len(ctx.links)} links, {len(ctx.joints)} joints, "
           f"{len(ctx.actuators)} actuators -> {out_path}")
+
+def main():
+    p = argparse.ArgumentParser(description="Import a Menagerie MJCF into a robot_model.yaml.")
+    p.add_argument("config", help="import config, e.g. model/source/ingest.yaml")
+    p.add_argument("model_out", help="robot_model.yaml to write")
+    p.add_argument("overlay_out", help="contact overlay to write")
+    args = p.parse_args()
+    ingest(args.config, args.model_out, args.overlay_out)
+
+if __name__ == "__main__":
+    main()

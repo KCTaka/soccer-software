@@ -1,15 +1,15 @@
 """Usage:
-  python3 -m model.generators.cli ingest   [--robot NAME]
   python3 -m model.generators.cli generate [--robot NAME]
   python3 -m model.generators.cli check    [--robot NAME] [--mj-smoke]
 
 Robots are declared in model/robots.yaml. With no --robot, `check` runs every robot and
-`ingest`/`generate` use the registry's default_robot.
+`generate` uses the registry's default_robot. Each robot's robot_model.yaml is the hand-edited
+source of truth; `check` validates it and diffs the generated files against a regeneration.
 """
 import argparse, filecmp, os, sys, tempfile
 import yaml
 
-from . import emit, ingest, validate
+from . import emit, validate
 
 REGISTRY = "model/robots.yaml"
 SCHEMA = "model/schema/robot_model.schema.json"
@@ -32,19 +32,6 @@ def _robot(name):
 def _all_robots():
     reg = _registry()
     return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
-
-def _do_ingest(r, src_out, overlay_out):
-    """Reproduce the source of truth. menagerie: parse the pinned MJCF. authored: normalise."""
-    if r["source_kind"] == "menagerie":
-        ingest.ingest(r["ingest_config"], src_out, overlay_out)
-    elif r["source_kind"] == "authored":
-        ingest.normalize(r["source"], src_out)
-    else:
-        sys.exit(f"{r['name']}: unknown source_kind {r['source_kind']!r}")
-
-def cmd_ingest(args):
-    r = _robot(args.robot)
-    _do_ingest(r, r["source"], r["overlay"])
 
 def cmd_generate(args):
     r = _robot(args.robot)
@@ -84,17 +71,8 @@ def _check_one(r, mj_smoke):
 
     # ADR-009-07: regenerate into a temp dir and diff.
     with tempfile.TemporaryDirectory() as td:
-        t_src = os.path.join(td, "rm.yaml")
-        t_ovl = os.path.join(td, "ov.yaml") if r["overlay"] else None
-        _do_ingest(r, t_src, t_ovl)
-        if not filecmp.cmp(r["source"], t_src, shallow=False):
-            print(f"ERROR: drift: {r['source']} differs from regeneration", file=sys.stderr)
-            return False
-        if r["overlay"] and not filecmp.cmp(r["overlay"], t_ovl, shallow=False):
-            print(f"ERROR: drift: {r['overlay']} differs from regeneration", file=sys.stderr)
-            return False
         t_out = os.path.join(td, "gen")
-        emit.generate(t_src, t_ovl, t_out, r["assets_dir"],
+        emit.generate(r["source"], r["overlay"], t_out, r["assets_dir"],
                       firmware_config=r.get("firmware_config", False),
                       firmware_setup=r.get("firmware_setup"),
                       stm32_wiring=r.get("stm32_wiring", False),
@@ -119,10 +97,9 @@ def cmd_check(args):
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name, fn in (("ingest", cmd_ingest), ("generate", cmd_generate)):
-        sp = sub.add_parser(name)
-        sp.add_argument("--robot", default=None)
-        sp.set_defaults(fn=fn)
+    g = sub.add_parser("generate")
+    g.add_argument("--robot", default=None)
+    g.set_defaults(fn=cmd_generate)
     c = sub.add_parser("check")
     c.add_argument("--robot", default=None)
     c.add_argument("--mj-smoke", action="store_true")
