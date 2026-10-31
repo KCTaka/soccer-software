@@ -958,19 +958,16 @@ joints:
     software_lower_rad: -2.5107
     software_upper_rad: 2.8598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 88.0
     effort_peak_nm: 88.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_hip_pitch_joint
 - name: left_hip_roll_joint
   type: revolute
@@ -995,19 +992,16 @@ joints:
     software_lower_rad: -0.5035999999999999
     software_upper_rad: 2.9471
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 139.0
     effort_peak_nm: 139.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_hip_roll_joint
 - name: left_hip_yaw_joint
   type: revolute
@@ -1032,19 +1026,16 @@ joints:
     software_lower_rad: -2.7376
     software_upper_rad: 2.7376
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 88.0
     effort_peak_nm: 88.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_hip_yaw_joint
 - name: left_knee_joint
   type: revolute
@@ -1069,19 +1060,16 @@ joints:
     software_lower_rad: -0.067267
     software_upper_rad: 2.8598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 139.0
     effort_peak_nm: 139.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_knee_joint
 - name: left_ankle_pitch_joint
   type: revolute
@@ -1106,19 +1094,16 @@ joints:
     software_lower_rad: -0.8526699999999999
     software_upper_rad: 0.5035999999999999
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_ankle_pitch_joint
 - name: left_ankle_roll_joint
   type: revolute
@@ -1143,19 +1128,16 @@ joints:
     software_lower_rad: -0.2418
     software_upper_rad: 0.2418
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_ankle_roll_joint
 - name: right_hip_pitch_joint
   type: revolute
@@ -1180,19 +1162,16 @@ joints:
     software_lower_rad: -2.5107
     software_upper_rad: 2.8598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 88.0
     effort_peak_nm: 88.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_hip_pitch_joint
 - name: right_hip_roll_joint
   type: revolute
@@ -1217,19 +1196,16 @@ joints:
     software_lower_rad: -2.9471
     software_upper_rad: 0.5035999999999999
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 139.0
     effort_peak_nm: 139.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_hip_roll_joint
 - name: right_hip_yaw_joint
   type: revolute
@@ -1254,19 +1230,16 @@ joints:
     software_lower_rad: -2.7376
     software_upper_rad: 2.7376
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 88.0
     effort_peak_nm: 88.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_hip_yaw_joint
 - name: right_knee_joint
   type: revolute
@@ -1291,19 +1264,16 @@ joints:
     software_lower_rad: -0.067267
     software_upper_rad: 2.8598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 139.0
     effort_peak_nm: 139.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_knee_joint
 - name: right_ankle_pitch_joint
   type: revolute
@@ -1328,19 +1298,16 @@ joints:
     software_lower_rad: -0.8526699999999999
     software_upper_rad: 0.5035999999999999
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_ankle_pitch_joint
 - name: right_ankle_roll_joint
   type: revolute
@@ -1365,19 +1332,16 @@ joints:
     software_lower_rad: -0.2418
     software_upper_rad: 0.2418
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_ankle_roll_joint
 - name: waist_yaw_joint
   type: revolute
@@ -1402,19 +1366,16 @@ joints:
     software_lower_rad: -2.598
     software_upper_rad: 2.598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 88.0
     effort_peak_nm: 88.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: waist_yaw_joint
 - name: waist_roll_joint
   type: revolute
@@ -1439,19 +1400,16 @@ joints:
     software_lower_rad: -0.5
     software_upper_rad: 0.5
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: waist_roll_joint
 - name: waist_pitch_joint
   type: revolute
@@ -1476,19 +1434,16 @@ joints:
     software_lower_rad: -0.5
     software_upper_rad: 0.5
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 50.0
     effort_peak_nm: 50.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: waist_pitch_joint
 - name: left_shoulder_pitch_joint
   type: revolute
@@ -1513,19 +1468,16 @@ joints:
     software_lower_rad: -3.0692
     software_upper_rad: 2.6504
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_shoulder_pitch_joint
 - name: left_shoulder_roll_joint
   type: revolute
@@ -1550,19 +1502,16 @@ joints:
     software_lower_rad: -1.5682
     software_upper_rad: 2.2315
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_shoulder_roll_joint
 - name: left_shoulder_yaw_joint
   type: revolute
@@ -1587,19 +1536,16 @@ joints:
     software_lower_rad: -2.598
     software_upper_rad: 2.598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_shoulder_yaw_joint
 - name: left_elbow_joint
   type: revolute
@@ -1624,19 +1570,16 @@ joints:
     software_lower_rad: -1.0272
     software_upper_rad: 2.0744
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_elbow_joint
 - name: left_wrist_roll_joint
   type: revolute
@@ -1661,19 +1604,16 @@ joints:
     software_lower_rad: -1.95222
     software_upper_rad: 1.95222
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_wrist_roll_joint
 - name: left_wrist_pitch_joint
   type: revolute
@@ -1698,19 +1638,16 @@ joints:
     software_lower_rad: -1.59443
     software_upper_rad: 1.59443
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 5.0
     effort_peak_nm: 5.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_wrist_pitch_joint
 - name: left_wrist_yaw_joint
   type: revolute
@@ -1735,19 +1672,16 @@ joints:
     software_lower_rad: -1.59443
     software_upper_rad: 1.59443
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 5.0
     effort_peak_nm: 5.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: left_wrist_yaw_joint
 - name: right_shoulder_pitch_joint
   type: revolute
@@ -1772,19 +1706,16 @@ joints:
     software_lower_rad: -3.0692
     software_upper_rad: 2.6504
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_shoulder_pitch_joint
 - name: right_shoulder_roll_joint
   type: revolute
@@ -1809,19 +1740,16 @@ joints:
     software_lower_rad: -2.2315
     software_upper_rad: 1.5682
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_shoulder_roll_joint
 - name: right_shoulder_yaw_joint
   type: revolute
@@ -1846,19 +1774,16 @@ joints:
     software_lower_rad: -2.598
     software_upper_rad: 2.598
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_shoulder_yaw_joint
 - name: right_elbow_joint
   type: revolute
@@ -1883,19 +1808,16 @@ joints:
     software_lower_rad: -1.0272
     software_upper_rad: 2.0744
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_elbow_joint
 - name: right_wrist_roll_joint
   type: revolute
@@ -1920,19 +1842,16 @@ joints:
     software_lower_rad: -1.95222
     software_upper_rad: 1.95222
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 25.0
     effort_peak_nm: 25.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_wrist_roll_joint
 - name: right_wrist_pitch_joint
   type: revolute
@@ -1957,19 +1876,16 @@ joints:
     software_lower_rad: -1.59443
     software_upper_rad: 1.59443
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 5.0
     effort_peak_nm: 5.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_wrist_pitch_joint
 - name: right_wrist_yaw_joint
   type: revolute
@@ -1994,19 +1910,16 @@ joints:
     software_lower_rad: -1.59443
     software_upper_rad: 1.59443
     velocity_rad_s: 20.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 5.0
     effort_peak_nm: 5.0
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: 1
     friction_coulomb_nm: 0.3
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.01
   calibration:
     zero_offset_rad: null
-    zero_pose_value_rad: 0.0
   actuator: right_wrist_yaw_joint
 actuators:
 - name: left_hip_pitch_joint
