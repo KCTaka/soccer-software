@@ -1,10 +1,8 @@
 schema_version: 1.0.0
 robot:
   name: unitree_g1
-  size_class: kidsize
   root_link: pelvis
   total_mass_measured_kg: null
-  zero_pose_photo: null
 provenance:
   generated_from:
   - https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/source/menagerie/unitree_g1/g1.xml

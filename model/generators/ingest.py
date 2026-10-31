@@ -315,9 +315,8 @@ def ingest(config_path, out_path, overlay_out_path):
 
     model = {
         "schema_version": SCHEMA_VERSION,
-        "robot": {"name": cfg["model_name"], "size_class": "kidsize",
-                  "root_link": ctx.root_link, "total_mass_measured_kg": None,
-                  "zero_pose_photo": None},
+        "robot": {"name": cfg["model_name"], "root_link": ctx.root_link,
+                  "total_mass_measured_kg": None},
         "provenance": {"generated_from": [src_ref],
                        "ingest_tool_version": cfg["ingest_tool_version"],
                        "source_digests": digests},
