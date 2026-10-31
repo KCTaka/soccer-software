@@ -465,9 +465,12 @@ def emit_stm32_wiring(model, out_path):
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
 
-def generate(src, overlay_path, motor_limits, out_dir, assets_dir, urdf, mjcf,
+def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir, urdf, mjcf,
              firmware_config=False, firmware_setup=None, stm32_wiring=False,
              safety_manifest_path=None, safety_manifest_package=None):
+    """Write the robot's generated files to out_dir. generated_dir is where they live in the repo:
+    the MJCF's relative meshdir is computed from it, so a regeneration elsewhere (check's temp
+    dir) still matches the committed file."""
     model, overlay = load(src, overlay_path)
     os.makedirs(out_dir, exist_ok=True)
     written = []
@@ -485,7 +488,7 @@ def generate(src, overlay_path, motor_limits, out_dir, assets_dir, urdf, mjcf,
 
     if mjcf:
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
-        assets_rel = os.path.relpath(assets_dir, "model/generated").replace("\\", "/")
+        assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
         emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)
         written.append("robot.mjcf")
 

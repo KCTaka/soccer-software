@@ -40,7 +40,7 @@ def _all_robots():
     return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
 
 def _generate(r, motor_limits, out_dir):
-    emit.generate(r["source"], r["overlay"], motor_limits, out_dir, r["assets_dir"],
+    emit.generate(r["source"], r["overlay"], motor_limits, out_dir, r["generated"], r["assets_dir"],
                   urdf=r["urdf"], mjcf=r["mjcf"],
                   firmware_config=r.get("firmware_config", False),
                   firmware_setup=r.get("firmware_setup"),

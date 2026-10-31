@@ -3,6 +3,6 @@ model_name: unitree_g1
 source:
   repository: https://github.com/google-deepmind/mujoco_menagerie
   commit: 8161bba264d7fa7c99ca301e91e7fb44737676ad # ADR-009-02: pin before first ingest
-  mjcf: model/source/menagerie/unitree_g1/g1.xml
+  mjcf: model/robots/unitree_g1/source/menagerie/unitree_g1/g1.xml
   # The G1's pelvis IMU, the one its stock locomotion policies read.
   imu_site: imu_in_pelvis

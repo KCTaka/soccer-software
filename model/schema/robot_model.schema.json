@@ -88,7 +88,7 @@
         "inertia": { "$ref": "#/$defs/inertia" },
         "visual_mesh": {
           "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }],
-          "description": "Path relative to model/source/meshes/. Null is permitted; a missing key is not."
+          "description": "Mesh name, resolved against the robot's `assets_dir` in model/robots.yaml. Null is permitted; a missing key is not."
         },
         "collision": {
           "type": "object",

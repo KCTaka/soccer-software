@@ -41,6 +41,6 @@ client publishing, services or parameters).
 The bridge side is tested (topics advertised, mesh served). The Foxglove UI steps above were written
 from the documented UI and not exercised against a running viewer; adjust them if the menus differ.
 
-`robot.urdf` refers to its meshes as `package://humanoid_bringup/model/source/...`. Foxglove fetches
+`robot.urdf` refers to its meshes as `package://humanoid_bringup/model/robots/unitree_g1/source/...`. Foxglove fetches
 only `package://` meshes over the bridge (`file://` is read from the viewer's own disk), and the
 bridge's default allow-list serves them from the installed `humanoid_bringup` share directory.

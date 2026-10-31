@@ -5,17 +5,17 @@
 #   python3 -m model.generators.cli generate --robot bench_2s_10m
 #
 # `source` is each robot's hand-edited source of truth. unitree_g1's was first imported from
-# MuJoCo Menagerie with `python3 -m model.generators.ingest` (see model/source/ingest.yaml); that
+# MuJoCo Menagerie with `python3 -m model.generators.ingest` (see its source/ingest.yaml); that
 # import is a one-off tool, not part of `check`.
 #
 # urdf, mjcf: emit <generated>/robot.urdf, robot.mjcf.
 # firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
 robots:
   unitree_g1:
-    source: model/source/robot_model.yaml
-    overlay: model/source/menagerie_contact_overlay.yaml
-    generated: model/generated
-    assets_dir: model/source/menagerie/unitree_g1/assets
+    source: model/robots/unitree_g1/source/robot_model.yaml
+    overlay: model/robots/unitree_g1/source/menagerie_contact_overlay.yaml
+    generated: model/robots/unitree_g1/generated
+    assets_dir: model/robots/unitree_g1/source/menagerie/unitree_g1/assets
     urdf: true
     mjcf: true
     firmware_config: false

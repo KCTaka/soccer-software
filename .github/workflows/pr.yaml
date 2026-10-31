@@ -21,7 +21,7 @@ jobs:
   build-and-test:
     needs: pin-audit
     env:
-      HUMANOID_MJCF_PATH: /ws/model/generated/robot.mjcf
+      HUMANOID_MJCF_PATH: /ws/model/robots/unitree_g1/generated/robot.mjcf
     strategy:
       fail-fast: false
       matrix:

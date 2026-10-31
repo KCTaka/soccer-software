@@ -76,7 +76,7 @@ if(BUILD_TESTING)
 
   # These read the generated artifacts in place, so an emitter change that this package does not
   # accept fails here rather than at launch.
-  set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated")
+  set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated")
 
   ament_add_gtest(${PROJECT_NAME}_safety_manifest_parser_test
     test/safety_manifest_parser_test.cpp)
