@@ -952,10 +952,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_hip_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.5307
     hard_stop_upper_rad: 2.8798
@@ -993,10 +989,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link left_hip_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.5236
     hard_stop_upper_rad: 2.9671
@@ -1034,10 +1026,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link left_hip_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.7576
     hard_stop_upper_rad: 2.7576
@@ -1075,10 +1063,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_knee_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.087267
     hard_stop_upper_rad: 2.8798
@@ -1116,10 +1100,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_ankle_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.87267
     hard_stop_upper_rad: 0.5236
@@ -1157,10 +1137,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link left_ankle_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.2618
     hard_stop_upper_rad: 0.2618
@@ -1198,10 +1174,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_hip_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.5307
     hard_stop_upper_rad: 2.8798
@@ -1239,10 +1211,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link right_hip_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.9671
     hard_stop_upper_rad: 0.5236
@@ -1280,10 +1248,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link right_hip_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.7576
     hard_stop_upper_rad: 2.7576
@@ -1321,10 +1285,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_knee_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.087267
     hard_stop_upper_rad: 2.8798
@@ -1362,10 +1322,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_ankle_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.87267
     hard_stop_upper_rad: 0.5236
@@ -1403,10 +1359,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link right_ankle_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.2618
     hard_stop_upper_rad: 0.2618
@@ -1444,10 +1396,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link waist_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.618
     hard_stop_upper_rad: 2.618
@@ -1485,10 +1433,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link waist_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.52
     hard_stop_upper_rad: 0.52
@@ -1526,10 +1470,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link torso_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.52
     hard_stop_upper_rad: 0.52
@@ -1567,10 +1507,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_shoulder_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -3.0892
     hard_stop_upper_rad: 2.6704
@@ -1608,10 +1544,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link left_shoulder_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.5882
     hard_stop_upper_rad: 2.2515
@@ -1649,10 +1581,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link left_shoulder_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.618
     hard_stop_upper_rad: 2.618
@@ -1690,10 +1618,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_elbow_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.0472
     hard_stop_upper_rad: 2.0944
@@ -1731,10 +1655,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link left_wrist_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.97222
     hard_stop_upper_rad: 1.97222
@@ -1772,10 +1692,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link left_wrist_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.61443
     hard_stop_upper_rad: 1.61443
@@ -1813,10 +1729,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link left_wrist_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.61443
     hard_stop_upper_rad: 1.61443
@@ -1854,10 +1766,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_shoulder_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -3.0892
     hard_stop_upper_rad: 2.6704
@@ -1895,10 +1803,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link right_shoulder_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.2515
     hard_stop_upper_rad: 1.5882
@@ -1936,10 +1840,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link right_shoulder_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -2.618
     hard_stop_upper_rad: 2.618
@@ -1977,10 +1877,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_elbow_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.0472
     hard_stop_upper_rad: 2.0944
@@ -2018,10 +1914,6 @@ joints:
   - 1.0
   - 0.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [1.0, 0.0, 0.0] in link right_wrist_roll_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.97222
     hard_stop_upper_rad: 1.97222
@@ -2059,10 +1951,6 @@ joints:
   - 0.0
   - 1.0
   - 0.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 1.0, 0.0] in link right_wrist_pitch_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.61443
     hard_stop_upper_rad: 1.61443
@@ -2100,10 +1988,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Provisional: positive follows the MJCF right-hand rule about axis [0.0, 0.0, 1.0] in link right_wrist_yaw_link. Not physically verified.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.61443
     hard_stop_upper_rad: 1.61443

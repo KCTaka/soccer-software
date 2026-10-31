@@ -175,7 +175,6 @@
         "child_link",
         "origin",
         "axis",
-        "positive_direction",
         "limits",
         "transmission",
         "calibration",
@@ -188,28 +187,6 @@
         "child_link": { "$ref": "#/$defs/identifier" },
         "origin": { "$ref": "#/$defs/frame" },
         "axis": { "$ref": "#/$defs/unit_vector3" },
-        "positive_direction": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["description", "photo", "verified_by"],
-          "description": "A physical description, not a view-dependent one. 'CCW' alone is rejected at review because it depends on the viewpoint.",
-          "properties": {
-            "description": { "type": "string", "minLength": 10 },
-            "photo": {
-              "oneOf": [
-                { "type": "string", "minLength": 1 },
-                { "type": "null" }
-              ]
-            },
-            "verified_by": {
-              "oneOf": [
-                { "type": "string", "minLength": 1 },
-                { "type": "null" }
-              ],
-              "description": "G1 single-joint jog test record id. Null until the test is run."
-            }
-          }
-        },
         "limits": {
           "type": "object",
           "additionalProperties": false,
