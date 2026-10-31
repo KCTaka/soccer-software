@@ -471,19 +471,16 @@ joints:
     software_lower_rad: -0.79
     software_upper_rad: 0.79
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j1
 - name: bench_j2
   type: revolute
@@ -508,19 +505,16 @@ joints:
     software_lower_rad: -1.05
     software_upper_rad: 1.05
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j2
 - name: bench_j3
   type: revolute
@@ -545,19 +539,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j3
 - name: bench_j4
   type: revolute
@@ -582,19 +573,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j4
 - name: bench_j5
   type: revolute
@@ -619,19 +607,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j5
 - name: bench_j6
   type: revolute
@@ -656,19 +641,16 @@ joints:
     software_lower_rad: -0.79
     software_upper_rad: 0.79
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j6
 - name: bench_j7
   type: revolute
@@ -693,19 +675,16 @@ joints:
     software_lower_rad: -1.05
     software_upper_rad: 1.05
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j7
 - name: bench_j8
   type: revolute
@@ -730,19 +709,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j8
 - name: bench_j9
   type: revolute
@@ -767,19 +743,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j9
 - name: bench_j10
   type: revolute
@@ -804,19 +777,16 @@ joints:
     software_lower_rad: -1.31
     software_upper_rad: 1.31
     velocity_rad_s: 10.0
-    velocity_limit_origin: drive
     effort_continuous_nm: 0.8
     effort_peak_nm: 0.8
     effort_peak_duration_s: 1.0
   transmission:
-    gear_ratio: 1.0
     direction_sign: -1
     friction_coulomb_nm: 0.0
     friction_viscous_nm_s_rad: 0.0
     armature_kg_m2: 0.0
   calibration:
     zero_offset_rad: 0.0
-    zero_pose_value_rad: 0.0
   actuator: bench_j10
 actuators:
 - name: bench_j1

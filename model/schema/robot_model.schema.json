@@ -196,7 +196,6 @@
             "software_lower_rad",
             "software_upper_rad",
             "velocity_rad_s",
-            "velocity_limit_origin",
             "effort_continuous_nm",
             "effort_peak_nm",
             "effort_peak_duration_s"
@@ -207,10 +206,6 @@
             "software_lower_rad": { "type": "number" },
             "software_upper_rad": { "type": "number" },
             "velocity_rad_s": { "type": "number", "exclusiveMinimum": 0 },
-            "velocity_limit_origin": {
-              "enum": ["mechanical", "thermal", "drive"],
-              "description": "Which constraint binds. A velocity limit without its origin cannot be re-derived when the drive changes."
-            },
             "effort_continuous_nm": { "type": "number", "exclusiveMinimum": 0 },
             "effort_peak_nm": { "type": "number", "exclusiveMinimum": 0 },
             "effort_peak_duration_s": {
@@ -224,17 +219,15 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "gear_ratio",
             "direction_sign",
             "friction_coulomb_nm",
             "friction_viscous_nm_s_rad",
             "armature_kg_m2"
           ],
           "properties": {
-            "gear_ratio": { "type": "number", "exclusiveMinimum": 0 },
             "direction_sign": {
               "enum": [-1, 1],
-              "description": "Kept separate from gear_ratio magnitude so a sign error cannot hide inside a ratio and so G1 can verify it independently."
+              "description": "Relates the motor's encoder angle to this joint's angle: joint = direction_sign * (motor - zero_offset_rad). A property of how the motor is mounted, so it lives here and not in `axis`: flipping the axis instead would change the joint-space convention every controller and policy depends on."
             },
             "friction_coulomb_nm": { "type": "number", "minimum": 0 },
             "friction_viscous_nm_s_rad": { "type": "number", "minimum": 0 },
@@ -244,13 +237,13 @@
         "calibration": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["zero_offset_rad", "zero_pose_value_rad"],
+          "required": ["zero_offset_rad"],
           "description": "Joint zero offsets are the only calibration class in the ADR-002 startup interlock, because a zero error shifts the entire SafetyKernel envelope.",
           "properties": {
             "zero_offset_rad": {
-              "oneOf": [{ "type": "number" }, { "type": "null" }]
-            },
-            "zero_pose_value_rad": { "type": "number" }
+              "oneOf": [{ "type": "number" }, { "type": "null" }],
+              "description": "Motor encoder angle at this joint's zero. Depends on how the motor was assembled into the joint, so it belongs to the joint, not the motor. Null for a robot with no hardware."
+            }
           }
         },
         "actuator": {

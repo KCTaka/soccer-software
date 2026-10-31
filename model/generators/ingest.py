@@ -106,7 +106,6 @@ def make_limits(lo, hi, torque_nm, ctx, fixed=False):
         "hard_stop_lower_rad": lo, "hard_stop_upper_rad": hi,
         "software_lower_rad": lo + margin, "software_upper_rad": hi - margin,
         "velocity_rad_s": 1.0 if fixed else PROVISIONAL_VELOCITY_RAD_S,
-        "velocity_limit_origin": "drive",
         "effort_continuous_nm": torque_nm,  # optimistic: no thermal data
         "effort_peak_nm": torque_nm,
         "effort_peak_duration_s": 1.0,
@@ -114,7 +113,6 @@ def make_limits(lo, hi, torque_nm, ctx, fixed=False):
 
 def make_transmission(attrs, joint_name=None):
     return {
-        "gear_ratio": 1.0,          # provisional: sim plant is the ground truth
         "direction_sign": -1 if joint_name in MIRRORED_TRANSMISSION_JOINTS else 1,
         "friction_coulomb_nm": float(attrs.get("frictionloss", 0.0)),
         "friction_viscous_nm_s_rad": float(attrs.get("damping", 0.0)),
@@ -211,7 +209,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "axis": axis,
                 "limits": make_limits(lo, hi, torque, ctx),
                 "transmission": make_transmission(attrs, joint_name),
-                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},
+                "calibration": {"zero_offset_rad": None},
                 "actuator": None,  # filled after actuator entries exist
             }
         else:
@@ -223,7 +221,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "axis": [0.0, 0.0, 1.0],
                 "limits": make_limits(0.0, 0.0, PROVISIONAL_TORQUE_NM, ctx, fixed=True),
                 "transmission": make_transmission({}),
-                "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},
+                "calibration": {"zero_offset_rad": None},
                 "actuator": None,
             }
     if joint_obj is not None:
