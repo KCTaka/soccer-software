@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/humanoid-soccer/model/schema/robot_model.schema.json",
-  "title": "Humanoid robot model - source of truth",
+  "title": "UTRA RoboSoccer Model Schema",
   "description": "Schema for model/robot_model.yaml. This file is THE source of truth; URDF, MJCF, SDF, USD, ros2_control configuration, the safety manifest, and the firmware joint table are all generated siblings and are never inputs. Draft 2020-12. NOTE: no `default` keyword appears anywhere in this schema. A default is a silent value, and every silent value in this pipeline is a defect.",
   "type": "object",
   "additionalProperties": false,
