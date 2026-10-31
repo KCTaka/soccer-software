@@ -209,10 +209,6 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "parent_link": parent_link, "child_link": name,
                 "origin": {"xyz_m": pos, "rpy_rad": quat_to_rpy(quat)},
                 "axis": axis,
-                "positive_direction": {
-                    "description": (f"Provisional: positive follows the MJCF right-hand rule about "
-                                    f"axis {axis} in link {name}. Not physically verified."),
-                    "photo": None, "verified_by": None},
                 "limits": make_limits(lo, hi, torque, ctx),
                 "transmission": make_transmission(attrs, joint_name),
                 "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},
@@ -225,8 +221,6 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
                 "parent_link": parent_link, "child_link": name,
                 "origin": {"xyz_m": pos, "rpy_rad": quat_to_rpy(quat)},
                 "axis": [0.0, 0.0, 1.0],
-                "positive_direction": {"description": "Fixed joint; no motion axis.",
-                                       "photo": None, "verified_by": None},
                 "limits": make_limits(0.0, 0.0, PROVISIONAL_TORQUE_NM, ctx, fixed=True),
                 "transmission": make_transmission({}),
                 "calibration": {"zero_offset_rad": None, "zero_pose_value_rad": 0.0},

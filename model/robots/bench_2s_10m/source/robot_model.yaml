@@ -1,3 +1,6 @@
+# Dial bench, two rows of five. Every joint axis is its motor shaft, vertical (+Z, up); each dial
+# lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on
+# slave1).
 schema_version: 1.0.0
 robot:
   name: bench_2s_10m
@@ -462,10 +465,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.81
     hard_stop_upper_rad: 0.81
@@ -503,10 +502,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.07
     hard_stop_upper_rad: 1.07
@@ -544,10 +539,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
@@ -585,10 +576,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
@@ -626,10 +613,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
@@ -667,10 +650,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -0.81
     hard_stop_upper_rad: 0.81
@@ -708,10 +687,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.07
     hard_stop_upper_rad: 1.07
@@ -749,10 +724,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
@@ -790,10 +761,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
@@ -831,10 +798,6 @@ joints:
   - 0.0
   - 0.0
   - 1.0
-  positive_direction:
-    description: 'Motor shaft axis is vertical (+Z, up); both rows of dials share this axis. The dial lies horizontal and at joint 0 points radially away from the extrusion (+Y on slave0, -Y on slave1). PROVISIONAL AND UNVERIFIED: direction_sign +1 and zero_offset_rad 0.0 are placeholders; verified_by/measured_at are null until each dial is checked by hand.'
-    photo: null
-    verified_by: null
   limits:
     hard_stop_lower_rad: -1.33
     hard_stop_upper_rad: 1.33
