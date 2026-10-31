@@ -7,12 +7,12 @@ install(DIRECTORY config launch policies
   DESTINATION share/${PROJECT_NAME})
 
 install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.urdf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/robot.urdf"
     DESTINATION share/${PROJECT_NAME}/config
     RENAME robot_description.urdf)
 
 install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/safety_manifest.yaml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/safety_manifest.yaml"
     DESTINATION share/${PROJECT_NAME}/config)
 
 # Bench dial board (bench_2s_10m): generated description for the slider/real-bench launch, plus the
@@ -43,11 +43,11 @@ install(FILES
 # (../source/menagerie/unitree_g1/assets), so both are installed with the
 # same relative layout under share/${PROJECT_NAME}/model.
 install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/generated/robot.mjcf"
-    DESTINATION share/${PROJECT_NAME}/model/generated)
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/robot.mjcf"
+    DESTINATION share/${PROJECT_NAME}/model/robots/unitree_g1/generated)
 install(DIRECTORY
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/source/menagerie/unitree_g1/assets"
-    DESTINATION share/${PROJECT_NAME}/model/source/menagerie/unitree_g1)
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/source/menagerie/unitree_g1/assets"
+    DESTINATION share/${PROJECT_NAME}/model/robots/unitree_g1/source/menagerie/unitree_g1)
 
 install(PROGRAMS
   nodes/trajectory_player.py

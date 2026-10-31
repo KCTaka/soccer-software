@@ -312,7 +312,7 @@ def ingest(config_path, out_path, overlay_out_path):
 
 def main():
     p = argparse.ArgumentParser(description="Import a Menagerie MJCF into a robot_model.yaml.")
-    p.add_argument("config", help="import config, e.g. model/source/ingest.yaml")
+    p.add_argument("config", help="import config, e.g. model/robots/unitree_g1/source/ingest.yaml")
     p.add_argument("model_out", help="robot_model.yaml to write")
     p.add_argument("overlay_out", help="contact overlay to write")
     args = p.parse_args()

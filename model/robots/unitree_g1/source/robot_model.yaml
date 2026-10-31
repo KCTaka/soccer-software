@@ -1,4 +1,4 @@
-# Imported from https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/source/menagerie/unitree_g1/g1.xml
+# Imported from https://github.com/google-deepmind/mujoco_menagerie@8161bba264d7fa7c99ca301e91e7fb44737676ad:model/robots/unitree_g1/source/menagerie/unitree_g1/g1.xml
 # by `python3 -m model.generators.ingest`. Edit this file directly; re-importing overwrites edits.
 schema_version: 1.0.0
 robot:
