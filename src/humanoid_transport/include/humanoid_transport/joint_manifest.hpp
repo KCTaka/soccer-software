@@ -13,9 +13,6 @@ namespace humanoid::transport
 {
 
 inline constexpr std::size_t kMaxNameLength = 64;
-inline constexpr std::size_t kDigestBytes = 32;
-
-using Digest = std::array<std::uint8_t, kDigestBytes>;
 
 struct JointEntry
 {
@@ -32,8 +29,6 @@ struct JointManifest
 {
   std::array<JointEntry, kMaxJoints> joints{};
   std::uint8_t joint_count{0U};
-  /// SHA-256 of model/robot_model.yaml. Participates in the ADR-002 startup identity interlock.
-  Digest model_digest{};
 };
 
 }  // namespace humanoid::transport
