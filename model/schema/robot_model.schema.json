@@ -25,10 +25,6 @@
       "minItems": 3,
       "maxItems": 3
     },
-    "unit_vector3": {
-      "$ref": "#/$defs/vector3",
-      "description": "Must normalise to 1 within 1e-9. JSON Schema cannot express this; validator check K-02."
-    },
 
     "inertia": {
       "type": "object",
@@ -186,7 +182,10 @@
         "parent_link": { "$ref": "#/$defs/identifier" },
         "child_link": { "$ref": "#/$defs/identifier" },
         "origin": { "$ref": "#/$defs/frame" },
-        "axis": { "$ref": "#/$defs/unit_vector3" },
+        "axis": {
+          "$ref": "#/$defs/vector3",
+          "description": "Unit vector in the joint frame; positive motion follows the right-hand rule about it. Validator check K-02 enforces the unit norm, so a typo is rejected rather than normalised into a different axis."
+        },
         "limits": {
           "type": "object",
           "additionalProperties": false,
