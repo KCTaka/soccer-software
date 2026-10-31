@@ -10,8 +10,7 @@
     "robot",
     "links",
     "joints",
-    "actuators",
-    "simulation"
+    "actuators"
   ],
 
   "$defs": {
@@ -516,68 +515,6 @@
           "minItems": 4,
           "maxItems": 4,
           "description": "Sensor orientation in the frame of `link`, w first. Must normalise to 1; validator check S-01."
-        }
-      }
-    },
-
-    "simulation": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["mjcf_compiler"],
-      "properties": {
-        "mjcf_compiler": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Every attribute is pinned by `const` where a non-default value would silently rewrite measured data, and required-but-free where MuJoCo documents that the default differs between URDF and MJCF. The generator emits all of these explicitly and never relies on a default.",
-          "required": [
-            "balanceinertia",
-            "boundmass",
-            "boundinertia",
-            "settotalmass",
-            "inertiafromgeom",
-            "strippath",
-            "angle",
-            "fusestatic",
-            "discardvisual"
-          ],
-          "properties": {
-            "balanceinertia": {
-              "const": false,
-              "description": "PROHIBITED to enable. MuJoCo: a valid diagonal inertia must satisfy A+B>=C for all permutations; violations 'will normally result in a compile error'; with this true 'the compiler will silently set all three diagonal elements to their average value'. Enabling it replaces the hardware team's measurement with an average and converts the free G2 validator into a silent corrupter."
-            },
-            "boundmass": {
-              "const": 0,
-              "description": "A positive lower bound silently raises a measured mass."
-            },
-            "boundinertia": {
-              "const": 0,
-              "description": "A positive lower bound silently raises a measured diagonal inertia."
-            },
-            "settotalmass": {
-              "const": -1,
-              "description": "A positive value silently rescales every mass in the model to hit a target total."
-            },
-            "inertiafromgeom": {
-              "enum": ["false"],
-              "description": "Inertia comes from the measured tensors, never inferred from collision geometry."
-            },
-            "strippath": {
-              "type": "boolean",
-              "description": "MuJoCo documents that this default DIFFERS between URDF and MJCF. Pinned explicitly so the two emissions cannot diverge."
-            },
-            "angle": {
-              "const": "radian",
-              "description": "Default differs between URDF and MJCF. Pinned to radian to match the schema's units and ADR-001's interface units."
-            },
-            "fusestatic": {
-              "const": "false",
-              "description": "Default differs between URDF and MJCF. Fusing static bodies destroys link identity, which breaks correlation against the URDF model and the firmware joint table."
-            },
-            "discardvisual": {
-              "type": "boolean",
-              "description": "Default differs between URDF and MJCF. Pinned explicitly."
-            }
-          }
         }
       }
     }
