@@ -1,10 +1,8 @@
 schema_version: 1.0.0
 robot:
   name: bench_2s_10m
-  size_class: benchtop
   root_link: extrusion_base
   total_mass_measured_kg: null
-  zero_pose_photo: null
 provenance:
   generated_from:
   - 'hand-authored: model/robots/bench_2s_10m/source/robot_model.yaml'

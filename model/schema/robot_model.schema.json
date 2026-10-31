@@ -547,14 +547,11 @@
       "additionalProperties": false,
       "required": [
         "name",
-        "size_class",
         "root_link",
-        "total_mass_measured_kg",
-        "zero_pose_photo"
+        "total_mass_measured_kg"
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
-        "size_class": { "enum": ["kidsize", "benchtop"] },
         "root_link": { "$ref": "#/$defs/identifier" },
         "total_mass_measured_kg": {
           "oneOf": [
@@ -562,12 +559,6 @@
             { "type": "null" }
           ],
           "description": "Weighed, not summed. Reconciled against the sum of link masses in G2."
-        },
-        "zero_pose_photo": {
-          "oneOf": [
-            { "type": "string", "minLength": 1 },
-            { "type": "null" }
-          ]
         }
       }
     },
