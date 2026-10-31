@@ -51,7 +51,7 @@ def _check_one(r, mj_smoke):
     with open(r["source"]) as f:
         model = yaml.safe_load(f)
     errs = validate.schema_validate(model, SCHEMA)
-    s_errs, warns, _total = validate.structural_checks(model)
+    s_errs, warns = validate.structural_checks(model)
     errs += s_errs
     for w in warns:
         print(f"WARN: {w}")

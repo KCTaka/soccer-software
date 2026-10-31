@@ -230,7 +230,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
     ctx.links.append({
         "name": name,
         "parent_joint": joint_name,
-        "mass": {"cad_kg": mass, "measured_kg": None},
+        "mass_kg": mass,
         "com_m": com,
         "inertia": inertia,
         "visual_mesh": mesh_name,
@@ -287,8 +287,7 @@ def ingest(config_path, out_path, overlay_out_path):
 
     model = {
         "schema_version": SCHEMA_VERSION,
-        "robot": {"name": cfg["model_name"], "root_link": ctx.root_link,
-                  "total_mass_measured_kg": None},
+        "robot": {"name": cfg["model_name"], "root_link": ctx.root_link},
         "links": ctx.links,
         "joints": ctx.joints,
         "actuators": ctx.actuators,

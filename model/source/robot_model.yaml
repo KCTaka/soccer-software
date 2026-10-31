@@ -4,13 +4,10 @@ schema_version: 1.0.0
 robot:
   name: unitree_g1
   root_link: pelvis
-  total_mass_measured_kg: null
 links:
 - name: pelvis
   parent_joint: null
-  mass:
-    cad_kg: 3.813
-    measured_kg: null
+  mass_kg: 3.813
   com_m:
   - 0.0
   - 0.0
@@ -34,9 +31,7 @@ links:
     mesh: pelvis
 - name: left_hip_pitch_link
   parent_joint: left_hip_pitch_joint
-  mass:
-    cad_kg: 1.35
-    measured_kg: null
+  mass_kg: 1.35
   com_m:
   - 0.002741
   - 0.047791
@@ -60,9 +55,7 @@ links:
     mesh: left_hip_pitch_link
 - name: left_hip_roll_link
   parent_joint: left_hip_roll_joint
-  mass:
-    cad_kg: 1.52
-    measured_kg: null
+  mass_kg: 1.52
   com_m:
   - 0.029812
   - -0.001045
@@ -86,9 +79,7 @@ links:
     mesh: left_hip_roll_link
 - name: left_hip_yaw_link
   parent_joint: left_hip_yaw_joint
-  mass:
-    cad_kg: 1.702
-    measured_kg: null
+  mass_kg: 1.702
   com_m:
   - -0.057709
   - -0.010981
@@ -112,9 +103,7 @@ links:
     mesh: left_hip_yaw_link
 - name: left_knee_link
   parent_joint: left_knee_joint
-  mass:
-    cad_kg: 1.932
-    measured_kg: null
+  mass_kg: 1.932
   com_m:
   - 0.005457
   - 0.003964
@@ -138,9 +127,7 @@ links:
     mesh: left_knee_link
 - name: left_ankle_pitch_link
   parent_joint: left_ankle_pitch_joint
-  mass:
-    cad_kg: 0.074
-    measured_kg: null
+  mass_kg: 0.074
   com_m:
   - -0.007269
   - 0.0
@@ -164,9 +151,7 @@ links:
     mesh: left_ankle_pitch_link
 - name: left_ankle_roll_link
   parent_joint: left_ankle_roll_joint
-  mass:
-    cad_kg: 0.608
-    measured_kg: null
+  mass_kg: 0.608
   com_m:
   - 0.026505
   - 0.0
@@ -238,9 +223,7 @@ links:
     mesh: left_ankle_roll_link
 - name: right_hip_pitch_link
   parent_joint: right_hip_pitch_joint
-  mass:
-    cad_kg: 1.35
-    measured_kg: null
+  mass_kg: 1.35
   com_m:
   - 0.002741
   - -0.047791
@@ -264,9 +247,7 @@ links:
     mesh: right_hip_pitch_link
 - name: right_hip_roll_link
   parent_joint: right_hip_roll_joint
-  mass:
-    cad_kg: 1.52
-    measured_kg: null
+  mass_kg: 1.52
   com_m:
   - 0.029812
   - 0.001045
@@ -290,9 +271,7 @@ links:
     mesh: right_hip_roll_link
 - name: right_hip_yaw_link
   parent_joint: right_hip_yaw_joint
-  mass:
-    cad_kg: 1.702
-    measured_kg: null
+  mass_kg: 1.702
   com_m:
   - -0.057709
   - 0.010981
@@ -316,9 +295,7 @@ links:
     mesh: right_hip_yaw_link
 - name: right_knee_link
   parent_joint: right_knee_joint
-  mass:
-    cad_kg: 1.932
-    measured_kg: null
+  mass_kg: 1.932
   com_m:
   - 0.005457
   - -0.003964
@@ -342,9 +319,7 @@ links:
     mesh: right_knee_link
 - name: right_ankle_pitch_link
   parent_joint: right_ankle_pitch_joint
-  mass:
-    cad_kg: 0.074
-    measured_kg: null
+  mass_kg: 0.074
   com_m:
   - -0.007269
   - 0.0
@@ -368,9 +343,7 @@ links:
     mesh: right_ankle_pitch_link
 - name: right_ankle_roll_link
   parent_joint: right_ankle_roll_joint
-  mass:
-    cad_kg: 0.608
-    measured_kg: null
+  mass_kg: 0.608
   com_m:
   - 0.026505
   - 0.0
@@ -442,9 +415,7 @@ links:
     mesh: right_ankle_roll_link
 - name: waist_yaw_link
   parent_joint: waist_yaw_joint
-  mass:
-    cad_kg: 0.214
-    measured_kg: null
+  mass_kg: 0.214
   com_m:
   - 0.003494
   - 0.000233
@@ -468,9 +439,7 @@ links:
     mesh: waist_yaw_link
 - name: waist_roll_link
   parent_joint: waist_roll_joint
-  mass:
-    cad_kg: 0.086
-    measured_kg: null
+  mass_kg: 0.086
   com_m:
   - 0.0
   - 2.3e-05
@@ -494,9 +463,7 @@ links:
     mesh: waist_roll_link
 - name: torso_link
   parent_joint: waist_pitch_joint
-  mass:
-    cad_kg: 7.818
-    measured_kg: null
+  mass_kg: 7.818
   com_m:
   - 0.00203158
   - 0.000339683
@@ -520,9 +487,7 @@ links:
     mesh: torso_link
 - name: left_shoulder_pitch_link
   parent_joint: left_shoulder_pitch_joint
-  mass:
-    cad_kg: 0.718
-    measured_kg: null
+  mass_kg: 0.718
   com_m:
   - 0.0
   - 0.035892
@@ -559,9 +524,7 @@ links:
     mesh: left_shoulder_pitch_link
 - name: left_shoulder_roll_link
   parent_joint: left_shoulder_roll_joint
-  mass:
-    cad_kg: 0.643
-    measured_kg: null
+  mass_kg: 0.643
   com_m:
   - -0.000227
   - 0.00727
@@ -598,9 +561,7 @@ links:
     mesh: left_shoulder_roll_link
 - name: left_shoulder_yaw_link
   parent_joint: left_shoulder_yaw_joint
-  mass:
-    cad_kg: 0.734
-    measured_kg: null
+  mass_kg: 0.734
   com_m:
   - 0.010773
   - -0.002949
@@ -624,9 +585,7 @@ links:
     mesh: left_shoulder_yaw_link
 - name: left_elbow_link
   parent_joint: left_elbow_joint
-  mass:
-    cad_kg: 0.6
-    measured_kg: null
+  mass_kg: 0.6
   com_m:
   - 0.064956
   - 0.004454
@@ -650,9 +609,7 @@ links:
     mesh: left_elbow_link
 - name: left_wrist_roll_link
   parent_joint: left_wrist_roll_joint
-  mass:
-    cad_kg: 0.085445
-    measured_kg: null
+  mass_kg: 0.085445
   com_m:
   - 0.0171394
   - 0.000537591
@@ -676,9 +633,7 @@ links:
     mesh: left_wrist_roll_link
 - name: left_wrist_pitch_link
   parent_joint: left_wrist_pitch_joint
-  mass:
-    cad_kg: 0.48405
-    measured_kg: null
+  mass_kg: 0.48405
   com_m:
   - 0.0229999
   - -0.00111685
@@ -702,9 +657,7 @@ links:
     mesh: left_wrist_pitch_link
 - name: left_wrist_yaw_link
   parent_joint: left_wrist_yaw_joint
-  mass:
-    cad_kg: 0.254576
-    measured_kg: null
+  mass_kg: 0.254576
   com_m:
   - 0.0708244
   - 0.000191745
@@ -728,9 +681,7 @@ links:
     mesh: left_wrist_yaw_link
 - name: right_shoulder_pitch_link
   parent_joint: right_shoulder_pitch_joint
-  mass:
-    cad_kg: 0.718
-    measured_kg: null
+  mass_kg: 0.718
   com_m:
   - 0.0
   - -0.035892
@@ -767,9 +718,7 @@ links:
     mesh: right_shoulder_pitch_link
 - name: right_shoulder_roll_link
   parent_joint: right_shoulder_roll_joint
-  mass:
-    cad_kg: 0.643
-    measured_kg: null
+  mass_kg: 0.643
   com_m:
   - -0.000227
   - -0.00727
@@ -806,9 +755,7 @@ links:
     mesh: right_shoulder_roll_link
 - name: right_shoulder_yaw_link
   parent_joint: right_shoulder_yaw_joint
-  mass:
-    cad_kg: 0.734
-    measured_kg: null
+  mass_kg: 0.734
   com_m:
   - 0.010773
   - 0.002949
@@ -832,9 +779,7 @@ links:
     mesh: right_shoulder_yaw_link
 - name: right_elbow_link
   parent_joint: right_elbow_joint
-  mass:
-    cad_kg: 0.6
-    measured_kg: null
+  mass_kg: 0.6
   com_m:
   - 0.064956
   - -0.004454
@@ -858,9 +803,7 @@ links:
     mesh: right_elbow_link
 - name: right_wrist_roll_link
   parent_joint: right_wrist_roll_joint
-  mass:
-    cad_kg: 0.085445
-    measured_kg: null
+  mass_kg: 0.085445
   com_m:
   - 0.0171394
   - -0.000537591
@@ -884,9 +827,7 @@ links:
     mesh: right_wrist_roll_link
 - name: right_wrist_pitch_link
   parent_joint: right_wrist_pitch_joint
-  mass:
-    cad_kg: 0.48405
-    measured_kg: null
+  mass_kg: 0.48405
   com_m:
   - 0.0229999
   - 0.00111685
@@ -910,9 +851,7 @@ links:
     mesh: right_wrist_pitch_link
 - name: right_wrist_yaw_link
   parent_joint: right_wrist_yaw_joint
-  mass:
-    cad_kg: 0.254576
-    measured_kg: null
+  mass_kg: 0.254576
   com_m:
   - 0.0708244
   - -0.000191745

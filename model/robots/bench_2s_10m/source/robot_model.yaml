@@ -5,13 +5,10 @@ schema_version: 1.0.0
 robot:
   name: bench_2s_10m
   root_link: extrusion_base
-  total_mass_measured_kg: null
 links:
 - name: extrusion_base
   parent_joint: null
-  mass:
-    cad_kg: 2.16
-    measured_kg: null
+  mass_kg: 2.16
   com_m:
   - 0.0
   - 0.0
@@ -49,9 +46,7 @@ links:
     mesh: null
 - name: bench_j1_hand
   parent_joint: bench_j1
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - 0.06
@@ -89,9 +84,7 @@ links:
     mesh: null
 - name: bench_j2_hand
   parent_joint: bench_j2
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - 0.06
@@ -129,9 +122,7 @@ links:
     mesh: null
 - name: bench_j3_hand
   parent_joint: bench_j3
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - 0.06
@@ -169,9 +160,7 @@ links:
     mesh: null
 - name: bench_j4_hand
   parent_joint: bench_j4
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - 0.06
@@ -209,9 +198,7 @@ links:
     mesh: null
 - name: bench_j5_hand
   parent_joint: bench_j5
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - 0.06
@@ -249,9 +236,7 @@ links:
     mesh: null
 - name: bench_j6_hand
   parent_joint: bench_j6
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - -0.06
@@ -289,9 +274,7 @@ links:
     mesh: null
 - name: bench_j7_hand
   parent_joint: bench_j7
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - -0.06
@@ -329,9 +312,7 @@ links:
     mesh: null
 - name: bench_j8_hand
   parent_joint: bench_j8
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - -0.06
@@ -369,9 +350,7 @@ links:
     mesh: null
 - name: bench_j9_hand
   parent_joint: bench_j9
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - -0.06
@@ -409,9 +388,7 @@ links:
     mesh: null
 - name: bench_j10_hand
   parent_joint: bench_j10
-  mass:
-    cad_kg: 0.02
-    measured_kg: null
+  mass_kg: 0.02
   com_m:
   - 0.0
   - -0.06
