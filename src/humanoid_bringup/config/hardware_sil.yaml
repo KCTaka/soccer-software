@@ -22,8 +22,6 @@ humanoidactuatorsystem:
     accepted_degradation: "none"
 humanoid_mit_controller:
   ros__parameters:
-    default_kp: 20.0
-    default_kd: 1.0
     joints:
       - left_hip_pitch_joint
       - left_hip_roll_joint
@@ -54,8 +52,23 @@ humanoid_mit_controller:
       - right_wrist_roll_joint
       - right_wrist_pitch_joint
       - right_wrist_yaw_joint
-    default_stiffness: 0.0
-    default_damping: 0.0
+    # The stand's gains, one per joint in `joints` order [N*m/rad], [N*m*s/rad]; sil_walk replaces
+    # them with its policy's. Held by PD alone, the robot is an inverted pendulum about its ankles,
+    # so legs and waist must be stiffer than gravity tips it over (m*g*h, about 210 N*m/rad over
+    # both ankles of the G1): at a uniform 20 it lies down within two seconds. Each command is held
+    # for a whole control period T, which bounds the damping to kp*T/2 < kd < 2*I/T, I being the
+    # joint's effective inertia (down to its 0.01 kg*m^2 armature at the ankles and wrists). These
+    # sit a factor of 2 inside both bounds.
+    kp: [200.0, 200.0, 200.0, 300.0, 200.0, 200.0,
+         200.0, 200.0, 200.0, 300.0, 200.0, 200.0,
+         300.0, 300.0, 300.0,
+         100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0,
+         100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0]
+    kd: [4.0, 4.0, 4.0, 4.0, 2.0, 2.0,
+         4.0, 4.0, 4.0, 4.0, 2.0, 2.0,
+         4.0, 4.0, 4.0,
+         2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0,
+         2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0]
 
 # SIL-only simulator node, created inside ros2_control_node by
 # MujocoActuatorTransport and read once at configure (parameters are

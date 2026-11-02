@@ -70,6 +70,7 @@ if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   ament_add_pytest_test(walk_policy_core_test test/test_walk_policy_core.py)
   ament_add_pytest_test(bench_trajectories_core_test test/test_bench_trajectories_core.py)
+  ament_add_pytest_test(sil_stand_config_test test/test_sil_stand_config.py)
 endif()
 
 ament_package()
