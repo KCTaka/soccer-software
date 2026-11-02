@@ -1,5 +1,14 @@
 # A second robot in the model pipeline: `bench_2s_10m`
 
+> **Status:** implemented in `d7dafb4`; parts superseded by
+> [utra-robosoccer/soccer-software#14](https://github.com/utra-robosoccer/soccer-software/pull/14).
+> Every robot is now hand-authored: `source_kind`, `ingest_config`, and the identity normaliser
+> are gone, and the Menagerie import is a one-off tool outside `check`. G1 moved to
+> `model/robots/unitree_g1/`. The `drive` limits moved to `model/motors.yaml`, leaving
+> `default_kp`/`default_kd` on each actuator, and `size_class`, `emission`, `gear_ratio`, and
+> `zero_pose_value_rad` were removed. Read §1–2 and the file table in §6 as history; the current
+> layout is `model/robots.yaml` and the current fields are in `model/schema/`.
+
 This design adds a second robot — the 10-motor dial bench — to `model/`, and makes the model
 pipeline the single source of truth for a **firmware config artifact** the firmware repo consumes.
 It was reviewed before implementation; the decisions taken are recorded at the end.
