@@ -272,6 +272,21 @@ def ingest(config_path, out_path, overlay_out_path):
     if ctx.imu_site is not None and ctx.imu is None:
         raise ValueError(f"imu_site '{ctx.imu_site}' not found in {mjcf_path}")
 
+    # The home pose: a keyframe's qpos is the root's free joint (7 values) and then one value per
+    # movable joint, in the same depth-first body order walk_body records them.
+    home = None
+    home_key = cfg["source"].get("home_key")
+    if home_key is not None:
+        key = next((k for k in root.iter("key") if k.get("name") == home_key), None)
+        if key is None:
+            raise ValueError(f"home_key '{home_key}' not found in {mjcf_path}")
+        movable = [j["name"] for j in ctx.joints if j["type"] != "fixed"]
+        qpos = [float(x) for x in key.get("qpos").split()]
+        if len(qpos) != 7 + len(movable):
+            raise ValueError(f"home_key '{home_key}' has {len(qpos)} qpos values, expected "
+                             f"{7 + len(movable)}")
+        home = dict(zip(movable, qpos[7:]))
+
     # Actuators: one PROVISIONAL entry per actuated joint (schema A-01).
     joint_names = [j["name"] for j in ctx.joints]
     for j in ctx.joints:
@@ -290,6 +305,7 @@ def ingest(config_path, out_path, overlay_out_path):
         "robot": {"name": cfg["model_name"], "root_link": ctx.root_link},
         "links": ctx.links,
         "joints": ctx.joints,
+        **({"home": home} if home is not None else {}),
         "actuators": ctx.actuators,
     }
     if ctx.imu is not None:

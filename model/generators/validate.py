@@ -139,6 +139,21 @@ def structural_checks(model, motor_limits):
                 errs.append(f"A-05: joint {j['name']} effort_peak {lim['effort_peak_nm']} exceeds "
                             f"{a['motor_class']} torque_max {d['torque_max_nm']}")
 
+    # H-01: the home pose names every non-fixed joint, each within its software limits, so the
+    # SafetyKernel accepts the pose the robot starts in.
+    home = model.get("home")
+    if home is not None:
+        movable = {j["name"]: j for j in joints if j["type"] != "fixed"}
+        for name in sorted(set(movable) - set(home)):
+            errs.append(f"H-01: home pose lacks joint {name}")
+        for name, angle in home.items():
+            j = movable.get(name)
+            if j is None:
+                errs.append(f"H-01: home pose names {name}, which is not a non-fixed joint")
+            elif not (j["limits"]["software_lower_rad"] <= angle <=
+                      j["limits"]["software_upper_rad"]):
+                errs.append(f"H-01: home angle {angle} for {name} is outside its software limits")
+
     # S-01 / S-02: the IMU sits on a declared link, with a unit orientation.
     imu = model.get("imu")
     if imu is not None:

@@ -289,6 +289,13 @@
       "items": { "$ref": "#/$defs/joint" }
     },
 
+    "home": {
+      "type": "object",
+      "description": "Optional nominal standing pose: the angle of every non-fixed joint, rad. Emitted as scene.mjcf's `home` keyframe with the root height derived from collision geometry. Validator check H-01 requires every non-fixed joint, each within its software limits.",
+      "propertyNames": { "$ref": "#/$defs/identifier" },
+      "additionalProperties": { "type": "number" }
+    },
+
     "actuators": {
       "type": "array",
       "items": { "$ref": "#/$defs/actuator" }

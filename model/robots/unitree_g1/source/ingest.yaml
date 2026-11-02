@@ -6,3 +6,5 @@ source:
   mjcf: model/robots/unitree_g1/source/menagerie/unitree_g1/g1.xml
   # The G1's pelvis IMU, the one its stock locomotion policies read.
   imu_site: imu_in_pelvis
+  # Menagerie's standing keyframe, imported as the model's home pose.
+  home_key: stand

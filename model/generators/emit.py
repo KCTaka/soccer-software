@@ -244,23 +244,26 @@ def emit_urdf(model, out_path, assets_dir,
         out_path, xml_declaration=True, encoding="utf-8"
     )
 
-def standing_root_z(mjcf_xml, root_link, joint_angles):
-    """Root height that puts the robot's lowest collision geom on z = 0 at `joint_angles` (joint name
-    -> rad; the rest at 0), with the root at the origin in `mjcf_xml`. The bounding-box rule of
-    SIL's lowest_collision_z (src/humanoid_transport_mujoco/src/mujoco_placement.cpp), applied by
-    MuJoCo to its own collision geometry, so the height is derived, never typed. Rounded up to the
-    micrometre: the robot never starts inside the floor, and float noise cannot flip the output."""
+def standing_qpos(mjcf_xml, root_link, joint_angles):
+    """qpos with the joints at `joint_angles` (joint name -> rad; the rest at 0) and the root, at the
+    origin in `mjcf_xml`, raised until the robot's lowest collision geom sits on z = 0. The
+    bounding-box rule of SIL's lowest_collision_z (src/humanoid_transport_mujoco/src/
+    mujoco_placement.cpp), applied by MuJoCo to its own collision geometry, so the height is
+    derived, never typed. Rounded up to the micrometre: the robot never starts inside the floor,
+    and float noise cannot flip the output. The root's free joint is the first joint (qpos[0:7])."""
     try:
         import mujoco  # only robots that emit MJCF need it
     except ImportError as e:
         raise RuntimeError("robot.mjcf derives its standing height with MuJoCo: install the mujoco "
                            "Python package, or run in the dev container") from e
     m = mujoco.MjModel.from_xml_string(mjcf_xml)
+    root = m.body(root_link).id
+    if m.jnt_type[0] != mujoco.mjtJoint.mjJNT_FREE or m.jnt_bodyid[0] != root:
+        raise ValueError(f"{root_link}: the first joint must be the root's free joint")
     d = mujoco.MjData(m)
     for name, angle in joint_angles.items():
         d.qpos[m.joint(name).qposadr[0]] = angle
     mujoco.mj_kinematics(m, d)
-    root = m.body(root_link).id
     lowest = None
     for g in range(m.ngeom):
         b = m.geom_bodyid[g]
@@ -276,9 +279,12 @@ def standing_root_z(mjcf_xml, root_link, joint_angles):
         lowest = bottom if lowest is None else min(lowest, bottom)
     if lowest is None:
         raise ValueError(f"{root_link}: no collidable geometry to stand on")
-    return math.ceil(-lowest * 1e6) / 1e6
+    qpos = [float(x) for x in d.qpos]
+    qpos[2] = math.ceil(-lowest * 1e6) / 1e6
+    return qpos
 
 def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
+    """Write robot.mjcf. Returns the standing qpos of the model's `home` pose, or None without one."""
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     kids = children_by_parent(joints)
@@ -358,17 +364,23 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     # Stand the robot on z = 0 at its reference pose, so qpos0 is physically valid for every
     # consumer, not only SIL. Compiled with an absolute meshdir so this works from any directory.
     comp.set("meshdir", os.path.abspath(assets_dir).replace("\\", "/"))
-    root_z = standing_root_z(ET.tostring(mj, encoding="unicode"), model["robot"]["root_link"], {})
+    xml = ET.tostring(mj, encoding="unicode")
+    root_link = model["robot"]["root_link"]
+    root_z = standing_qpos(xml, root_link, {})[2]
+    home = standing_qpos(xml, root_link, model["home"]) if "home" in model else None
     comp.set("meshdir", assets_rel.replace("\\", "/"))
     root_body.set("pos", fmt([0.0, 0.0, root_z]))
 
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
+    return home
 
-def emit_scene(model, out_path):
+def emit_scene(model, out_path, home_qpos):
     """The world every robot is simulated in: physics settings and a floor at z = 0, around an
     include of robot.mjcf. One definition for all robots, and robot.mjcf stays free of world
-    assumptions, so another scene (a field with a ball) can include the same robot."""
+    assumptions, so another scene (a field with a ball) can include the same robot. The `home`
+    keyframe lives here, not in robot.mjcf: a keyframe sets every qpos, and MuJoCo fills the qpos
+    of anything a scene adds (the ball) with zeros rather than that body's own position."""
     mj = ET.Element("mujoco", model=model["robot"]["name"])
     ET.SubElement(mj, "include", file="robot.mjcf")
     # 1 ms physics: 5 substeps per 5 ms control period (ADR-007-03, asserted at configure).
@@ -376,6 +388,8 @@ def emit_scene(model, out_path):
     wb = ET.SubElement(mj, "worldbody")
     ET.SubElement(wb, "geom", name="floor", type="plane", size="0 0 0.1", pos="0 0 0",
                   friction="0.6", condim="3")
+    if home_qpos is not None:
+        ET.SubElement(ET.SubElement(mj, "keyframe"), "key", name="home", qpos=fmt(home_qpos))
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
 
@@ -535,8 +549,9 @@ def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir
     if mjcf:
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
         assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
-        emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_dir, assets_rel)
-        emit_scene(model, os.path.join(out_dir, "scene.mjcf"))
+        home_qpos = emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_dir,
+                              assets_rel)
+        emit_scene(model, os.path.join(out_dir, "scene.mjcf"), home_qpos)
         written += ["robot.mjcf", "scene.mjcf"]
 
     emit_safety_manifest(model, motor_limits, os.path.join(out_dir, "safety_manifest.yaml"))

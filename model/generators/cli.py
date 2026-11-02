@@ -53,11 +53,20 @@ def cmd_generate(args):
     _generate(r, _motor_limits(), r["generated"])
 
 def _mj_smoke(scene):
-    """The scene loads, the robot starts on the floor rather than in it, and 100 steps stay finite."""
+    """The scene loads, the robot starts on the floor rather than in it at qpos0 and at every
+    keyframe, and 100 steps from qpos0 stay finite."""
     import math
     import mujoco
     m = mujoco.MjModel.from_xml_path(scene)
     d = mujoco.MjData(m)
+    for k in range(m.nkey):
+        mujoco.mj_resetDataKeyframe(m, d, k)
+        mujoco.mj_forward(m, d)
+        depth = max((-c.dist for c in d.contact[:d.ncon]), default=0.0)
+        if depth > 1e-6:
+            return [f"the robot starts {depth * 1000:.1f} mm inside the floor at keyframe "
+                    f"{m.key(k).name}"]
+    mujoco.mj_resetData(m, d)
     mujoco.mj_forward(m, d)
     ncon0 = d.ncon
     depth = max((-c.dist for c in d.contact[:ncon0]), default=0.0)
@@ -67,7 +76,8 @@ def _mj_smoke(scene):
         mujoco.mj_step(m, d)
     if not all(math.isfinite(x) for x in d.qpos):
         return ["non-finite qpos after 100 steps"]
-    print(f"mj-smoke OK: nq={m.nq}, nv={m.nv}, nbody={m.nbody}, ncon at qpos0={ncon0}")
+    print(f"mj-smoke OK: nq={m.nq}, nv={m.nv}, nbody={m.nbody}, nkey={m.nkey}, "
+          f"ncon at qpos0={ncon0}")
     return []
 
 def _check_one(r, motor_limits, mj_smoke):
