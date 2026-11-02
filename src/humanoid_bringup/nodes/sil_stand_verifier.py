@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """S2 verifier: checks joint tracking and base height after trajectory completes."""
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.task import Future
 from sensor_msgs.msg import JointState
 import yaml, sys, math
 
@@ -22,6 +24,9 @@ class SilStandVerifier(Node):
         self.target = data['keyframes'][-1]['positions']  # final standing pose
 
         self.latest = None
+        # True on PASS, False on FAIL; set once by _check(). main() spins until it is done and
+        # alone shuts rclpy down.
+        self.verdict = Future()
         self.sub = self.create_subscription(
             JointState, '/joint_states', self._cb, 10)
         self.timer = self.create_timer(self.delay, self._check,
@@ -33,9 +38,10 @@ class SilStandVerifier(Node):
         self.latest = msg
 
     def _check(self):
+        self.destroy_timer(self.timer)
         if self.latest is None:
             self.get_logger().error('FAIL: no /joint_states received')
-            rclpy.shutdown()
+            self.verdict.set_result(False)
             return
 
         msg = self.latest
@@ -59,19 +65,20 @@ class SilStandVerifier(Node):
             self.get_logger().info(
                 f'PASS: all {len(self.joint_names)} joints within '
                 f'{self.tol:.2f} rad of standing pose')
-
-        self.destroy_timer(self.timer)
-        rclpy.shutdown()
+        self.verdict.set_result(not errors)
 
 def main():
     rclpy.init()
     node = SilStandVerifier()
     try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
+        rclpy.spin_until_future_complete(node, node.verdict)
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
+    passed = node.verdict.done() and node.verdict.result()
     node.destroy_node()
-    rclpy.shutdown()
+    # A SIGINT has already shut the context down; try_ does not raise for that.
+    rclpy.try_shutdown()
+    sys.exit(0 if passed else 1)
 
 if __name__ == '__main__':
     main()
