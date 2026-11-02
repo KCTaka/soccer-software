@@ -39,10 +39,11 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/bench_1s_5m/generated/safety_manifest.yaml"
     DESTINATION share/${PROJECT_NAME}/config/bench_1s_5m)
 
-# SIL model. The MJCF locates its meshes through a relative meshdir
-# (../source/menagerie/unitree_g1/assets), so both are installed with the
-# same relative layout under share/${PROJECT_NAME}/model.
+# SIL model: scene.mjcf includes robot.mjcf from its own directory, and the MJCF
+# locates its meshes through a relative meshdir (../source/menagerie/unitree_g1/assets),
+# so all are installed with the same relative layout under share/${PROJECT_NAME}/model.
 install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/scene.mjcf"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/robot.mjcf"
     DESTINATION share/${PROJECT_NAME}/model/robots/unitree_g1/generated)
 install(DIRECTORY

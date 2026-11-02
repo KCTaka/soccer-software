@@ -63,7 +63,7 @@ def _check_one(r, motor_limits, mj_smoke):
             print(f"ERROR: {e}", file=sys.stderr)
         return False
 
-    mjcf = os.path.join(r["generated"], "robot.mjcf")
+    mjcf = os.path.join(r["generated"], "scene.mjcf")
     if mj_smoke and os.path.exists(mjcf):
         try:
             import mujoco, math

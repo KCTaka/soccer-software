@@ -1,7 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="unitree_g1">
   <compiler angle="radian" balanceinertia="false" boundmass="0" boundinertia="0" settotalmass="-1" inertiafromgeom="false" fusestatic="false" strippath="false" discardvisual="false" meshdir="../source/menagerie/unitree_g1/assets" />
-  <option timestep="0.001" integrator="implicitfast" />
   <asset>
     <mesh name="head_link" file="head_link.STL" />
     <mesh name="left_ankle_pitch_link" file="left_ankle_pitch_link.STL" />
@@ -40,7 +39,6 @@
     <mesh name="waist_yaw_link" file="waist_yaw_link_rev_1_0.STL" />
   </asset>
   <worldbody>
-    <geom type="plane" size="0 0 0.1" pos="0 0 0" friction="0.6" condim="3" />
     <body name="pelvis">
       <freejoint name="root" />
       <inertial pos="0 0 -0.07605" mass="3.813" fullinertia="0.01054899832 0.0093089 0.007918401676 0 2.099996454e-06 0" />

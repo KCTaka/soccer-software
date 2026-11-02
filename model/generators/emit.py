@@ -256,8 +256,6 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
     for key, value in MJCF_COMPILER:
         comp.set(key, value)
     comp.set("meshdir", assets_rel.replace("\\", "/"))
-    # 1 ms physics: 5 substeps per 5 ms control period (ADR-007-03, asserted at configure).
-    ET.SubElement(mj, "option", timestep="0.001", integrator="implicitfast")
 
     asset = ET.SubElement(mj, "asset")
     meshes = overlay["meshes"] if overlay else {}
@@ -311,14 +309,6 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
             add_body(be, cj["child_link"], False)
 
     wb = ET.SubElement(mj, "worldbody")
-
-    ground = ET.SubElement(wb, "geom")
-    ground.set("type", "plane")
-    ground.set("size", "0 0 0.1")
-    ground.set("pos", "0 0 0")
-    ground.set("friction", "0.6")
-    ground.set("condim", "3")
-
     add_body(wb, model["robot"]["root_link"], True)
 
     if imu is not None:
@@ -330,6 +320,20 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
         ET.SubElement(sensors, "accelerometer", name=f"{imu['name']}_linear_acceleration",
                       site=imu["name"])
 
+    ET.indent(mj)
+    ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
+
+def emit_scene(model, out_path):
+    """The world every robot is simulated in: physics settings and a floor at z = 0, around an
+    include of robot.mjcf. One definition for all robots, and robot.mjcf stays free of world
+    assumptions, so another scene (a field with a ball) can include the same robot."""
+    mj = ET.Element("mujoco", model=model["robot"]["name"])
+    ET.SubElement(mj, "include", file="robot.mjcf")
+    # 1 ms physics: 5 substeps per 5 ms control period (ADR-007-03, asserted at configure).
+    ET.SubElement(mj, "option", timestep="0.001", integrator="implicitfast")
+    wb = ET.SubElement(mj, "worldbody")
+    ET.SubElement(wb, "geom", name="floor", type="plane", size="0 0 0.1", pos="0 0 0",
+                  friction="0.6", condim="3")
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
 
@@ -490,7 +494,8 @@ def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
         assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
         emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)
-        written.append("robot.mjcf")
+        emit_scene(model, os.path.join(out_dir, "scene.mjcf"))
+        written += ["robot.mjcf", "scene.mjcf"]
 
     emit_safety_manifest(model, motor_limits, os.path.join(out_dir, "safety_manifest.yaml"))
     written.append("safety_manifest.yaml")

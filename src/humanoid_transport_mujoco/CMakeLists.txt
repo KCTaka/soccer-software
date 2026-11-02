@@ -76,7 +76,7 @@ if(BUILD_TESTING)
   # The generated model lives in the source tree; tests get its path at compile
   # time, so no environment variable is involved and the tests never skip.
   set(TEST_MJCF_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/robot.mjcf")
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/scene.mjcf")
 
   # Custom main: configure() creates an rclcpp::Node (mujoco_sim), which
   # requires rclcpp::init(). The main also hands the transport its mjcf_path
