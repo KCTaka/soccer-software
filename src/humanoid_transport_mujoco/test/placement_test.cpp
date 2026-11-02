@@ -140,18 +140,23 @@ TEST(Placement, FixedBaseHasNoFreeJoint)
   EXPECT_FALSE(free_joint_qpos_adr(*model, mj_name2id(model.get(), mjtObj::mjOBJ_BODY, "arm")));
 }
 
-TEST(Placement, G1HeightMatchesUpstreamMenagerieValue)
+TEST(Placement, G1StandsOnTheGroundAtQpos0)
 {
   char error[1024] = {};
   ModelPtr model(mj_loadXML(HUMANOID_TEST_MJCF_PATH, nullptr, error, sizeof(error)));
   ASSERT_NE(model, nullptr) << error;
   const int pelvis = mj_name2id(model.get(), mjtObj::mjOBJ_BODY, "pelvis");
-  ASSERT_TRUE(free_joint_qpos_adr(*model, pelvis));
+  const auto root_adr = free_joint_qpos_adr(*model, pelvis);
+  ASSERT_TRUE(root_adr);
   const auto p = place(*model, "pelvis");
   ASSERT_TRUE(p);
+  // The model generator stands robot.mjcf by this same rule, rounded up to the
+  // micrometre: qpos0 is on the ground, never in it.
+  EXPECT_GE(p->lowest - p->ground, -1e-9);
+  EXPECT_LE(p->lowest - p->ground, 1e-6);
   // Menagerie's g1.xml places the pelvis at z = 0.793 by hand. The derived
   // value must agree to within a centimetre, from geometry alone.
-  EXPECT_NEAR(p->ground - p->lowest, 0.793, 0.01);
+  EXPECT_NEAR(model->qpos0[*root_adr + 2] + (p->ground - p->lowest), 0.793, 0.01);
 }
 
 }  // namespace

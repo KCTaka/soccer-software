@@ -244,7 +244,41 @@ def emit_urdf(model, out_path, assets_dir,
         out_path, xml_declaration=True, encoding="utf-8"
     )
 
-def emit_mjcf(model, overlay, out_path, assets_rel):
+def standing_root_z(mjcf_xml, root_link, joint_angles):
+    """Root height that puts the robot's lowest collision geom on z = 0 at `joint_angles` (joint name
+    -> rad; the rest at 0), with the root at the origin in `mjcf_xml`. The bounding-box rule of
+    SIL's lowest_collision_z (src/humanoid_transport_mujoco/src/mujoco_placement.cpp), applied by
+    MuJoCo to its own collision geometry, so the height is derived, never typed. Rounded up to the
+    micrometre: the robot never starts inside the floor, and float noise cannot flip the output."""
+    try:
+        import mujoco  # only robots that emit MJCF need it
+    except ImportError as e:
+        raise RuntimeError("robot.mjcf derives its standing height with MuJoCo: install the mujoco "
+                           "Python package, or run in the dev container") from e
+    m = mujoco.MjModel.from_xml_string(mjcf_xml)
+    d = mujoco.MjData(m)
+    for name, angle in joint_angles.items():
+        d.qpos[m.joint(name).qposadr[0]] = angle
+    mujoco.mj_kinematics(m, d)
+    root = m.body(root_link).id
+    lowest = None
+    for g in range(m.ngeom):
+        b = m.geom_bodyid[g]
+        collidable = m.geom_contype[g] != 0 or m.geom_conaffinity[g] != 0
+        if (b == 0 or m.body_rootid[b] != root or not collidable or
+                m.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE):
+            continue
+        # geom_aabb is (centre, half-size) in the geom frame; the world-z row of the geom's rotation
+        # maps it to a world centre height and half-height.
+        centre, half, rz = m.geom_aabb[g][:3], m.geom_aabb[g][3:], d.geom_xmat[g][6:9]
+        bottom = (d.geom_xpos[g][2] + sum(rz[k] * centre[k] for k in range(3))
+                  - sum(abs(rz[k]) * half[k] for k in range(3)))
+        lowest = bottom if lowest is None else min(lowest, bottom)
+    if lowest is None:
+        raise ValueError(f"{root_link}: no collidable geometry to stand on")
+    return math.ceil(-lowest * 1e6) / 1e6
+
+def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     kids = children_by_parent(joints)
@@ -310,6 +344,7 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
 
     wb = ET.SubElement(mj, "worldbody")
     add_body(wb, model["robot"]["root_link"], True)
+    root_body = wb.find("body")
 
     if imu is not None:
         # Exactly one sensor of each type: MujocoActuatorTransport finds them by type, not name.
@@ -319,6 +354,13 @@ def emit_mjcf(model, overlay, out_path, assets_rel):
         ET.SubElement(sensors, "gyro", name=f"{imu['name']}_angular_velocity", site=imu["name"])
         ET.SubElement(sensors, "accelerometer", name=f"{imu['name']}_linear_acceleration",
                       site=imu["name"])
+
+    # Stand the robot on z = 0 at its reference pose, so qpos0 is physically valid for every
+    # consumer, not only SIL. Compiled with an absolute meshdir so this works from any directory.
+    comp.set("meshdir", os.path.abspath(assets_dir).replace("\\", "/"))
+    root_z = standing_root_z(ET.tostring(mj, encoding="unicode"), model["robot"]["root_link"], {})
+    comp.set("meshdir", assets_rel.replace("\\", "/"))
+    root_body.set("pos", fmt([0.0, 0.0, root_z]))
 
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
@@ -493,7 +535,7 @@ def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir
     if mjcf:
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
         assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
-        emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_rel)
+        emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_dir, assets_rel)
         emit_scene(model, os.path.join(out_dir, "scene.mjcf"))
         written += ["robot.mjcf", "scene.mjcf"]
 

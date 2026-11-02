@@ -52,6 +52,24 @@ def cmd_generate(args):
     r = _robot(args.robot)
     _generate(r, _motor_limits(), r["generated"])
 
+def _mj_smoke(scene):
+    """The scene loads, the robot starts on the floor rather than in it, and 100 steps stay finite."""
+    import math
+    import mujoco
+    m = mujoco.MjModel.from_xml_path(scene)
+    d = mujoco.MjData(m)
+    mujoco.mj_forward(m, d)
+    ncon0 = d.ncon
+    depth = max((-c.dist for c in d.contact[:ncon0]), default=0.0)
+    if depth > 1e-6:
+        return [f"the robot starts {depth * 1000:.1f} mm inside the floor at qpos0"]
+    for _ in range(100):
+        mujoco.mj_step(m, d)
+    if not all(math.isfinite(x) for x in d.qpos):
+        return ["non-finite qpos after 100 steps"]
+    print(f"mj-smoke OK: nq={m.nq}, nv={m.nv}, nbody={m.nbody}, ncon at qpos0={ncon0}")
+    return []
+
 def _check_one(r, motor_limits, mj_smoke):
     print(f"--- {r['name']} ---")
     with open(r["source"]) as f:
@@ -65,16 +83,11 @@ def _check_one(r, motor_limits, mj_smoke):
 
     mjcf = os.path.join(r["generated"], "scene.mjcf")
     if mj_smoke and os.path.exists(mjcf):
-        try:
-            import mujoco, math
-            m = mujoco.MjModel.from_xml_path(mjcf)
-            d = mujoco.MjData(m)
-            for _ in range(100):
-                mujoco.mj_step(m, d)
-            assert all(math.isfinite(x) for x in d.qpos), "NaN in qpos"
-            print(f"mj-smoke OK: nq={m.nq}, nv={m.nv}, nbody={m.nbody}")
-        except ImportError:
-            print("WARN: mujoco not installed; skipping smoke test")
+        smoke_errs = _mj_smoke(mjcf)
+        for e in smoke_errs:
+            print(f"ERROR: mj-smoke: {e}", file=sys.stderr)
+        if smoke_errs:
+            return False
 
     # ADR-009-07: regenerate into a temp dir and diff.
     with tempfile.TemporaryDirectory() as td:

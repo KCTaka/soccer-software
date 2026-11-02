@@ -1,10 +1,11 @@
 // Copyright 2026 UTRA-RoboSoccer
 // Initial placement of a floating-base robot, derived from the loaded model.
 //
-// The generated MJCF deliberately carries no initial height: the height at
-// which the feet touch the ground is a consequence of the kinematic tree and
-// collision geometry, so it is computed here from the model that is actually
-// loaded, never stored as a number that goes stale when the legs change.
+// The height at which the feet touch the ground is a consequence of the
+// kinematic tree and collision geometry, never a stored number that goes stale
+// when the legs change. The model generator applies this same rule to stand
+// robot.mjcf on the ground at its reference pose; SIL re-applies it here, to
+// the model actually loaded, for the pose it actually starts in.
 //
 // "The robot" is the kinematic tree rooted at one direct child of the world
 // body. Scene objects with their own free joints (e.g. a ball) are separate

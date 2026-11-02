@@ -8,8 +8,9 @@
 # MuJoCo Menagerie with `python3 -m model.generators.ingest` (see its source/ingest.yaml); that
 # import is a one-off tool, not part of `check`.
 #
-# urdf: emit <generated>/robot.urdf. mjcf: emit <generated>/robot.mjcf (the robot alone) and
-# scene.mjcf (robot.mjcf in the simulated world: physics settings and a floor).
+# urdf: emit <generated>/robot.urdf. mjcf: emit <generated>/robot.mjcf (the robot alone, standing
+# on z = 0 at its reference pose; needs the mujoco Python package) and scene.mjcf (robot.mjcf in
+# the simulated world: physics settings and a floor).
 # firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
 robots:
   unitree_g1:

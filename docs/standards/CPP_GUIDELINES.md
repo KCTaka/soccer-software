@@ -90,7 +90,9 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
 - If code needs a geometric quantity, **derive it from the loaded model at configure time**.
   The initial root height is computed from collision geometry
   ([mujoco_placement.hpp](../../src/humanoid_transport_mujoco/include/humanoid_transport_mujoco/mujoco_placement.hpp)).
-  It once was a hand-typed 0.793 that would have gone stale the moment the legs changed.
+  It once was a hand-typed 0.793 that would have gone stale the moment the legs changed. The model
+  generator derives `robot.mjcf`'s standing height by the same rule, so every consumer of the
+  MJCF, not only SIL, starts on the ground.
 - Do not identify model elements by conventional names like `"root"` when structure identifies
   them. The robot is the kinematic tree that holds the commanded joints; scene objects such as a
   ball are other trees.
