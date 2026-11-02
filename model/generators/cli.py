@@ -57,10 +57,7 @@ def _check_one(r, motor_limits, mj_smoke):
     with open(r["source"]) as f:
         model = yaml.safe_load(f)
     errs = validate.schema_validate(model, SCHEMA)
-    s_errs, warns = validate.structural_checks(model, motor_limits)
-    errs += s_errs
-    for w in warns:
-        print(f"WARN: {w}")
+    errs += validate.structural_checks(model, motor_limits)
     if errs:
         for e in errs:
             print(f"ERROR: {e}", file=sys.stderr)

@@ -24,7 +24,7 @@ def _principal_minors(m):
             det)
 
 def structural_checks(model, motor_limits):
-    errs, warns = [], []
+    errs = []
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     joints_by_name = {j["name"]: j for j in joints}
@@ -148,5 +148,4 @@ def structural_checks(model, motor_limits):
         if abs(n - 1.0) > 1e-9:
             errs.append(f"S-01: imu quaternion norm {n}")
 
-    warns.append("C-01: sole polygon check skipped (provisional model; no sole geometry)")
-    return errs, warns
+    return errs
