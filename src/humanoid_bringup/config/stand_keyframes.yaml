@@ -1,6 +1,7 @@
 # Stand-up trajectory for unitree_g1.
 # Times in seconds. Positions in radians.
-# 29 actuated joints, ordered to match hardware_sil.yaml.
+# 29 actuated joints, ordered to match hardware_sil.yaml: the controller reads references by
+# index, not by name.
 dt: 0.005
 joint_names:
   - left_hip_pitch_joint
@@ -34,23 +35,16 @@ joint_names:
   - right_wrist_yaw_joint
 
 keyframes:
-  # t=0: collapsed / slumped (approximate initial contact pose)
+  # t=0: crouch. sil_stand.launch.py starts the simulation in this pose and holds it until the
+  # controller takes over, so the first reference matches the robot. The stand gains hold it
+  # indefinitely; the straight-legged zero pose and deeper crouches tip over under PD alone.
   - time: 0.0
     positions: [
-      -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   # left leg tucked
-      -0.5, 0.0, 0.0, 1.0, -0.5, 0.0,   # right leg tucked
-       0.0, 0.0, 0.3,                    # waist bent forward
-       0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,  # left arm relaxed
-       0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0]  # right arm relaxed
-
-  # t=1.0: crouch — knees bent, torso upright, preparing to extend
-  - time: 1.0
-    positions: [
-      -0.8, 0.0, 0.0, 1.5, -0.7, 0.0,
-      -0.8, 0.0, 0.0, 1.5, -0.7, 0.0,
-       0.0, 0.0, 0.0,
-       0.2, 0.1, 0.0, 0.3, 0.0, 0.0, 0.0,
-       0.2, -0.1, 0.0, 0.3, 0.0, 0.0, 0.0]
+      -0.45, 0.0, 0.0, 0.9, -0.45, 0.0,  # left leg bent
+      -0.45, 0.0, 0.0, 0.9, -0.45, 0.0,  # right leg bent
+       0.0, 0.0, 0.0,                    # waist upright
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # left arm down
+       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # right arm down
 
   # t=2.5: standing — legs extended, torso vertical
   - time: 2.5

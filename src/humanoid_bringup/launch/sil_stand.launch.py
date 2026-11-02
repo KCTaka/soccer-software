@@ -1,12 +1,22 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+import yaml
 
 def generate_launch_description():
+    keyframes_path = os.path.join(
+        get_package_share_directory('humanoid_bringup'), 'config', 'stand_keyframes.yaml')
+    with open(keyframes_path) as f:
+        keyframes = yaml.safe_load(f)
+
     launch_args = [
         DeclareLaunchArgument(
             'mjcf_path',
@@ -32,6 +42,11 @@ def generate_launch_description():
     # ros2_control_node. value_type=float keeps "50" from arriving as an int.
     sim_params = {
         'mjcf_path': LaunchConfiguration('mjcf_path'),
+        # The controllers take seconds to start; without this the robot falls meanwhile.
+        'hold_until_commanded': True,
+        # Start in the trajectory's first pose, so its first reference matches the robot.
+        'initial_pose.joints': keyframes['joint_names'],
+        'initial_pose.positions': [float(p) for p in keyframes['keyframes'][0]['positions']],
         'disturbance.push.force_n': ParameterValue(
             LaunchConfiguration('push_force_n'), value_type=float),
         'disturbance.push.start_time_s': ParameterValue(
@@ -43,6 +58,24 @@ def generate_launch_description():
     ])
     robot_description = ParameterValue(
         Command(['cat ', robot_description_path]), value_type=str)
+
+    controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster',
+                   'imu_sensor_broadcaster',
+                   'humanoid_mit_controller'],
+        output='screen',
+    )
+    # Started once every controller is active (the spawner exits then). The player's clock starts
+    # with the node, so started any earlier it plays part of the trajectory to nobody and the
+    # controller joins it midway, at a point that varies from run to run.
+    trajectory_player = Node(
+        package='humanoid_bringup',
+        executable='trajectory_player.py',
+        arguments=['--keyframes', keyframes_path, '--hold', '15.0'],
+        output='screen',
+    )
 
     return LaunchDescription(launch_args + [
         Node(
@@ -84,25 +117,9 @@ def generate_launch_description():
             ],
             output='screen',
         ),
-        Node(
-            package='controller_manager',
-            executable='spawner',
-            arguments=['joint_state_broadcaster',
-                       'imu_sensor_broadcaster',
-                       'humanoid_mit_controller'],
-            output='screen',
-        ),
-        Node(
-            package='humanoid_bringup',
-            executable='trajectory_player.py',
-            arguments=[
-                '--keyframes', PathJoinSubstitution([
-                    FindPackageShare('humanoid_bringup'),
-                    'config', 'stand_keyframes.yaml']),
-                '--hold', '15.0',
-            ],
-            output='screen',
-        ),
+        controller_spawner,
+        RegisterEventHandler(OnProcessExit(
+            target_action=controller_spawner, on_exit=[trajectory_player])),
         Node(
             package='rviz2',
             executable='rviz2',
