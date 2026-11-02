@@ -7,6 +7,7 @@ callback writes into the SPSC buffer; the 200 Hz update() reads from it.
 import argparse
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 import yaml
@@ -76,9 +77,13 @@ def main():
         joint_names=data['joint_names'],
         dt=data.get('dt', 0.005),
         hold_final=args.hold)
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     node.destroy_node()
-    rclpy.shutdown()
+    # A SIGINT has already shut the context down; try_ does not raise for that.
+    rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
