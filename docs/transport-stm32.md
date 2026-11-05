@@ -59,10 +59,9 @@ and select it: `transport_plugin: humanoid_transport_stm32/Stm32SerialTransport`
 
 `chain`, `motor`, `direction_sign` and `zero_offset_rad` have **no default** on purpose. A value that
 merely looks plausible goes unnoticed until the joint runs the wrong way. The mapping is a parameter
-because the telemetry carries no CAN id, so nothing on the wire can say which joint a motor is, and
-the generated model describes the G1 placeholder, not the real robot. When a real robot model
-exists, `bus_segment` and `can_node_id` in the manifest are the better source (AGENTS.md: one
-source, never copied) and this parameter block should be generated from it.
+because the telemetry carries no CAN id, so nothing on the wire can say which joint a motor is. The
+`joints` block is generated from the robot model as `model/robots/<robot>/generated/stm32_wiring.yaml`
+(chain = index of the actuator's `bus_segment`, motor = its `slot`); never write it by hand.
 
 Angle convention: `joint = direction_sign * (wire - zero_offset_rad)`. Velocity and torque take the
 sign only. Stiffness and damping are magnitudes and are never negated.
@@ -144,65 +143,6 @@ This is **not hardware-in-the-loop evidence**. ADR-007 rejects a host-side loopb
 emulator: it leaves the USB stack, `cdc_acm`, and real timing untested. SIL timing is never timing
 evidence (ADR-007-05).
 
-### Bench, hardware in the loop (2026-10-03)
-
-The full stack was run against the robot's master, both slaves, and ten free RobStride drives on a
-bench (no load): a non-real-time ROS node publishing `~/joint_references`, `MitImpedanceController`,
-`HumanoidActuatorSystem` with its SafetyKernel, this transport, the master, the slaves, and the
-drives. The description, manifest and wiring were bench-only: ten joints named after the firmware's
-`robot_legs` motors, chain 0 and 1, motors 0 to 4, sign +1, offset 0, envelope inside every
-drive's span, kp 5, kd 0.2. `controller_manager` ran at 200 Hz with FIFO priority 50 on the Jetson.
-
-- Configure and the two-step activation succeeded every time, in 120 to 125 ms with the drives
-  IDLE.
-- Two runs of 31 s and 21 s: 6230 and 4230 exchanges, 0 failed, 0 deadline misses, worst exchange
-  4.73 ms and 2.87 ms. `/joint_states` came back at 200.0 Hz. Four later runs of
-  `stm32_bench.launch.py` had 2 isolated deadline misses in about 18 500 exchanges (worst 5.08 ms),
-  each one bad cycle, far from the three in a row that stop the robot.
-- Every joint followed the references: from rest positions up to 1.67 rad away to within 0.05 rad
-  of 0 in a 3 s ease, then +-0.3 rad swings reaching +-0.24 to 0.29 rad, RMS error 0.025 to 0.042
-  rad. With kp 5 the error is what drive friction leaves against a soft spring; it says nothing
-  about latency.
-- One startup in 23 failed: the first `read()` cycles reported three consecutive bad cycles about
-  25 ms after activation, and the component was dropped. The cause was not recorded (see item 2
-  below); the component now logs it.
-- With joints resting outside the envelope (moved by hand while idle), every start failed at the
-  controller's first cycle on the position envelope. The controller holds the measured position
-  until a reference arrives, and the SafetyKernel checks that position even at zero stiffness. On
-  the robot a joint cannot rest outside an envelope taken from its mechanical limits; a tighter
-  envelope would stop the robot from starting.
-
-## Bench
-
-`stm32_bench.launch.py` runs the whole pipeline against free drives: the bench description,
-manifest and wiring in `humanoid_bringup/config/bench/` (ten joints named after the firmware's
-`robot_legs` motors), and `bench_player.py`, a non-real-time node that eases every joint from where
-it rests to 0, swings it +-0.3 rad, and returns to 0. **The drives move. Run it only with nothing
-attached to them.** Check where they rest with the probe first: a joint outside the bench envelope
-(+-1.8 rad) stops the run at the controller's first cycle.
-
-The dev container works without the board attached, so it does not pass `/dev/ttyACM0` itself. It
-mounts the host's `/dev` at `/host-dev` and allows the USB serial majors, so with the board plugged
-in the dev container can use `serial_device:=/host-dev/ttyACM0` (Dev Containers: Rebuild Container
-once after pulling this change). To run from a throwaway container instead, with the device, host
-networking, and real-time scheduling, plus a Zenoh router:
-
-```bash
-docker run --rm -it --entrypoint bash --device=/dev/ttyACM0 --net=host --ipc=host --cap-add=SYS_NICE --ulimit rtprio=99:99 -v "$PWD":/ws -w /ws <dev-container-image>
-```
-
-and inside it:
-
-```bash
-source /opt/ros/jazzy/setup.bash && source install/setup.bash
-ros2 run rmw_zenoh_cpp rmw_zenohd &
-ros2 launch humanoid_bringup stm32_bench.launch.py serial_device:=/dev/ttyACM0
-```
-
-Record with `ros2 bag record /joint_states /humanoid_mit_controller/joint_references`, stopped with
-Ctrl-C so the bag is closed. Ctrl-C on the launch deactivates the hardware, which idles every drive
-and logs the run's exchange stats.
-
 ## First contact with hardware
 
 `stm32_link_probe` is read-only. It sends nothing, so it is safe against a powered robot in any
@@ -219,35 +159,19 @@ report age and measured values (in wire units). The rate is not measured on the 
 before the port opened arrive in a burst, and the first frame after opening can be minutes old,
 left in the device's USB buffer by the previous reader.
 
-The dev container does not pass the serial device through. To run the probe from its image:
-
-```bash
-docker run --rm --entrypoint bash --device=/dev/ttyACM0 -v "$PWD":/ws -w /ws <dev-container-image> -c 'source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 run humanoid_transport_stm32 stm32_link_probe /dev/ttyACM0'
-```
-
-Observed on 2026-10-03 against the robot's master (read-only):
-
-- `PROTO_VERSION` 8, `READY`, polling and reporting at 200 Hz. 1007 consecutive cycles were 5.000 ms
-  apart on the master's clock, with a 20 Hz status frame. `host_cmd_hz` reads 50. Nothing in the
-  master uses it.
-- Chains 0 and 1, five motors each, no SPI CRC or CAN transmit errors.
-- First, every motor read FAULT with cause NONE, feedback age 255 ms and all values zero:
-  discovery had failed at slave boot. After the slaves were reset with the drives powered, all ten
-  read IDLE with feedback 0-1 ms old, 24-26 C, and positions within +-0.043 rad.
-- The probe reported a master reset that happened before it opened the port. The first frame it
-  read was left from the earlier boot. `activate()` acknowledges any reset seen before it, so this
-  does not affect the transport.
+In the dev container the master is `/host-dev/robosoccer-master` (see [bench.md](bench.md)).
 
 ## Not verified, and known gaps
 
 Needs the real master and a model whose joint names match the attached motors:
 
-1. Command to telemetry over USB CDC works on the bench (above): activation, arming, and 10 000
-   cycles without a failed exchange. The firmware notes that the first commands after a fresh
+1. Command to telemetry over USB CDC works on a bench of ten free drives: activation, arming, and
+   10 000 cycles without a failed exchange. The firmware notes that the first commands after a fresh
    connect may not land for ~1 s; activation never needed that long on the bench.
 2. The gap between `activate()` returning and the first `write()` must stay under the master's
    60 ms host-death limit under `controller_manager`. If it does not, activation is followed by
-   `HOST_LOST`. The one failed bench startup fits that: the last arming request can precede
+   `HOST_LOST`. One bench startup in 23 failed with three bad cycles about 25 ms after activation,
+   which fits that: the last arming request can precede
    `activate()`'s return by up to 20 ms, and that start's first `controller_manager` cycle took
    10 ms. It is not confirmed. The component's error log now names the transport error, which
    would read "hardware fault" for `HOST_LOST`.

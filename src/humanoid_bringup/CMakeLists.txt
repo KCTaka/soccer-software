@@ -53,7 +53,6 @@ install(DIRECTORY
 install(PROGRAMS
   nodes/trajectory_player.py
   nodes/sil_stand_verifier.py
-  nodes/bench_player.py
   nodes/bench_trajectories_core.py
   nodes/walk_policy.py
   nodes/walk_policy_core.py

@@ -42,6 +42,9 @@ does the envelope/finiteness/slew checks.
 - The master flashed with the matching firmware config (`1s_5m` / `2s_10m`) and reading READY
   (firmware smoke: chain(s) ALIVE, motors DISABLED). In the dev container the USB CDC device is
   `/host-dev/robosoccer-master` (the default).
+- Every joint resting inside its envelope. The controller holds the measured position until the
+  first reference, and the SafetyKernel stops the run at the first cycle if that position is outside
+  the envelope. Check where the drives rest with `stm32_link_probe` (read-only) first.
 
 > A failed `configure()` (busy port, or the bench not READY) aborts `ros2_control_node` — it is set
 > to activate the hardware at startup. Free the port and confirm the smoke before launching.
