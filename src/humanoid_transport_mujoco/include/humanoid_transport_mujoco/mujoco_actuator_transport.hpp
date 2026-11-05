@@ -1,11 +1,14 @@
 // Copyright 2026 UTRA-RoboSoccer
 // MujocoActuatorTransport: SIL transport at the ActuatorTransport seam (ADR-007-01).
 //
-// The generated MJCF contains no <actuator> section. This transport computes the MIT
-// impedance law and applies the resulting torque directly to qfrc_applied, making the
-// executed law exactly:
+// Each commanded joint is driven by the generated MJCF's <general> actuator on that joint (gain
+// 1, affine bias). Every cycle this transport sets ctrl = K_p q_d + K_d qdot_d + tau_ff and the
+// bias to (0, -K_p, -K_d), so MuJoCo evaluates the drive's MIT impedance law
 //
 //   tau = K_p * (q_d - q) + K_d * (qdot_d - qdot) + tau_ff
+//
+// at every physics step, as the drive does at its own loop rate, clamped to the actuator's
+// forcerange. The integrator (implicitfast) treats the K_d term implicitly.
 //
 // Physics is stepped in lockstep inside exchange(): n substeps of dt_physics per
 // control period, where n = control_period / dt_physics is asserted integer at
@@ -88,7 +91,8 @@ private:
   struct JointMapping
   {
     int qpos_adr{-1};  // index into d->qpos
-    int dof_adr{-1};   // index into d->qvel, d->qfrc_applied
+    int dof_adr{-1};   // index into d->qvel
+    int actuator{-1};  // the joint's MIT actuator: d->ctrl, m->actuator_biasprm, d->actuator_force
   };
 
   // Everything configure() reads from ROS parameters, as plain values.
@@ -107,15 +111,19 @@ private:
   [[nodiscard]] bool load_model(const std::string & mjcf_path);
   [[nodiscard]] bool validate_substeps();
   [[nodiscard]] bool map_joints(const transport::JointManifest & joints);
+  /// The MIT actuator driving joint `jnt_id`, or nullopt (and an error printed) if there is none.
+  [[nodiscard]] std::optional<int> find_mit_actuator(int jnt_id) const;
   [[nodiscard]] bool resolve_initial_placement();
   [[nodiscard]] bool map_imu();
   [[nodiscard]] bool map_initial_pose(const SimParameters & params);
 
   /// Resets the state to the model's reference configuration, then applies initial_pose_.
   void reset_to_initial_pose() noexcept;
+  /// Zero torque on every mapped joint: ctrl and the actuators' stiffness and damping all 0.
+  void go_limp() noexcept;
 
   // --- exchange() step ---
-  /// Applies the MIT law to every joint, then steps physics n_substeps_ times. Real-time.
+  /// Loads each joint's MIT tuple into its actuator, then steps physics n_substeps_ times.
   void advance_physics(const transport::CommandBatch & command) noexcept;
   [[nodiscard]] bool configure_disturbance(const PushConfig & config);
 

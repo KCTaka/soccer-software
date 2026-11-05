@@ -1,8 +1,8 @@
 """robot_model.yaml (+ contact overlay) -> URDF, MJCF, safety_manifest.yaml.
 
-MJCF is emitted with NO <actuator> section: MujocoActuatorTransport applies the MIT
-tuple as joint torque via qfrc_applied (ADR-007 seam, ADR-001 tuple). Compiler flags
-are the pinned MJCF_COMPILER; see AMEND-1 and model-gate-0 §5.5.
+Every actuated joint gets one MJCF <general> actuator that MujocoActuatorTransport turns into the
+drive's MIT impedance law (ADR-001 tuple); see emit_mjcf_actuators. Compiler flags are the pinned
+MJCF_COMPILER; see AMEND-1 and model-gate-0 §5.5.
 """
 import hashlib
 import math
@@ -352,6 +352,8 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     add_body(wb, model["robot"]["root_link"], True)
     root_body = wb.find("body")
 
+    emit_mjcf_actuators(mj, joints)
+
     if imu is not None:
         # Exactly one sensor of each type: MujocoActuatorTransport finds them by type, not name.
         sensors = ET.SubElement(mj, "sensor")
@@ -374,6 +376,26 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
     return home
+
+def emit_mjcf_actuators(mj, joints):
+    """One actuator per actuated joint, for MujocoActuatorTransport to drive with the MIT law
+
+        tau = kp (q_d - q) + kd (qdot_d - qdot) + tau_ff.
+
+    MuJoCo's affine actuator computes force = gain * ctrl + b0 + b1 q + b2 qdot. With gain 1 the
+    transport sets ctrl = kp q_d + kd qdot_d + tau_ff and b = (0, -kp, -kd) every cycle, so MuJoCo
+    evaluates the law at every physics step, as the drive does at its own loop rate, and the
+    integrator treats the damping term implicitly. forcerange saturates at the joint's peak torque,
+    as the drive does."""
+    act = ET.SubElement(mj, "actuator")
+    for j in joints:
+        if j["type"] == "fixed" or j["actuator"] is None:
+            continue
+        peak = j["limits"]["effort_peak_nm"]
+        ET.SubElement(act, "general", name=j["actuator"], joint=j["name"],
+                      gaintype="fixed", gainprm="1", biastype="affine", biasprm="0 0 0",
+                      ctrllimited="false", forcelimited="true",
+                      forcerange=f"{-peak:.10g} {peak:.10g}")
 
 def emit_scene(model, out_path, home_qpos):
     """The world every robot is simulated in: physics settings and a floor at z = 0, around an

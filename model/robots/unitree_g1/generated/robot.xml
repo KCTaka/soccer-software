@@ -232,6 +232,37 @@
       </body>
     </body>
   </worldbody>
+  <actuator>
+    <general name="left_hip_pitch_joint" joint="left_hip_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-88 88" />
+    <general name="left_hip_roll_joint" joint="left_hip_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-139 139" />
+    <general name="left_hip_yaw_joint" joint="left_hip_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-88 88" />
+    <general name="left_knee_joint" joint="left_knee_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-139 139" />
+    <general name="left_ankle_pitch_joint" joint="left_ankle_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="left_ankle_roll_joint" joint="left_ankle_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="right_hip_pitch_joint" joint="right_hip_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-88 88" />
+    <general name="right_hip_roll_joint" joint="right_hip_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-139 139" />
+    <general name="right_hip_yaw_joint" joint="right_hip_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-88 88" />
+    <general name="right_knee_joint" joint="right_knee_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-139 139" />
+    <general name="right_ankle_pitch_joint" joint="right_ankle_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="right_ankle_roll_joint" joint="right_ankle_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="waist_yaw_joint" joint="waist_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-88 88" />
+    <general name="waist_roll_joint" joint="waist_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="waist_pitch_joint" joint="waist_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-50 50" />
+    <general name="left_shoulder_pitch_joint" joint="left_shoulder_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="left_shoulder_roll_joint" joint="left_shoulder_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="left_shoulder_yaw_joint" joint="left_shoulder_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="left_elbow_joint" joint="left_elbow_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="left_wrist_roll_joint" joint="left_wrist_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="left_wrist_pitch_joint" joint="left_wrist_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-5 5" />
+    <general name="left_wrist_yaw_joint" joint="left_wrist_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-5 5" />
+    <general name="right_shoulder_pitch_joint" joint="right_shoulder_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="right_shoulder_roll_joint" joint="right_shoulder_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="right_shoulder_yaw_joint" joint="right_shoulder_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="right_elbow_joint" joint="right_elbow_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="right_wrist_roll_joint" joint="right_wrist_roll_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-25 25" />
+    <general name="right_wrist_pitch_joint" joint="right_wrist_pitch_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-5 5" />
+    <general name="right_wrist_yaw_joint" joint="right_wrist_yaw_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-5 5" />
+  </actuator>
   <sensor>
     <framequat name="imu_orientation" objtype="site" objname="imu" />
     <gyro name="imu_angular_velocity" site="imu" />

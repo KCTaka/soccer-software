@@ -157,3 +157,42 @@ TEST_F(ConformanceTest, C9_ImuReportsAnUprightUnitAttitudeOnTheFirstCycle)
   // The robot starts upright at qpos0, and one 5 ms cycle cannot tip it far.
   EXPECT_GT(std::abs(imu.orientation_w), 0.99);
 }
+
+// One exchange of `effort_nm` on the first joint, every gain zero. Returns the reported effort.
+static double reported_effort(
+  humanoid::transport::ActuatorTransport & transport, std::uint8_t n,
+  double effort_nm)
+{
+  humanoid::transport::CommandBatch cmd{};
+  humanoid::transport::FeedbackBatch fb{};
+  cmd.joint_count = n;
+  cmd.sequence = 1;
+  cmd.joints[0].effort_nm = effort_nm;
+  EXPECT_TRUE(
+    transport.exchange(
+      cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100)).ok());
+  return fb.joints[0].effort_nm;
+}
+
+TEST_F(ConformanceTest, C10_EffortFeedbackIsTheTorqueTheActuatorApplied)
+{
+  ASSERT_TRUE(transport->configure(manifest, safety));
+  ASSERT_TRUE(transport->activate());
+  EXPECT_DOUBLE_EQ(reported_effort(*transport, manifest.joint_count, 10.0), 10.0);
+}
+
+TEST_F(ConformanceTest, C11_TorqueSaturatesAtTheActuatorForceRange)
+{
+  // The limit is the model's, read from the same file the transport loads.
+  char error[1024] = {};
+  mjModel * model = mj_loadXML(HUMANOID_TEST_MJCF_PATH, nullptr, error, sizeof(error));
+  ASSERT_NE(model, nullptr) << error;
+  const int actuator = mj_name2id(model, mjOBJ_ACTUATOR, manifest.joints[0].name.data());
+  ASSERT_GE(actuator, 0);
+  const double upper = model->actuator_forcerange[2 * actuator + 1];
+  mj_deleteModel(model);
+
+  ASSERT_TRUE(transport->configure(manifest, safety));
+  ASSERT_TRUE(transport->activate());
+  EXPECT_DOUBLE_EQ(reported_effort(*transport, manifest.joint_count, 10.0 * upper), upper);
+}

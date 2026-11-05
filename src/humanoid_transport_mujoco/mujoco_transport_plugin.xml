@@ -4,7 +4,7 @@
     type="humanoid::transport_mujoco::MujocoActuatorTransport"
     base_class_type="humanoid::transport::ActuatorTransport">
     <description>
-      MuJoCo SIL transport. Applies MIT tuple as joint torque via qfrc_applied.
+      MuJoCo SIL transport. Drives each joint's MJCF actuator with the MIT tuple.
       Lockstep stepping: 5 substeps of 1 ms per 5 ms control cycle.
       Selected by setting transport_plugin to
       "humanoid_transport_mujoco/MujocoActuatorTransport" in hardware YAML.

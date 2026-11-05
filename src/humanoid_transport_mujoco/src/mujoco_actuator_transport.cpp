@@ -204,7 +204,8 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
     if (dof >= 0 && qp >= 0) {
       fb.position_rad = data_->qpos[qp];
       fb.velocity_rad_s = data_->qvel[dof];
-      fb.effort_nm = data_->qfrc_applied[dof];
+      // Evaluated at the start of the last physics step, after forcerange saturation.
+      fb.effort_nm = data_->actuator_force[joint_map_[i].actuator];
       fb.fresh = true;
     } else {
       fb.position_rad = 0.0;
@@ -238,7 +239,6 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
 bool MujocoActuatorTransport::request_joint_disable(
   transport::JointIndex /*joint*/) noexcept
 {
-  // In simulation, "disable" means zero the applied torque for that joint.
   // The SafetyKernel handles the protective command; the transport just
   // acknowledges the request.
   return true;
@@ -246,11 +246,8 @@ bool MujocoActuatorTransport::request_joint_disable(
 
 bool MujocoActuatorTransport::request_all_disable() noexcept
 {
-  // Zero all applied forces.
-  if (data_) {
-    for (int i = 0; i < model_->nv; ++i) {
-      data_->qfrc_applied[i] = 0.0;
-    }
+  if (model_ && data_) {
+    go_limp();
   }
   return true;
 }
@@ -406,9 +403,14 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
       return fail(std::format("joint '{}' is not hinge/slide (type={})", name, type));
     }
 
+    const auto actuator = find_mit_actuator(jnt_id);
+    if (!actuator) {
+      return false;
+    }
     joint_map_[i] = {
       .qpos_adr = model_->jnt_qposadr[jnt_id],
       .dof_adr = model_->jnt_dofadr[jnt_id],
+      .actuator = *actuator,
     };
 
     // The robot is the kinematic tree the commanded joints belong to; a
@@ -426,25 +428,15 @@ bool MujocoActuatorTransport::map_joints(const transport::JointManifest & joints
 
 void MujocoActuatorTransport::advance_physics(const transport::CommandBatch & command) noexcept
 {
-  // --- Apply MIT torque to qfrc_applied ---
-  // tau = K_p * (q_d - q) + K_d * (qdot_d - qdot) + tau_ff
+  // force = ctrl + b1 q + b2 qdot = K_p (q_d - q) + K_d (qdot_d - qdot) + tau_ff, evaluated by
+  // MuJoCo at every substep. The tuple is held for the period, as the drive holds the last command.
   for (std::uint8_t i = 0; i < joint_count_; ++i) {
-    const int dof = joint_map_[i].dof_adr;
-    const int qp = joint_map_[i].qpos_adr;
-    if (dof < 0 || qp < 0) {
-      continue;
-    }
-
     const auto & cmd = command.joints[i];
-    const double q = data_->qpos[qp];
-    const double qdot = data_->qvel[dof];
-
-    const double tau =
-      cmd.stiffness_nm_rad * (cmd.position_rad - q) +
-      cmd.damping_nm_s_rad * (cmd.velocity_rad_s - qdot) +
-      cmd.effort_nm;
-
-    data_->qfrc_applied[dof] = tau;
+    const int a = joint_map_[i].actuator;
+    data_->ctrl[a] = cmd.stiffness_nm_rad * cmd.position_rad +
+      cmd.damping_nm_s_rad * cmd.velocity_rad_s + cmd.effort_nm;
+    model_->actuator_biasprm[a * mjNBIAS + 1] = -cmd.stiffness_nm_rad;
+    model_->actuator_biasprm[a * mjNBIAS + 2] = -cmd.damping_nm_s_rad;
   }
 
   // SIL scenario control: external push, if one is scheduled.
@@ -498,9 +490,56 @@ bool MujocoActuatorTransport::map_initial_pose(const SimParameters & params)
 void MujocoActuatorTransport::reset_to_initial_pose() noexcept
 {
   mj_resetData(model_.get(), data_.get());
+  go_limp();  // the gains live in the model, so they outlive mj_resetData()
   for (const auto & joint : initial_pose_) {
     data_->qpos[joint.qpos_adr] = joint.value;
   }
+}
+
+void MujocoActuatorTransport::go_limp() noexcept
+{
+  for (const auto & joint : joint_map_) {
+    data_->ctrl[joint.actuator] = 0.0;
+    model_->actuator_biasprm[joint.actuator * mjNBIAS + 1] = 0.0;
+    model_->actuator_biasprm[joint.actuator * mjNBIAS + 2] = 0.0;
+  }
+}
+
+std::optional<int> MujocoActuatorTransport::find_mit_actuator(int jnt_id) const
+{
+  // The actuator is found by what it drives, not by name. It must be the generated MIT actuator:
+  // force = 1 * ctrl + b0 + b1 q + b2 qdot, on the joint itself (gear 1), with no activation state.
+  const char * joint = mj_id2name(model_.get(), mjtObj::mjOBJ_JOINT, jnt_id);
+  std::optional<int> found;
+  for (int a = 0; a < model_->nu; ++a) {
+    if (model_->actuator_trntype[a] != mjtTrn::mjTRN_JOINT ||
+      model_->actuator_trnid[2 * a] != jnt_id)
+    {
+      continue;
+    }
+    if (found) {
+      fail(std::format("joint '{}' is driven by more than one actuator", joint));
+      return std::nullopt;
+    }
+    const mjtNum * gain = model_->actuator_gainprm + a * mjNGAIN;
+    const mjtNum * gear = model_->actuator_gear + a * 6;
+    if (model_->actuator_gaintype[a] != mjtGain::mjGAIN_FIXED || gain[0] != 1.0 ||
+      model_->actuator_biastype[a] != mjtBias::mjBIAS_AFFINE ||
+      model_->actuator_dyntype[a] != mjtDyn::mjDYN_NONE || gear[0] != 1.0 ||
+      model_->actuator_ctrllimited[a])
+    {
+      fail(std::format(
+          "actuator on joint '{}' is not an MIT actuator (fixed gain 1, affine bias, no dynamics, "
+          "gear 1, no ctrlrange); regenerate the MJCF with model/generators", joint));
+      return std::nullopt;
+    }
+    found = a;
+  }
+  if (!found) {
+    fail(std::format(
+        "joint '{}' has no actuator; regenerate the MJCF with model/generators", joint));
+  }
+  return found;
 }
 
 bool MujocoActuatorTransport::resolve_initial_placement()
