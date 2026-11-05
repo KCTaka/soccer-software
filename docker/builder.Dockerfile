@@ -28,7 +28,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
       python3 \
       python3-dev \
       python3-jsonschema \
+      python3-numpy \
       python3-pip \
+      python3-scipy \
       python3-venv \
  && rm -rf /var/lib/apt/lists/*
 

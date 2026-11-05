@@ -1,5 +1,12 @@
-"""Shared helpers. Stdlib only."""
-import math
+"""Shared helpers: MJCF attribute parsing and rotation conversions.
+
+Quaternions are (w, x, y, z), MuJoCo's order; scipy 1.11 (Ubuntu 24.04) takes and returns
+(x, y, z, w). Euler angles are URDF rpy: extrinsic x, then y, then z (scipy's lowercase "xyz").
+"""
+import warnings
+
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 def vec(s, n, default):
     if s is None:
@@ -19,25 +26,20 @@ def geom_size(s):
         raise ValueError(f"geom size values must be positive, got {s!r}")
     return v
 
+def _rotation(q_wxyz):
+    """The rotation of a (w, x, y, z) quaternion. scipy normalises it, as MuJoCo does."""
+    return Rotation.from_quat(np.roll(q_wxyz, -1))
+
 def quat_to_rpy(q):
-    w, x, y, z = q
-    roll = math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
-    pitch = math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x))))
-    yaw = math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
-    return [roll, pitch, yaw]
+    # At pitch +-pi/2 roll and yaw are not unique; scipy warns and returns one valid pair (yaw 0),
+    # which is all URDF needs.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Gimbal lock detected", UserWarning)
+        return _rotation(q).as_euler("xyz").tolist()
 
 def quat_to_matrix(q):
-    """Rotation matrix of a (w, x, y, z) quaternion, normalised first as MuJoCo does."""
-    n = math.sqrt(sum(c * c for c in q))
-    w, x, y, z = (c / n for c in q)
-    return [[1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)],
-            [2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)],
-            [2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)]]
+    return _rotation(q).as_matrix()
 
 def rpy_to_quat(rpy):
-    r, p, y = rpy
-    cr, sr = math.cos(r / 2), math.sin(r / 2)
-    cp, sp = math.cos(p / 2), math.sin(p / 2)
-    cy, sy = math.cos(y / 2), math.sin(y / 2)
-    return [cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy,
-            cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy]
+    """(w, x, y, z), with w >= 0."""
+    return np.roll(Rotation.from_euler("xyz", rpy).as_quat(canonical=True), 1).tolist()

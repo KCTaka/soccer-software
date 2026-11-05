@@ -1,7 +1,8 @@
 """Schema validation + the structural checks JSON Schema cannot express
 (model-gate-0 §5.9 check IDs)."""
-import math
 import sys
+
+import numpy as np
 
 def schema_validate(model, schema_path):
     try:
@@ -13,15 +14,6 @@ def schema_validate(model, schema_path):
         schema = json.load(f)
     v = jsonschema.Draft202012Validator(schema)
     return [f"schema: {e.json_path}: {e.message}" for e in v.iter_errors(model)]
-
-def _principal_minors(m):
-    """The principal minors of a symmetric 3x3: the three 1x1, the three 2x2, the determinant."""
-    det = (m[0][0] * (m[1][1] * m[2][2] - m[1][2] ** 2)
-           - m[0][1] * (m[0][1] * m[2][2] - m[1][2] * m[0][2])
-           + m[0][2] * (m[0][1] * m[1][2] - m[1][1] * m[0][2]))
-    return ([m[k][k] for k in range(3)],
-            [m[a][a] * m[b][b] - m[a][b] ** 2 for a, b in ((0, 1), (0, 2), (1, 2))],
-            det)
 
 def structural_checks(model, motor_limits):
     errs = []
@@ -53,27 +45,24 @@ def structural_checks(model, motor_limits):
 
     # K-02: joint axes are unit vectors.
     for j in joints:
-        n = math.sqrt(sum(a * a for a in j["axis"]))
+        n = np.linalg.norm(j["axis"])
         if abs(n - 1.0) > 1e-9:
             errs.append(f"K-02: joint {j['name']} axis norm {n}")
 
     # M-01 / M-02: a tensor a rigid body can have. S = tr(I)/2 E - I is the second moment of mass
     # (integral of r r^T dm), so I must be positive definite (M-01) and S positive semi-definite
-    # (M-02); M-02 is the triangle inequality on the principal moments, checked in any frame.
+    # (M-02). S's eigenvalues are tr(I)/2 - lambda_i, so M-02 is the triangle inequality on the
+    # principal moments lambda_i: none exceeds the sum of the other two.
     for l in links.values():
         i = l["inertia"]
-        t = [[i["ixx_kg_m2"], i["ixy_kg_m2"], i["ixz_kg_m2"]],
-             [i["ixy_kg_m2"], i["iyy_kg_m2"], i["iyz_kg_m2"]],
-             [i["ixz_kg_m2"], i["iyz_kg_m2"], i["izz_kg_m2"]]]
-        h = (t[0][0] + t[1][1] + t[2][2]) / 2
-        d1, d2, d3 = _principal_minors(t)
-        if min(d1) <= 0 or min(d2) <= 0 or d3 <= 0:
+        moments = np.linalg.eigvalsh([[i["ixx_kg_m2"], i["ixy_kg_m2"], i["ixz_kg_m2"]],
+                                      [i["ixy_kg_m2"], i["iyy_kg_m2"], i["iyz_kg_m2"]],
+                                      [i["ixz_kg_m2"], i["iyz_kg_m2"], i["izz_kg_m2"]]])
+        if moments.min() <= 0:
             errs.append(f"M-01: link {l['name']} inertia is not positive definite")
         # A thin plate sits on the boundary (S singular); allow rounding relative to the tensor.
-        d1, d2, d3 = _principal_minors([[(h if a == b else 0.0) - t[a][b] for b in range(3)]
-                                        for a in range(3)])
-        eps = 1e-9
-        if min(d1) < -eps * h or min(d2) < -eps * h ** 2 or d3 < -eps * h ** 3:
+        h = moments.sum() / 2
+        if moments.max() - h > 1e-9 * h:
             errs.append(f"M-02: link {l['name']} inertia violates the triangle inequality")
 
     # M-03: masses positive.
@@ -159,7 +148,7 @@ def structural_checks(model, motor_limits):
     if imu is not None:
         if imu["link"] not in links:
             errs.append(f"S-02: imu link {imu['link']} is not declared")
-        n = math.sqrt(sum(a * a for a in imu["quat_wxyz"]))
+        n = np.linalg.norm(imu["quat_wxyz"])
         if abs(n - 1.0) > 1e-9:
             errs.append(f"S-01: imu quaternion norm {n}")
 

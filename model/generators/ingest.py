@@ -16,6 +16,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+import numpy as np
 import yaml
 
 from .common import quat_to_matrix, quat_to_rpy, vec, geom_size
@@ -147,9 +148,8 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
     if diag:
         # Principal moments in a frame rotated by `quat`; the model keeps link-frame axes:
         # I = R diag(d) R^T.
-        d = vec(diag, 3, None)
         r = quat_to_matrix(iquat)
-        t = [[sum(r[a][k] * d[k] * r[b][k] for k in range(3)) for b in range(3)] for a in range(3)]
+        t = (r @ np.diag(vec(diag, 3, None)) @ r.T).tolist()
         inertia = {"ixx_kg_m2": t[0][0], "iyy_kg_m2": t[1][1], "izz_kg_m2": t[2][2],
                    "ixy_kg_m2": t[0][1], "ixz_kg_m2": t[0][2], "iyz_kg_m2": t[1][2]}
     elif full:
@@ -195,9 +195,8 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
             j = movable[0]
             joint_name = j.get("name") or f"{name}_joint"
             attrs = resolve_attrs(j, eff_class, joint_defaults)
-            axis = vec(j.get("axis"), 3, [0, 0, 1])
-            n = sum(a * a for a in axis) ** 0.5
-            axis = [a / n for a in axis]
+            axis = np.array(vec(j.get("axis"), 3, [0, 0, 1]))
+            axis = (axis / np.linalg.norm(axis)).tolist()
             rng = j.get("range")
             lo, hi = (vec(rng, 2, [0, 0])[0] * angle, vec(rng, 2, [0, 0])[1] * angle) if rng else (0.0, 0.0)
             torque = torque_limit(j, joint_name, ctx)

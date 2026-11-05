@@ -55,8 +55,8 @@ def cmd_generate(args):
 def _mj_smoke(scene):
     """The scene loads, the robot starts on the floor rather than in it at qpos0 and at every
     keyframe, and 100 steps from qpos0 stay finite."""
-    import math
     import mujoco
+    import numpy as np
     m = mujoco.MjModel.from_xml_path(scene)
     d = mujoco.MjData(m)
     for k in range(m.nkey):
@@ -74,7 +74,7 @@ def _mj_smoke(scene):
         return [f"the robot starts {depth * 1000:.1f} mm inside the floor at qpos0"]
     for _ in range(100):
         mujoco.mj_step(m, d)
-    if not all(math.isfinite(x) for x in d.qpos):
+    if not np.isfinite(d.qpos).all():
         return ["non-finite qpos after 100 steps"]
     print(f"mj-smoke OK: nq={m.nq}, nv={m.nv}, nbody={m.nbody}, nkey={m.nkey}, "
           f"ncon at qpos0={ncon0}")

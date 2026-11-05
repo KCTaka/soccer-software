@@ -10,6 +10,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
+import numpy as np
 import yaml
 
 from .common import quat_to_rpy, rpy_to_quat
@@ -274,8 +275,7 @@ def standing_qpos(mjcf_xml, root_link, joint_angles):
         # geom_aabb is (centre, half-size) in the geom frame; the world-z row of the geom's rotation
         # maps it to a world centre height and half-height.
         centre, half, rz = m.geom_aabb[g][:3], m.geom_aabb[g][3:], d.geom_xmat[g][6:9]
-        bottom = (d.geom_xpos[g][2] + sum(rz[k] * centre[k] for k in range(3))
-                  - sum(abs(rz[k]) * half[k] for k in range(3)))
+        bottom = d.geom_xpos[g][2] + rz @ centre - np.abs(rz) @ half
         lowest = bottom if lowest is None else min(lowest, bottom)
     if lowest is None:
         raise ValueError(f"{root_link}: no collidable geometry to stand on")
