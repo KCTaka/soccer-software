@@ -15,7 +15,7 @@ def generate_launch_description():
             'mjcf_path',
             default_value=PathJoinSubstitution([
                 FindPackageShare('humanoid_bringup'),
-                'model', 'robots', 'unitree_g1', 'generated', 'scene.mjcf']),
+                'model', 'robots', 'unitree_g1', 'generated', 'scene.xml']),
             description='MJCF model loaded by MujocoActuatorTransport'),
         DeclareLaunchArgument(
             'command', default_value='[0.0, 0.0, 0.0]',

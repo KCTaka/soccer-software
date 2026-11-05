@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="unitree_g1">
-  <include file="robot.mjcf" />
+  <include file="robot.xml" />
   <option timestep="0.001" integrator="implicitfast" />
   <worldbody>
     <geom name="floor" type="plane" size="0 0 0.1" pos="0 0 0" friction="0.6" condim="3" />

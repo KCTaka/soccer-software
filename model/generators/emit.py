@@ -254,7 +254,7 @@ def standing_qpos(mjcf_xml, root_link, joint_angles):
     try:
         import mujoco  # only robots that emit MJCF need it
     except ImportError as e:
-        raise RuntimeError("robot.mjcf derives its standing height with MuJoCo: install the mujoco "
+        raise RuntimeError("robot.xml derives its standing height with MuJoCo: install the mujoco "
                            "Python package, or run in the dev container") from e
     m = mujoco.MjModel.from_xml_string(mjcf_xml)
     root = m.body(root_link).id
@@ -284,7 +284,7 @@ def standing_qpos(mjcf_xml, root_link, joint_angles):
     return qpos
 
 def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
-    """Write robot.mjcf. Returns the standing qpos of the model's `home` pose, or None without one."""
+    """Write robot.xml. Returns the standing qpos of the model's `home` pose, or None without one."""
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     kids = children_by_parent(joints)
@@ -377,12 +377,12 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
 
 def emit_scene(model, out_path, home_qpos):
     """The world every robot is simulated in: physics settings and a floor at z = 0, around an
-    include of robot.mjcf. One definition for all robots, and robot.mjcf stays free of world
+    include of robot.xml. One definition for all robots, and robot.xml stays free of world
     assumptions, so another scene (a field with a ball) can include the same robot. The `home`
-    keyframe lives here, not in robot.mjcf: a keyframe sets every qpos, and MuJoCo fills the qpos
+    keyframe lives here, not in robot.xml: a keyframe sets every qpos, and MuJoCo fills the qpos
     of anything a scene adds (the ball) with zeros rather than that body's own position."""
     mj = ET.Element("mujoco", model=model["robot"]["name"])
-    ET.SubElement(mj, "include", file="robot.mjcf")
+    ET.SubElement(mj, "include", file="robot.xml")
     # 1 ms physics: 5 substeps per 5 ms control period (ADR-007-03, asserted at configure).
     ET.SubElement(mj, "option", timestep="0.001", integrator="implicitfast")
     wb = ET.SubElement(mj, "worldbody")
@@ -549,10 +549,10 @@ def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir
     if mjcf:
         # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
         assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
-        home_qpos = emit_mjcf(model, overlay, os.path.join(out_dir, "robot.mjcf"), assets_dir,
+        home_qpos = emit_mjcf(model, overlay, os.path.join(out_dir, "robot.xml"), assets_dir,
                               assets_rel)
-        emit_scene(model, os.path.join(out_dir, "scene.mjcf"), home_qpos)
-        written += ["robot.mjcf", "scene.mjcf"]
+        emit_scene(model, os.path.join(out_dir, "scene.xml"), home_qpos)
+        written += ["robot.xml", "scene.xml"]
 
     emit_safety_manifest(model, motor_limits, os.path.join(out_dir, "safety_manifest.yaml"))
     written.append("safety_manifest.yaml")

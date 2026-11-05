@@ -24,7 +24,7 @@ rejects drift.
 
 - **`ingest`** — `model/source/ingest.yaml` (a pinned MuJoCo-Menagerie MJCF) → `robot_model.yaml`
   + the contact overlay. Menagerie-specific.
-- **`generate`** — `robot_model.yaml` (+ overlay) → `robot.urdf`, `robot.mjcf`,
+- **`generate`** — `robot_model.yaml` (+ overlay) → `robot.urdf`, `robot.xml`,
   `safety_manifest.yaml`.
 - **`check`** — JSON-Schema + structural checks (`validate.py`) + **regenerate-and-diff**
   (ADR-009-07): re-run ingest and generate into a temp dir, byte-compare.

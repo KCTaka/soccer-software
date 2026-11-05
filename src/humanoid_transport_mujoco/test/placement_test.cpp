@@ -150,7 +150,7 @@ TEST(Placement, G1StandsOnTheGroundAtQpos0)
   ASSERT_TRUE(root_adr);
   const auto p = place(*model, "pelvis");
   ASSERT_TRUE(p);
-  // The model generator stands robot.mjcf by this same rule, rounded up to the
+  // The model generator stands robot.xml by this same rule, rounded up to the
   // micrometre: qpos0 is on the ground, never in it.
   EXPECT_GE(p->lowest - p->ground, -1e-9);
   EXPECT_LE(p->lowest - p->ground, 1e-6);

@@ -91,7 +91,7 @@ def _check_one(r, motor_limits, mj_smoke):
             print(f"ERROR: {e}", file=sys.stderr)
         return False
 
-    mjcf = os.path.join(r["generated"], "scene.mjcf")
+    mjcf = os.path.join(r["generated"], "scene.xml")
     if mj_smoke and os.path.exists(mjcf):
         smoke_errs = _mj_smoke(mjcf)
         for e in smoke_errs:
