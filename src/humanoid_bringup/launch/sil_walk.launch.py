@@ -1,6 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
@@ -62,8 +61,11 @@ def generate_launch_description():
                    'humanoid_mit_controller'],
         output='screen',
     )
-    # Started once every controller is active (the spawner exits then): the policy's first stance
-    # reference is what releases the held simulation, so it must not begin earlier.
+    # Started with the controllers, not after them. The controller's pre-reference fallback holds
+    # the stance with the policy's stiffness, which releases the held simulation at activation,
+    # and PD alone cannot balance the stance: started after the spawner, the policy loses the
+    # second it takes to load, and the robot falls before its first step. Until the controller is
+    # active its references are dropped, and the simulation stays held.
     walk_policy = Node(
         package='humanoid_bringup',
         executable='walk_policy.py',
@@ -111,8 +113,7 @@ def generate_launch_description():
             output='screen',
         ),
         controller_spawner,
-        RegisterEventHandler(OnProcessExit(
-            target_action=controller_spawner, on_exit=[walk_policy])),
+        walk_policy,
         Node(
             package='rviz2',
             executable='rviz2',
