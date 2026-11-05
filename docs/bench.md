@@ -70,8 +70,7 @@ prints per-joint RMS/max tracking error, peak |effort|, direction match, and non
 (flagged above 0.01 rad). Start small on the real bench (amplitude ~0.1–0.3 rad): the 3 N·m torque
 cap limits how hard it can pull.
 
-> `bench_trajectories` assumes the five `bench_j1..bench_j5` joints; it does not yet follow the
-> `bench_2s_10m` joints `bench_j6..bench_j10`.
+The bench's joints are the non-fixed joints of `/robot_description`, so it works on either board.
 
 A draggable alternative on the real bench: run the slider GUI with its output remapped onto the
 reference topic (interactive, but each drag is a step the controller does not interpolate):

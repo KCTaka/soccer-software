@@ -31,8 +31,6 @@ from std_msgs.msg import String
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bench_trajectories_core as core  # noqa: E402
 
-BENCH_JOINTS = ["bench_j1", "bench_j2", "bench_j3", "bench_j4", "bench_j5"]
-
 
 class BenchTrajectories(Node):
     def __init__(self):
@@ -63,10 +61,11 @@ class BenchTrajectories(Node):
                        reliability=ReliabilityPolicy.RELIABLE))
 
         self._measured = {}   # joint -> (pos, effort)
-        self._limits = None   # joint -> (lower, upper), set when URDF arrives
+        self._movable = None  # the URDF's non-fixed joints, in order, set when the URDF arrives
+        self._limits = {}     # joint -> (lower, upper)
         self.q0 = {}
         self._records = []    # (t, {joint: (cmd, meas, effort)})
-        self._drift = {j: 0.0 for j in BENCH_JOINTS if j not in self.joints}  # non-active max drift
+        self._drift = {}      # non-active joint -> max drift from q0
 
     # --- callbacks ---
     def _on_js(self, msg):
@@ -75,12 +74,16 @@ class BenchTrajectories(Node):
             self._measured[name] = (pos, e)
 
     def _on_urdf(self, msg):
-        limits = {}
+        movable, limits = [], {}
         for joint in ET.fromstring(msg.data).findall("joint"):
+            if joint.get("type") == "fixed":
+                continue
+            movable.append(joint.get("name"))
             lim = joint.find("limit")
             if lim is not None and lim.get("lower") is not None and lim.get("upper") is not None:
                 limits[joint.get("name")] = (float(lim.get("lower")), float(lim.get("upper")))
         self._limits = limits
+        self._movable = movable
 
     # --- startup ---
     def _wait(self, predicate, timeout_s):
@@ -92,19 +95,21 @@ class BenchTrajectories(Node):
         return False
 
     def prepare(self):
-        """Capture q0 and limits; validate joints and limits. Returns an error string, or None."""
-        if not self._wait(lambda: all(j in self._measured for j in BENCH_JOINTS), 3.0):
-            missing = [j for j in BENCH_JOINTS if j not in self._measured]
-            return f"no /joint_states with all bench joints within 3 s (missing {missing}); " \
-                   "is the bench running (bench.launch.py sim:=false)?"
-        self.q0 = {j: self._measured[j][0] for j in BENCH_JOINTS}
-
-        if not self._wait(lambda: self._limits is not None, 3.0):
+        """Capture the bench's joints, q0 and limits; validate the request. Returns an error string,
+        or None. The bench's joints are the URDF's non-fixed joints: every reference names all of
+        them, holding the inactive ones at q0."""
+        if not self._wait(lambda: self._movable is not None, 3.0):
             return "no /robot_description within 3 s; is robot_state_publisher running?"
 
+        if not self._wait(lambda: all(j in self._measured for j in self._movable), 3.0):
+            missing = [j for j in self._movable if j not in self._measured]
+            return f"no /joint_states with all bench joints within 3 s (missing {missing}); " \
+                   "is the bench running (bench.launch.py sim:=false)?"
+        self.q0 = {j: self._measured[j][0] for j in self._movable}
+
         for j in self.joints:
-            if j not in BENCH_JOINTS:
-                return f"requested joint {j!r} is not a bench joint {BENCH_JOINTS}"
+            if j not in self._movable:
+                return f"requested joint {j!r} is not a bench joint {self._movable}"
             if j not in self._limits:
                 return f"no URDF <limit> for joint {j!r}; cannot bound the trajectory"
 
@@ -117,6 +122,7 @@ class BenchTrajectories(Node):
                         f"software limit [{lower:.3f}, {upper:.3f}] by {over:.3f} rad; "
                         "reduce amplitude_rad/step_rad or re-zero")
         self._traj = traj
+        self._drift = {j: 0.0 for j in self._movable if j not in self.joints}
         return None
 
     # --- run ---
@@ -124,11 +130,11 @@ class BenchTrajectories(Node):
         """deltas: joint -> (pos_delta, vel). Non-active joints are held at q0 (delta 0, vel 0)."""
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.name = list(BENCH_JOINTS)
-        for j in BENCH_JOINTS:
+        msg.name = list(self._movable)
+        for j in self._movable:
             d, v = deltas.get(j, (0.0, 0.0))
             pos = self.q0[j] + d
-            if self._limits and j in self._limits:
+            if j in self._limits:
                 lo, hi = self._limits[j]
                 pos = min(max(pos, lo), hi)
             msg.position.append(pos)
