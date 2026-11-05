@@ -71,8 +71,12 @@ reference.
 
 | Command | Result |
 |---|---|
-| vx 0.3 m/s | walked 44 s at 0.31 m/s, pelvis height steady at 0.77 m, no safety stops |
-| vx 0.5 m/s | walked 25 s at 0.48 m/s, no safety stops |
+| vx 0.3 m/s | walked 42 s at 0.32 m/s, pelvis 0.76 to 0.77 m, no safety stops |
+| vx 0.5 m/s | 3 runs, each walked 27 s at 0.54 m/s, pelvis 0.75 to 0.77 m, no safety stops |
+
+Measured 2026-11-05 with the MIT law in MuJoCo actuators, with no MuJoCo instability warning in
+any run. Earlier figures were taken while the simulation went unstable and reset itself about
+1.5 s into each run, so they are not comparable.
 
 Not yet tested: pushes, uneven ground, yaw tracking (heading wanders at zero yaw command), and any
 hardware.

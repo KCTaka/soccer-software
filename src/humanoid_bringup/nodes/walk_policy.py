@@ -14,6 +14,7 @@ import numpy as np
 import rclpy
 import yaml
 from geometry_msgs.msg import Twist
+from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import QoSProfile, ReliabilityPolicy
@@ -76,7 +77,11 @@ class WalkPolicy(Node):
         self.create_subscription(Imu, '/imu_sensor_broadcaster/imu', self._on_imu, _BEST_EFFORT)
         self.create_subscription(JointState, '/joint_states', self._on_joints, _BEST_EFFORT)
         self.create_subscription(Twist, 'cmd_vel', self._on_cmd, 1)
-        self.create_timer(1.0 / self.rate_hz, self._tick)
+        # Steady time, not ROS (system) time: the system clock can be stepped (NTP; WSL2 steps it back
+        # ~0.45 s every ~30 s), and a step stalls a system-clock timer while the controller holds a
+        # mid-stride reference, which drops the robot.
+        self._steady = Clock(clock_type=ClockType.STEADY_TIME)
+        self.create_timer(1.0 / self.rate_hz, self._tick, clock=self._steady)
         self.get_logger().info(
             f'walk_policy: {self.policy_path}, {self.rate_hz:g} Hz, ramp {self.ramp_s:g} s')
 
@@ -94,7 +99,7 @@ class WalkPolicy(Node):
         return lower + self.limit_margin_rad, upper - self.limit_margin_rad
 
     def _now(self):
-        return self.get_clock().now().nanoseconds * 1e-9
+        return self._steady.now().nanoseconds * 1e-9
 
     def _on_imu(self, msg):
         q = msg.orientation
