@@ -43,6 +43,18 @@ jobs:
           --load
           .
 
+      # Schema, structural checks, and regenerate-and-diff of every robot in model/robots.yaml.
+      # Before the build, so a stale or hand-edited generated file fails fast.
+      - name: Check generated model
+        run: >-
+          docker run --rm
+          --platform ${{ matrix.platform }}
+          --volume "$GITHUB_WORKSPACE:/ws:ro"
+          --workdir /ws
+          --entrypoint /bin/bash
+          local/builder:${{ github.sha }}
+          -c 'python3 -m model.generators.cli check'
+
       - name: Build workspace
         run: >-
           docker run --rm
