@@ -8,7 +8,7 @@
     It has no ROS dependency on purpose. A safety gate that needs a middleware to run cannot be
     tested exhaustively and cannot be trusted when the middleware is the thing that failed.
   </description>
-  <maintainer email="unassigned@example.invalid">Robotics Software Team</maintainer>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

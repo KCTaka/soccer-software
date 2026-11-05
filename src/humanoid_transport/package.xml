@@ -9,7 +9,7 @@
     hardware_interface, or on any bus library, so that a transport implementation can be
     unit-tested without a middleware or a robot.
   </description>
-  <maintainer email="unassigned@example.invalid">Robotics Software Team</maintainer>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

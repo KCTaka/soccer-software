@@ -9,7 +9,7 @@
     Reads desired references from a bounded lock-free SPSC buffer written by a non-real-time
     producer. Never communicates over ROS, allocates, or logs inside update().
   </description>
-  <maintainer email="unassigned@example.invalid">Robotics Software Team</maintainer>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
