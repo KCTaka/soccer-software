@@ -1,0 +1,48 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid (shin frame, ankle axis)
+      Enabled: true
+      Reference Frame: left_shin_link
+      Plane: XY
+      Plane Cell Count: 10
+      Cell Size: 0.05
+    - Class: rviz_default_plugins/RobotModel
+      Name: Leg prototype
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        History Policy: Keep Last
+        Depth: 1
+      Visual Enabled: true
+      Collision Enabled: false
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Names: true
+  Global Options:
+    Fixed Frame: left_shin_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+      Serialization Version: 1
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 0.6
+      Focal Point: {X: 0, Y: 0, Z: 0.06}
+      Target Frame: <Fixed Frame>
+      Pitch: 0.2
+      Yaw: 1.57

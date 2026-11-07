@@ -1,0 +1,6 @@
+# HIL: HumanoidActuatorSystem runs Stm32SerialTransport to the master STM32 and the RS02 behind it.
+# leg.launch.py adds the generated stm32_wiring.yaml and serial_device. The motors are armed.
+humanoidactuatorsystem:
+  ros__parameters:
+    transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
+    accepted_degradation: "none"

@@ -39,6 +39,26 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/bench_1s_5m/generated/safety_manifest.yaml"
     DESTINATION share/${PROJECT_NAME}/config/bench_1s_5m)
 
+# Leg prototype: the generated description for both modes, the safety manifest and STM32 wiring the
+# hardware component and transport load, and the MJCF SIL simulates. The meshes keep their
+# repo-relative layout, which both robot.xml's meshdir and the URDF's package:// URIs assume.
+# controllers.yaml, sil.yaml and hil.yaml ship with the install(DIRECTORY config ...) above.
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated/robot.urdf"
+    DESTINATION share/${PROJECT_NAME}/config
+    RENAME leg_prototype_description.urdf)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated/stm32_wiring.yaml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated/safety_manifest.yaml"
+    DESTINATION share/${PROJECT_NAME}/config/leg_prototype)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated/scene.xml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated/robot.xml"
+    DESTINATION share/${PROJECT_NAME}/model/robots/leg_prototype/generated)
+install(DIRECTORY
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/source/meshes"
+    DESTINATION share/${PROJECT_NAME}/model/robots/leg_prototype/source)
+
 # SIL model: scene.xml includes robot.xml from its own directory, and the MJCF
 # locates its meshes through a relative meshdir (../source/menagerie/unitree_g1/assets),
 # so all are installed with the same relative layout under share/${PROJECT_NAME}/model.
@@ -70,6 +90,7 @@ if(BUILD_TESTING)
   ament_add_pytest_test(walk_policy_core_test test/test_walk_policy_core.py)
   ament_add_pytest_test(bench_trajectories_core_test test/test_bench_trajectories_core.py)
   ament_add_pytest_test(sil_stand_config_test test/test_sil_stand_config.py)
+  ament_add_pytest_test(leg_config_test test/test_leg_config.py)
 endif()
 
 ament_package()

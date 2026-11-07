@@ -1,0 +1,24 @@
+# Controller config for the leg prototype, shared by SIL and HIL (leg.launch.py adds sil.yaml or
+# hil.yaml, which choose the transport).
+#
+# Controllers work in joint space: humanoid_mit_controller commands left_ankle_pitch_joint, the
+# ankle. HumanoidActuatorSystem maps that tuple through the four-bar linkage to the RS02 on
+# left_ankle_motor_joint, and reports the ankle, the motor's joint and the rod back through it.
+controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz; checked against humanoid_transport/timing.hpp at configure
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    humanoid_mit_controller:
+      type: humanoid_mit_controller/MitImpedanceController
+humanoid_mit_controller:
+  ros__parameters:
+    joints:
+      - left_ankle_pitch_joint
+    # Ankle impedance [N*m/rad], [N*m*s/rad]. kp holds the foot's gravity torque (~0.07 N*m with the
+    # provisional CAD masses) to under 0.01 rad; with the ankle's ~3e-3 kg*m^2 (foot plus the
+    # reflected RS02 armature estimate) kd gives a damping ratio near 0.85. Through the linkage the
+    # motor sees ratio^2 times these, at most 1.49x: well inside the RS02's 500 / 5 caps. The
+    # pre-reference fallback holds the measured position with them, so the foot is never limp.
+    default_kp: 10.0
+    default_kd: 0.3
