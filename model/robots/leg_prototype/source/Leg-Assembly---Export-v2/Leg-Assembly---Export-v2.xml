@@ -1,0 +1,32 @@
+<mujoco model="Leg-Assembly---Export-v2">
+    <compiler angle="radian" eulerseq="XYZ" inertiafromgeom="false" />
+    <option timestep="0.002" integrator="implicitfast" />
+    <asset>
+        <mesh name="Left-Foot-v3_1" file="meshes/Left-Foot-v3_1.stl" scale="0.001 0.001 0.001" />
+        <mesh name="Left-Ankle-Rod-v1_1" file="meshes/Left-Ankle-Rod-v1_1.stl" scale="0.001 0.001 0.001" />
+        <mesh name="Left-Shin-v3_1" file="meshes/Left-Shin-v3_1.stl" scale="0.001 0.001 0.001" />
+        <mesh name="Left-Ankle-Horn-v2_1" file="meshes/Left-Ankle-Horn-v2_1.stl" scale="0.001 0.001 0.001" />
+    </asset>
+    <worldbody>
+        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
+        <body name="Left-Foot-v3_1" pos="0.0 0.0 0.0" euler="0.0 -0.0 0.0">
+            <geom name="Left-Foot-v3_1_geom" type="mesh" mesh="Left-Foot-v3_1" pos="0 0 0" euler="0 0 0" contype="0" conaffinity="0" group="2" />
+            <inertial mass="0.5929643967345588" pos="0.00013265703275164273 -0.008728752859240999 0.007110745926894939" fullinertia="0.0011989499419270081 0.0001886249067422313 0.0013033388048518976 4.593494315981966e-06 -2.002674980171747e-06 6.631216161170218e-05" />
+            <body name="Left-Ankle-Rod-v1_1" pos="0.011600000000000001 -0.06 0.026000000089406936" euler="-0.3544204560624314 9.481109043189683e-17 -3.1415926535897927">
+                <joint name="Revolute-15" type="hinge" axis="-0.9999999999999972 8.580196325893218e-16 1.3626495268246347e-16" pos="0.0024999999999999935 3.1028398040698845e-11 -8.385009702940976e-11" />
+                <geom name="Left-Ankle-Rod-v1_1_geom" type="mesh" mesh="Left-Ankle-Rod-v1_1" pos="0 0 0" euler="0 0 0" contype="0" conaffinity="0" group="2" />
+                <inertial mass="0.06071574629167045" pos="0.0024999999999999888 0.005933922947112685 0.05999999999996283" fullinertia="9.101529039660258e-05 8.913161130496122e-05 2.1366613678577246e-06 -4.6857197588307347e-20 2.5404718877377355e-20 -7.535205098774256e-18" />
+            </body>
+            <body name="Left-Shin-v3_1" pos="-0.040000000000000036 -0.019999999999999983 0.07599999999999986" euler="8.6570421750432175e-16 1.942890293094024e-16 -1.5707963267948966">
+                <joint name="Revolute-16" type="hinge" axis="-1.5814491093658117e-16 -1.0000000000000009 2.2417341655494092e-17" pos="3.338748266270142e-17 0.04000000000000003 -0.0499999999999997" />
+                <geom name="Left-Shin-v3_1_geom" type="mesh" mesh="Left-Shin-v3_1" pos="0 0 0" euler="0 0 0" contype="0" conaffinity="0" group="2" />
+                <inertial mass="2.6340103711477476" pos="-0.00089933765726595 0.03615504645412825 0.03801257987288542" fullinertia="0.00725875808593273 0.006083270016059173 0.0020828979066035017 6.917586500820776e-05 7.44722211263307e-05 0.0003165967944997427" />
+                <body name="Left-Ankle-Horn-v2_1" pos="-3.7747582837255325e-17 0.05659999999999997 0.07000000000000017" euler="1.5707963267948968 1.5707963267948952 0">
+                    <joint name="Revolute-17" type="hinge" axis="1.0633161588099392e-15 4.5064792263530413e-17 -1.000000000000001" pos="-1.4366913240867003e-16 3.448717147512378e-17 0.004599999999999988" />
+                    <geom name="Left-Ankle-Horn-v2_1_geom" type="mesh" mesh="Left-Ankle-Horn-v2_1" pos="0 0 0" euler="0 0 0" contype="0" conaffinity="0" group="2" />
+                    <inertial mass="0.034798542271249504" pos="1.053465658086667e-14 0.025944877072215048 0.005512954561621088" fullinertia="1.5814108127555874e-05 2.7199197487595447e-06 1.676901729209989e-05 -1.2087852848611053e-17 9.949798833936797e-19 -2.1304796489582323e-06" />
+                </body>
+            </body>
+        </body>
+    </worldbody>
+</mujoco>
