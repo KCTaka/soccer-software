@@ -80,11 +80,14 @@ ros2 run rmw_zenoh_cpp rmw_zenohd
 ```bash
 ros2 launch humanoid_bringup sil_stand.launch.py   # MuJoCo SIL stand scenario (G1)
 ros2 launch humanoid_bringup bench.launch.py       # dial bench, slider view, no hardware
+ros2 launch humanoid_bringup leg.launch.py         # leg prototype on its stand, MuJoCo SIL
 ```
 
 ## Docs
 
 - [docs/bench.md](docs/bench.md): the dial benches, simulated and real
+- [docs/leg-prototype.md](docs/leg-prototype.md): the leg prototype, its four-bar ankle, SIL, and
+  the first hardware session
 - [docs/transport-stm32.md](docs/transport-stm32.md): the STM32 transport and first contact with hardware
 - [docs/dev-container.md](docs/dev-container.md): the container's display handling and SIL viewers
 - [docs/model-second-robot.md](docs/model-second-robot.md): adding a robot to `model/`
