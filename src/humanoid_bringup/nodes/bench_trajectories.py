@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Publish reference trajectories to MitImpedanceController for bench testing.
 
-Runs in its own terminal against an already-running real bench (bench.launch.py sim:=false). It
-captures the measured pose q0 from /joint_states, then streams sensor_msgs/JointState references
-(position + velocity feed-forward) on /humanoid_mit_controller/joint_references, centring the active
-joints' trajectory on their own q0 and holding every other joint at its q0. The trajectory math is
-in bench_trajectories_core (pure, unit-tested); this node is the ROS wrapper.
+Runs in its own terminal against an already-running robot: a real bench (bench.launch.py
+sim:=false) or the leg prototype (leg.launch.py, SIL or HIL). It captures the measured pose q0 of
+the joints the description commands from /joint_states, then streams sensor_msgs/JointState
+references (position + velocity feed-forward) on /humanoid_mit_controller/joint_references,
+centring the active joints' trajectory on their own q0 and holding every other joint at its q0.
+The trajectory math is in bench_trajectories_core (pure, unit-tested); this node is the ROS
+wrapper.
 
   ros2 run humanoid_bringup bench_trajectories --ros-args -p mode:=sine -p joints:=[bench_j1] \
       -p amplitude_rad:=0.2 -p frequency_hz:=0.25
@@ -61,7 +63,7 @@ class BenchTrajectories(Node):
                        reliability=ReliabilityPolicy.RELIABLE))
 
         self._measured = {}   # joint -> (pos, effort)
-        self._movable = None  # the URDF's non-fixed joints, in order, set when the URDF arrives
+        self._movable = None  # the commanded joints, in description order, set when it arrives
         self._limits = {}     # joint -> (lower, upper)
         self.q0 = {}
         self._records = []    # (t, {joint: (cmd, meas, effort)})
@@ -74,11 +76,14 @@ class BenchTrajectories(Node):
             self._measured[name] = (pos, e)
 
     def _on_urdf(self, msg):
-        movable, limits = [], {}
-        for joint in ET.fromstring(msg.data).findall("joint"):
-            if joint.get("type") == "fixed":
-                continue
-            movable.append(joint.get("name"))
+        # The commanded joints are the <ros2_control> joints with command interfaces, in the order
+        # the controller reads references by. A linkage's input and coupler are state-only: the
+        # hardware component derives them, and a reference must not name them.
+        robot = ET.fromstring(msg.data)
+        movable = [j.get("name") for c in robot.findall("ros2_control") for j in c.findall("joint")
+                   if j.find("command_interface") is not None]
+        limits = {}
+        for joint in robot.findall("joint"):
             lim = joint.find("limit")
             if lim is not None and lim.get("lower") is not None and lim.get("upper") is not None:
                 limits[joint.get("name")] = (float(lim.get("lower")), float(lim.get("upper")))
@@ -95,21 +100,21 @@ class BenchTrajectories(Node):
         return False
 
     def prepare(self):
-        """Capture the bench's joints, q0 and limits; validate the request. Returns an error string,
-        or None. The bench's joints are the URDF's non-fixed joints: every reference names all of
-        them, holding the inactive ones at q0."""
+        """Capture the commanded joints, q0 and limits; validate the request. Returns an error
+        string, or None. Every reference names all the commanded joints, holding the inactive ones
+        at q0."""
         if not self._wait(lambda: self._movable is not None, 3.0):
             return "no /robot_description within 3 s; is robot_state_publisher running?"
 
         if not self._wait(lambda: all(j in self._measured for j in self._movable), 3.0):
             missing = [j for j in self._movable if j not in self._measured]
-            return f"no /joint_states with all bench joints within 3 s (missing {missing}); " \
-                   "is the bench running (bench.launch.py sim:=false)?"
+            return f"no /joint_states with all commanded joints within 3 s (missing {missing}); " \
+                   "is the robot running (bench.launch.py sim:=false, or leg.launch.py)?"
         self.q0 = {j: self._measured[j][0] for j in self._movable}
 
         for j in self.joints:
             if j not in self._movable:
-                return f"requested joint {j!r} is not a bench joint {self._movable}"
+                return f"requested joint {j!r} is not a commanded joint {self._movable}"
             if j not in self._limits:
                 return f"no URDF <limit> for joint {j!r}; cannot bound the trajectory"
 
