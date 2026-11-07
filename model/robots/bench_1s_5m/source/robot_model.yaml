@@ -4,6 +4,7 @@ schema_version: 1.0.0
 robot:
   name: bench_1s_5m
   root_link: extrusion_base
+  base: fixed
 links:
 - name: extrusion_base
   parent_joint: null

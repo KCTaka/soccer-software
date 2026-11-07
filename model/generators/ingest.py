@@ -301,7 +301,8 @@ def ingest(config_path, out_path, overlay_out_path):
 
     model = {
         "schema_version": SCHEMA_VERSION,
-        "robot": {"name": cfg["model_name"], "root_link": ctx.root_link},
+        "robot": {"name": cfg["model_name"], "root_link": ctx.root_link,
+                  "base": "floating" if ctx.floating_root else "fixed"},
         "links": ctx.links,
         "joints": ctx.joints,
         **({"home": home} if home is not None else {}),
@@ -321,7 +322,7 @@ def ingest(config_path, out_path, overlay_out_path):
     for w in ctx.warnings:
         print(f"WARN: {w}", file=sys.stderr)
     if not ctx.floating_root:
-        print("WARN: source has no free joint on root; emitter will add one", file=sys.stderr)
+        print("WARN: source has no free joint on root; imported with base: fixed", file=sys.stderr)
     print(f"ingested {len(ctx.links)} links, {len(ctx.joints)} joints, "
           f"{len(ctx.actuators)} actuators -> {out_path}")
 

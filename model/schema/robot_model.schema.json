@@ -151,7 +151,8 @@
           "description": "Unit vector in the joint frame; positive motion follows the right-hand rule about it. Validator check K-02 enforces the unit norm, so a typo is rejected rather than normalised into a different axis."
         },
         "limits": {
-          "type": "object",
+          "description": "Null only for a linkage's input and coupler joints, whose range the linkage derives from its output joint's (validator check L-04).",
+          "type": ["object", "null"],
           "additionalProperties": false,
           "required": [
             "hard_stop_lower_rad",
@@ -189,8 +190,8 @@
           ],
           "properties": {
             "direction_sign": {
-              "enum": [-1, 1],
-              "description": "Relates the motor's encoder angle to this joint's angle: joint = direction_sign * (motor - zero_offset_rad). A property of how the motor is mounted, so it lives here and not in `axis`: flipping the axis instead would change the joint-space convention every controller and policy depends on."
+              "enum": [-1, 1, null],
+              "description": "Null for a joint no motor drives (a linkage's output and coupler joints, validator check L-04). Relates the motor's encoder angle to this joint's angle: joint = direction_sign * (motor - zero_offset_rad). A property of how the motor is mounted, so it lives here and not in `axis`: flipping the axis instead would change the joint-space convention every controller and policy depends on."
             },
             "friction_coulomb_nm": { "type": "number", "minimum": 0 },
             "friction_viscous_nm_s_rad": { "type": "number", "minimum": 0 },
@@ -211,7 +212,7 @@
         },
         "actuator": {
           "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }],
-          "description": "Name of an entry in `actuators`. Null only for `fixed` joints. Validator check A-01."
+          "description": "Name of an entry in `actuators`: the motor that turns this joint. Null for `fixed` joints and for the passive joints of a linkage (its output and coupler). Validator check A-01."
         }
       }
     },
@@ -259,6 +260,30 @@
           "description": "Hold damping for this joint, within its motor model's kd_max (A-04)."
         }
       }
+    },
+
+    "linkage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "input_joint", "output_joint", "coupler_joint", "closure"],
+      "description": "A closed loop the kinematic tree cuts open. planar_four_bar: the input and output joints share a parent (the ground link), the coupler joint hangs from the output joint's child, and the closure pin joins the coupler joint's child to the input joint's child. All four axes are parallel. Controllers command the output joint; the motor turns the input joint. Validator checks L-01 to L-05.",
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "type": { "const": "planar_four_bar" },
+        "input_joint": { "$ref": "#/$defs/identifier", "description": "The crank the actuator turns." },
+        "output_joint": { "$ref": "#/$defs/identifier", "description": "The joint controllers command." },
+        "coupler_joint": { "$ref": "#/$defs/identifier", "description": "The rod's pin on the output link." },
+        "closure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coupler_point_m", "input_point_m"],
+          "description": "The pin the tree cannot hold, as a point in each of the two links it joins. The two must coincide at the zero pose (L-03), so qpos0 closes the loop.",
+          "properties": {
+            "coupler_point_m": { "$ref": "#/$defs/vector3", "description": "Pin centre in the coupler joint's child link frame." },
+            "input_point_m": { "$ref": "#/$defs/vector3", "description": "The same pin in the input joint's child link frame." }
+          }
+        }
+      }
     }
   },
 
@@ -270,11 +295,16 @@
       "additionalProperties": false,
       "required": [
         "name",
-        "root_link"
+        "root_link",
+        "base"
       ],
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
-        "root_link": { "$ref": "#/$defs/identifier" }
+        "root_link": { "$ref": "#/$defs/identifier" },
+        "base": {
+          "enum": ["floating", "fixed"],
+          "description": "floating: the root moves freely (a free joint in MJCF), and robot.xml stands it on the floor. fixed: the root is bolted to the world, as on a test stand or a bench, and robot.xml lifts it just clear of the floor over every commanded joint's range."
+        }
       }
     },
 
@@ -291,7 +321,7 @@
 
     "home": {
       "type": "object",
-      "description": "Optional nominal standing pose: the angle of every non-fixed joint, rad. Emitted as scene.xml's `home` keyframe with the root height derived from collision geometry. Validator check H-01 requires every non-fixed joint, each within its software limits.",
+      "description": "Optional nominal standing pose: the angle of every commanded joint (every non-fixed joint except a linkage's input and coupler, which the linkage sets), rad. Emitted as scene.xml's `home` keyframe with the root height derived from collision geometry. Validator check H-01 requires every commanded joint, each within its software limits.",
       "propertyNames": { "$ref": "#/$defs/identifier" },
       "additionalProperties": { "type": "number" }
     },
@@ -299,6 +329,12 @@
     "actuators": {
       "type": "array",
       "items": { "$ref": "#/$defs/actuator" }
+    },
+
+    "linkages": {
+      "type": "array",
+      "description": "Optional. The closed loops of the mechanism; see $defs/linkage.",
+      "items": { "$ref": "#/$defs/linkage" }
     },
 
     "imu": {
