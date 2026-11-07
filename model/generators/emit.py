@@ -13,9 +13,19 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import yaml
 
+from . import linkage
 from .common import quat_to_rpy, rpy_to_quat
 
 TIMING_HPP = "src/humanoid_transport/include/humanoid_transport/timing.hpp"
+FOUR_BAR_PLUGIN = "humanoid_actuator_system/FourBarLinkage"
+# A linkage's closure in MJCF: a connect equality between two sites. MuJoCo's constraints are soft,
+# so the pin stretches under load. solref's time constant is two 1 ms timesteps, the smallest that
+# stays stable, and solimp's impedance the largest MuJoCo accepts. Measured on leg_prototype: under
+# 1 um at the RS02's 17 N*m held statically, 11 um transiently on a 0.2 rad step at kp 10 N*m/rad
+# (0.4-0.6 mm at kp 200-330, the drive saturated). The input joint's armature is what keeps it
+# small: see validator check L-06 and docs/leg-prototype.md.
+LINKAGE_SOLREF = "0.002 1"
+LINKAGE_SOLIMP = "0.9999 0.9999 0.001 0.5 2"
 
 # Provisional envelope constants until G3 actuator characterisation.
 PROV_KP_MAX, PROV_KD_MAX = 500.0, 10.0
@@ -61,11 +71,26 @@ def children_by_parent(joints):
 def fmt(xs):
     return " ".join(f"{x:.10g}" for x in xs)
 
+def mesh_file(mesh, disk_assets):
+    """The file in the assets directory (listing `disk_assets`) holding mesh `mesh`.
+    Deterministic: scan a sorted list, and prefer an exact match over a prefix one (os.listdir
+    order must never decide "pelvis" -> pelvis.STL vs pelvis_contour_link.STL)."""
+    names = sorted(disk_assets)
+    found = next((f for f in names if f == mesh or os.path.splitext(f)[0] == mesh), None)
+    if found is None:  # suffixes like torso_link_rev_1_0.STL
+        found = next((f for f in names if os.path.splitext(f)[0].startswith(mesh)), None)
+    if found is None:  # nothing on disk matched
+        found = mesh if "." in mesh else f"{mesh}.STL"
+    return found
+
 def emit_urdf(model, out_path, assets_dir,
               safety_manifest_path="config/safety_manifest.yaml",
               safety_manifest_package="humanoid_bringup"):
-    links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
+    drives = linkage.drives(model)
+    drive_by_input = {d["actuated_joint"]: d for d in drives if d["linkage"] is not None}
+    coupler_by_joint = {d["coupler"]["joint"]: d["coupler"] for d in drives
+                        if d["coupler"] is not None}
     robot = ET.Element("robot", name=model["robot"]["name"])
 
     # Index actual files on disk (case-insensitive mapping). A primitive-only robot has no assets.
@@ -94,34 +119,12 @@ def emit_urdf(model, out_path, assets_dir,
             iyz=f"{inertia['iyz_kg_m2']:.10g}",
         )
 
-        mesh = l.get("visual_mesh")
-        if mesh:
-            # Find the actual filename on disk matching this mesh name. Deterministic: scan a
-            # sorted list, and prefer an exact match over a prefix one (os.listdir order must never
-            # decide "pelvis" -> pelvis.STL vs pelvis_contour_link.STL).
-            def _match(names, mesh=mesh):
-                for fname in names:
-                    stem = os.path.splitext(fname)[0]
-                    if fname == mesh or stem == mesh:
-                        return fname
-                for fname in names:  # suffixes like torso_link_rev_1_0.STL
-                    if os.path.splitext(fname)[0].startswith(mesh):
-                        return fname
-                return None
-
-            mesh_file = _match(sorted(disk_assets))
-            # Fallback to appending .STL if no file on disk matched
-            if not mesh_file:
-                mesh_file = mesh if "." in mesh else f"{mesh}.STL"
-
-            mesh_uri = f"{assets_uri}/{mesh_file}"
-
-            for tag in ("visual", "collision"):
+        for tag, mesh in (("visual", l.get("visual_mesh")), ("collision", l["collision"]["mesh"])):
+            if mesh:
                 ve = ET.SubElement(le, tag)
-                oe = ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
-                ET.SubElement(ve, "geometry").append(
-                    ET.Element("mesh", filename=mesh_uri)
-                )
+                ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
+                ET.SubElement(ve, "geometry").append(ET.Element(
+                    "mesh", filename=f"{assets_uri}/{mesh_file(mesh, disk_assets)}"))
 
         def add_primitive(tag, prim, le=le):
             ve = ET.SubElement(le, tag)
@@ -188,14 +191,20 @@ def emit_urdf(model, out_path, assets_dir,
         if j["type"] != "fixed":
             ET.SubElement(je, "axis", xyz=fmt(j["axis"]))
         lim = j["limits"]
-        ET.SubElement(
-            je,
-            "limit",
-            lower=f"{lim['software_lower_rad']:.10g}",
-            upper=f"{lim['software_upper_rad']:.10g}",
-            effort=f"{lim['effort_peak_nm']:.10g}",
-            velocity=f"{lim['velocity_rad_s']:.10g}",
-        )
+        if lim is not None:
+            bounds = (lim["software_lower_rad"], lim["software_upper_rad"], lim["effort_peak_nm"],
+                      lim["velocity_rad_s"])
+        elif j["name"] in drive_by_input:
+            # A linkage's input: the image of its output's range, and the bounds that implies.
+            dl = drive_by_input[j["name"]]["limits"]
+            bounds = (dl["position_min_rad"], dl["position_max_rad"], dl["effort_peak_nm"],
+                      dl["velocity_rad_s"])
+        else:
+            # A linkage's coupler: a free pin, which carries no torque about its axis.
+            c = coupler_by_joint[j["name"]]
+            bounds = (c["position_min_rad"], c["position_max_rad"], 0.0, c["velocity_rad_s"])
+        ET.SubElement(je, "limit", lower=f"{bounds[0]:.10g}", upper=f"{bounds[1]:.10g}",
+                      effort=f"{bounds[2]:.10g}", velocity=f"{bounds[3]:.10g}")
         tr = j["transmission"]
         ET.SubElement(
             je,
@@ -227,14 +236,22 @@ def emit_urdf(model, out_path, assets_dir,
     ET.SubElement(hw, "param", name="safety_manifest_package").text = (
         safety_manifest_package
     )
-    for j in joints:
-        if j["type"] == "fixed":
-            continue
-        je = ET.SubElement(rc, "joint", name=j["name"])
+    # Controllers command the commanded joints. A linkage's input and coupler are state-only: the
+    # hardware component derives them through the linkage, which <transmission> describes.
+    for d in drives:
+        je = ET.SubElement(rc, "joint", name=d["joint"])
         for c in CMD_INTERFACES:
             ET.SubElement(je, "command_interface", name=c)
         for s in STATE_INTERFACES:
             ET.SubElement(je, "state_interface", name=s)
+    for j in joints:
+        if j["name"] in linkage.members(model):
+            je = ET.SubElement(rc, "joint", name=j["name"])
+            for s in STATE_INTERFACES:
+                ET.SubElement(je, "state_interface", name=s)
+    for d in drives:
+        if d["linkage"] is not None:
+            emit_transmission(rc, d)
     if imu is not None:
         se = ET.SubElement(rc, "sensor", name=imu["name"])
         for s in IMU_INTERFACES:
@@ -245,26 +262,34 @@ def emit_urdf(model, out_path, assets_dir,
         out_path, xml_declaration=True, encoding="utf-8"
     )
 
-def standing_qpos(mjcf_xml, root_link, joint_angles):
-    """qpos with the joints at `joint_angles` (joint name -> rad; the rest at 0) and the root, at the
-    origin in `mjcf_xml`, raised until the robot's lowest collision geom sits on z = 0. The
-    bounding-box rule of SIL's lowest_collision_z (src/humanoid_transport_mujoco/src/
-    mujoco_placement.cpp), applied by MuJoCo to its own collision geometry, so the height is
-    derived, never typed. Rounded up to the micrometre: the robot never starts inside the floor,
-    and float noise cannot flip the output. The root's free joint is the first joint (qpos[0:7])."""
+def emit_transmission(rc, drive):
+    """A linkage as a ros2_control <transmission>: the joint controllers command (role output),
+    the joint the motor turns (the actuator, role input), the coupler, and the planar four-bar's
+    parameters (linkage.planar_parameters). HumanoidActuatorSystem builds its FourBarLinkage from
+    them; ros2_control's transmission_interface, whose transmissions are linear, never sees it."""
+    lk = drive["linkage"]
+    te = ET.SubElement(rc, "transmission", name=lk["name"])
+    ET.SubElement(te, "plugin").text = FOUR_BAR_PLUGIN
+    ET.SubElement(te, "actuator", name=lk["input_joint"], role="input")
+    ET.SubElement(te, "joint", name=lk["output_joint"], role="output")
+    ET.SubElement(te, "joint", name=lk["coupler_joint"], role="coupler")
+    for key, value in drive["four_bar"].p.items():
+        ET.SubElement(te, "param", name=key).text = (
+            str(value) if isinstance(value, int) else f"{value:.10g}")
+
+def _mujoco():
     try:
         import mujoco  # only robots that emit MJCF need it
     except ImportError as e:
-        raise RuntimeError("robot.xml derives its standing height with MuJoCo: install the mujoco "
-                           "Python package, or run in the dev container") from e
-    m = mujoco.MjModel.from_xml_string(mjcf_xml)
-    root = m.body(root_link).id
-    if m.jnt_type[0] != mujoco.mjtJoint.mjJNT_FREE or m.jnt_bodyid[0] != root:
-        raise ValueError(f"{root_link}: the first joint must be the root's free joint")
-    d = mujoco.MjData(m)
-    for name, angle in joint_angles.items():
-        d.qpos[m.joint(name).qposadr[0]] = angle
-    mujoco.mj_kinematics(m, d)
+        raise RuntimeError("robot.xml derives its placement with MuJoCo: install the mujoco Python "
+                           "package, or run in the dev container") from e
+    return mujoco
+
+def lowest_collision_z(m, d, root):
+    """The lowest world z of the collidable geometry of the tree rooted at `root`, or None: the
+    bounding-box rule of SIL's lowest_collision_z (src/humanoid_transport_mujoco/src/
+    mujoco_placement.cpp), applied by MuJoCo to its own collision geometry."""
+    mujoco = _mujoco()
     lowest = None
     for g in range(m.ngeom):
         b = m.geom_bodyid[g]
@@ -277,19 +302,77 @@ def standing_qpos(mjcf_xml, root_link, joint_angles):
         centre, half, rz = m.geom_aabb[g][:3], m.geom_aabb[g][3:], d.geom_xmat[g][6:9]
         bottom = d.geom_xpos[g][2] + rz @ centre - np.abs(rz) @ half
         lowest = bottom if lowest is None else min(lowest, bottom)
+    return lowest
+
+def standing_qpos(mjcf_xml, root_link, joint_angles):
+    """qpos with the joints at `joint_angles` (joint name -> rad; the rest at 0) and the root, at the
+    origin in `mjcf_xml`, raised until the robot's lowest collision geom sits on z = 0, so the
+    height is derived, never typed. Rounded up to the micrometre: the robot never starts inside the
+    floor, and float noise cannot flip the output. The root's free joint is the first joint
+    (qpos[0:7])."""
+    mujoco = _mujoco()
+    m = mujoco.MjModel.from_xml_string(mjcf_xml)
+    root = m.body(root_link).id
+    if m.jnt_type[0] != mujoco.mjtJoint.mjJNT_FREE or m.jnt_bodyid[0] != root:
+        raise ValueError(f"{root_link}: the first joint must be the root's free joint")
+    d = mujoco.MjData(m)
+    for name, angle in joint_angles.items():
+        d.qpos[m.joint(name).qposadr[0]] = angle
+    mujoco.mj_kinematics(m, d)
+    lowest = lowest_collision_z(m, d, root)
     if lowest is None:
         raise ValueError(f"{root_link}: no collidable geometry to stand on")
     qpos = [float(x) for x in d.qpos]
     qpos[2] = math.ceil(-lowest * 1e6) / 1e6
     return qpos
 
+def mount_height(mjcf_xml, model, samples=41):
+    """The root height of a fixed-base robot whose root, at the origin in `mjcf_xml`, is lifted just
+    clear of the floor: with each commanded joint swept over its hard stops (the others at 0, every
+    linkage closed), its collision geometry never goes below z = 0. Rounded up to the micrometre.
+    A test stand's real height is the operator's choice; this is the lowest one that never collides
+    with the floor, so a fixed-base scene stays contact-free."""
+    mujoco = _mujoco()
+    m = mujoco.MjModel.from_xml_string(mjcf_xml)
+    d = mujoco.MjData(m)
+    root = m.body(model["robot"]["root_link"]).id
+    by_output = {dr["joint"]: dr for dr in linkage.drives(model) if dr["linkage"] is not None}
+    lowest = None
+    for j in linkage.commanded_joints(model):
+        lim = j["limits"]
+        for q in np.linspace(lim["hard_stop_lower_rad"], lim["hard_stop_upper_rad"], samples):
+            mujoco.mj_resetData(m, d)
+            d.qpos[m.joint(j["name"]).qposadr[0]] = q
+            dr = by_output.get(j["name"])
+            if dr is not None:
+                q_in, q_cpl, _, _ = dr["four_bar"].from_output(float(q))
+                d.qpos[m.joint(dr["linkage"]["input_joint"]).qposadr[0]] = q_in
+                d.qpos[m.joint(dr["linkage"]["coupler_joint"]).qposadr[0]] = q_cpl
+            mujoco.mj_kinematics(m, d)
+            z = lowest_collision_z(m, d, root)
+            if z is not None:
+                lowest = z if lowest is None else min(lowest, z)
+    if lowest is None:
+        raise ValueError(f"{model['robot']['root_link']}: no collidable geometry to clear the "
+                         "floor")
+    return math.ceil(-lowest * 1e6) / 1e6
+
 def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
-    """Write robot.xml. Returns the standing qpos of the model's `home` pose, or None without one."""
+    """Write robot.xml. Returns the standing qpos of the model's `home` pose, or None without one.
+
+    Geometry comes from the contact overlay when the robot has one (G1, imported from Menagerie);
+    otherwise from the model: each link's visual mesh as a non-colliding geom (group 2) and its
+    collision primitives (group 3). A linkage's closure pin is a connect equality between two sites
+    that coincide at qpos0, and the linkage's bodies never collide with each other: their pins and
+    clearances are finer than the primitives, and the output joint's range models the hard stops."""
     links = {l["name"]: l for l in model["links"]}
     joints = model["joints"]
     kids = children_by_parent(joints)
     joint_by_child = {j["child_link"]: j for j in joints}
+    joints_by_name = {j["name"]: j for j in joints}
     imu = model.get("imu")
+    floating = model["robot"]["base"] == "floating"
+    linkages = model.get("linkages", [])
 
     mj = ET.Element("mujoco", model=model["robot"]["name"])
     comp = ET.SubElement(mj, "compiler")
@@ -298,21 +381,47 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     comp.set("meshdir", assets_rel.replace("\\", "/"))
 
     asset = ET.SubElement(mj, "asset")
-    meshes = overlay["meshes"] if overlay else {}
+    if overlay:
+        meshes = overlay["meshes"]
+    else:
+        disk_assets = os.listdir(assets_dir) if assets_dir and os.path.exists(assets_dir) else []
+        meshes = {mesh: mesh_file(mesh, disk_assets) for l in model["links"]
+                  for mesh in (l["visual_mesh"], l["collision"]["mesh"]) if mesh}
     for mname in sorted(k for k in meshes if k is not None):
         if meshes[mname]:
             ET.SubElement(asset, "mesh", name=mname, file=meshes[mname])
 
+    # Each linkage's closure pin: a site in each of the two links it joins.
+    sites = {}
+    for lk in linkages:
+        cl = lk["closure"]
+        sites.setdefault(joints_by_name[lk["coupler_joint"]]["child_link"], []).append(
+            (f"{lk['name']}_coupler_pin", cl["coupler_point_m"]))
+        sites.setdefault(joints_by_name[lk["input_joint"]]["child_link"], []).append(
+            (f"{lk['name']}_input_pin", cl["input_point_m"]))
+
     def add_geoms(be, link_name):
-        geoms = overlay["bodies"].get(link_name, []) if overlay else []
-        for g in geoms:
-            ge = ET.SubElement(be, "geom", type=g["type"])
-            ge.set("pos", fmt(g["pos"])); ge.set("quat", fmt(g["quat"]))
-            for a in ("size", "mesh", "friction", "condim", "solref", "solimp",
-                                "contype", "conaffinity", "group", "density"):
-                if a in g and g[a] is not None:
-                    val = g[a]
-                    ge.set(a, val if isinstance(val, str) else fmt(val))
+        if overlay:
+            for g in overlay["bodies"].get(link_name, []):
+                ge = ET.SubElement(be, "geom", type=g["type"])
+                ge.set("pos", fmt(g["pos"])); ge.set("quat", fmt(g["quat"]))
+                for a in ("size", "mesh", "friction", "condim", "solref", "solimp",
+                          "contype", "conaffinity", "group", "density"):
+                    if a in g and g[a] is not None:
+                        val = g[a]
+                        ge.set(a, val if isinstance(val, str) else fmt(val))
+            return
+        l = links[link_name]
+        if l["visual_mesh"]:
+            ET.SubElement(be, "geom", name=f"{link_name}_visual", type="mesh",
+                          mesh=l["visual_mesh"], contype="0", conaffinity="0", group="2")
+        if l["collision"]["mesh"]:
+            ET.SubElement(be, "geom", name=f"{link_name}_collision_mesh", type="mesh",
+                          mesh=l["collision"]["mesh"], group="3")
+        for i, prim in enumerate(l["collision"]["primitives"]):
+            ET.SubElement(be, "geom", name=f"{link_name}_collision_{i}", type=prim["shape"],
+                          size=fmt(prim["dimensions_m"]), pos=fmt(prim["frame"]["xyz_m"]),
+                          quat=fmt(rpy_to_quat(prim["frame"]["rpy_rad"])), group="3")
 
     def add_body(be_parent, link_name, is_root):
         l = links[link_name]
@@ -321,7 +430,7 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
             j = joint_by_child[link_name]
             be.set("pos", fmt(j["origin"]["xyz_m"]))
             be.set("quat", fmt(rpy_to_quat(j["origin"]["rpy_rad"])))
-        else:
+        elif floating:
             ET.SubElement(be, "freejoint", name="root")
         inertia, com = l["inertia"], l["com_m"]
         ie = ET.SubElement(be, "inertial")
@@ -333,15 +442,19 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
         if imu is not None and imu["link"] == link_name:
             ET.SubElement(be, "site", name=imu["name"], pos=fmt(imu["pos_m"]),
                           quat=fmt(imu["quat_wxyz"]), size="0.01")
+        for name, point in sites.get(link_name, []):
+            ET.SubElement(be, "site", name=name, pos=fmt(point), size="0.002")
         if not is_root:
             j = joint_by_child[link_name]
             if j["type"] != "fixed":
                 tr = j["transmission"]
                 je = ET.SubElement(be, "joint", name=j["name"],
                                    type="hinge" if j["type"] == "revolute" else "slide",
-                                   axis=fmt(j["axis"]),
-                                   range=f"{j['limits']['hard_stop_lower_rad']:.10g} "
-                                         f"{j['limits']['hard_stop_upper_rad']:.10g}")
+                                   axis=fmt(j["axis"]))
+                # A linkage's input and coupler have no limits of their own: the loop bounds them.
+                if j["limits"] is not None:
+                    je.set("range", f"{j['limits']['hard_stop_lower_rad']:.10g} "
+                                    f"{j['limits']['hard_stop_upper_rad']:.10g}")
                 je.set("damping", f"{tr['friction_viscous_nm_s_rad']:.10g}")
                 je.set("frictionloss", f"{tr['friction_coulomb_nm']:.10g}")
                 je.set("armature", f"{tr['armature_kg_m2']:.10g}")
@@ -352,7 +465,22 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     add_body(wb, model["robot"]["root_link"], True)
     root_body = wb.find("body")
 
-    emit_mjcf_actuators(mj, joints)
+    if linkages:
+        contact = ET.SubElement(mj, "contact")
+        equality = ET.SubElement(mj, "equality")
+        for lk in linkages:
+            j_in, j_out, j_cpl = (joints_by_name[lk[k]] for k in
+                                  ("input_joint", "output_joint", "coupler_joint"))
+            bodies = [j_out["parent_link"], j_out["child_link"], j_in["child_link"],
+                      j_cpl["child_link"]]
+            for i, b1 in enumerate(bodies):
+                for b2 in bodies[i + 1:]:
+                    ET.SubElement(contact, "exclude", body1=b1, body2=b2)
+            ET.SubElement(equality, "connect", name=f"{lk['name']}_pin",
+                          site1=f"{lk['name']}_coupler_pin", site2=f"{lk['name']}_input_pin",
+                          solref=LINKAGE_SOLREF, solimp=LINKAGE_SOLIMP)
+
+    emit_mjcf_actuators(mj, linkage.drives(model))
 
     if imu is not None:
         # Exactly one sensor of each type: MujocoActuatorTransport finds them by type, not name.
@@ -363,13 +491,18 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
         ET.SubElement(sensors, "accelerometer", name=f"{imu['name']}_linear_acceleration",
                       site=imu["name"])
 
-    # Stand the robot on z = 0 at its reference pose, so qpos0 is physically valid for every
-    # consumer, not only SIL. Compiled with an absolute meshdir so this works from any directory.
+    # Place the robot so qpos0 is physically valid for every consumer, not only SIL: a floating
+    # robot stands on z = 0 at its reference pose, a fixed one is mounted clear of the floor.
+    # Compiled with an absolute meshdir so this works from any directory.
     comp.set("meshdir", os.path.abspath(assets_dir).replace("\\", "/"))
     xml = ET.tostring(mj, encoding="unicode")
     root_link = model["robot"]["root_link"]
-    root_z = standing_qpos(xml, root_link, {})[2]
-    home = standing_qpos(xml, root_link, model["home"]) if "home" in model else None
+    if floating:
+        root_z = standing_qpos(xml, root_link, {})[2]
+        home = standing_qpos(xml, root_link, model["home"]) if "home" in model else None
+    else:
+        root_z = mount_height(xml, model)
+        home = None
     comp.set("meshdir", assets_rel.replace("\\", "/"))
     root_body.set("pos", fmt([0.0, 0.0, root_z]))
 
@@ -377,22 +510,24 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
     return home
 
-def emit_mjcf_actuators(mj, joints):
-    """One actuator per actuated joint, for MujocoActuatorTransport to drive with the MIT law
+def emit_mjcf_actuators(mj, drives):
+    """One actuator per drive, on the joint its motor turns, for MujocoActuatorTransport to drive
+    with the MIT law
 
         tau = kp (q_d - q) + kd (qdot_d - qdot) + tau_ff.
 
     MuJoCo's affine actuator computes force = gain * ctrl + b0 + b1 q + b2 qdot. With gain 1 the
     transport sets ctrl = kp q_d + kd qdot_d + tau_ff and b = (0, -kp, -kd) every cycle, so MuJoCo
     evaluates the law at every physics step, as the drive does at its own loop rate, and the
-    integrator treats the damping term implicitly. forcerange saturates at the joint's peak torque,
-    as the drive does."""
+    integrator treats the damping term implicitly. forcerange saturates at the actuated joint's
+    peak torque, as the drive does. Through a linkage the motor turns the input crank, and MuJoCo's
+    closed loop, not this model, carries its torque to the output."""
     act = ET.SubElement(mj, "actuator")
-    for j in joints:
-        if j["type"] == "fixed" or j["actuator"] is None:
+    for d in drives:
+        if d["actuator"] is None:
             continue
-        peak = j["limits"]["effort_peak_nm"]
-        ET.SubElement(act, "general", name=j["actuator"], joint=j["name"],
+        peak = d["limits"]["effort_peak_nm"]
+        ET.SubElement(act, "general", name=d["actuator"], joint=d["actuated_joint"],
                       gaintype="fixed", gainprm="1", biastype="affine", biasprm="0 0 0",
                       ctrllimited="false", forcelimited="true",
                       forcerange=f"{-peak:.10g} {peak:.10g}")
@@ -416,18 +551,19 @@ def emit_scene(model, out_path, home_qpos):
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
 
 def emit_safety_manifest(model, motor_limits, out_path):
-    # Per-joint gain caps come from the actuator's motor model in model/motors.yaml; a PROVISIONAL
-    # sim actuator has none and falls back to the global PROV_* envelope.
+    """The SafetyKernel's envelopes, one per motor, keyed by the joint the motor turns: the kernel
+    is the last gate before the transport, so it bounds what each motor is asked to do. Through a
+    linkage those bounds are derived from the output joint's limits (linkage.drives).
+    Per-joint gain caps come from the actuator's motor model in model/motors.yaml; a PROVISIONAL sim
+    actuator has none and falls back to the global PROV_* envelope."""
     act_by_name = {a["name"]: a for a in model["actuators"]}
     envelopes = {}
-    for j in model["joints"]:
-        if j["type"] == "fixed":
-            continue
-        lim = j["limits"]
-        drive = motor_limits.get(act_by_name[j["actuator"]]["motor_class"])
-        envelopes[j["name"]] = {
-            "position_min_rad": lim["software_lower_rad"],
-            "position_max_rad": lim["software_upper_rad"],
+    for d in linkage.drives(model):
+        lim = d["limits"]
+        drive = motor_limits.get(act_by_name[d["actuator"]]["motor_class"])
+        envelopes[d["actuated_joint"]] = {
+            "position_min_rad": lim["position_min_rad"],
+            "position_max_rad": lim["position_max_rad"],
             "velocity_max_rad_s": lim["velocity_rad_s"],
             "torque_continuous_nm": lim["effort_continuous_nm"],
             "torque_peak_nm": lim["effort_peak_nm"],
@@ -461,8 +597,7 @@ def emit_firmware_config(model, motor_limits, out_path, setup):
     """A config artifact the firmware repo consumes (it is committed there with its hash).
     Everything is derived from robot_model.yaml; the firmware never hand-edits it, and the hash
     lets its generator refuse a tampered copy."""
-    act_by_name = {a["name"]: a for a in model["actuators"]}
-    joint_by_act = {j["actuator"]: j for j in model["joints"] if j["actuator"] is not None}
+    drive_by_act = {d["actuator"]: d for d in linkage.drives(model)}
 
     # Per-model drive ranges and the shared Kp/Kd/position ranges, from the motor models used.
     models, shared = {}, None
@@ -486,12 +621,13 @@ def emit_firmware_config(model, motor_limits, out_path, setup):
                         key=lambda a: a["slot"])
         rows = []
         for a in motors:
-            j = joint_by_act[a["name"]]
-            lim = j["limits"]
+            # The motor's own joint and bounds: through a linkage, the input crank's.
+            d = drive_by_act[a["name"]]
+            lim = d["limits"]
             rows.append({
                 "idx": a["slot"], "can_id": a["can_node_id"], "model": a["motor_class"],
-                "joint_name": j["name"],
-                "soft_min": lim["software_lower_rad"], "soft_max": lim["software_upper_rad"],
+                "joint_name": d["actuated_joint"],
+                "soft_min": lim["position_min_rad"], "soft_max": lim["position_max_rad"],
                 "max_vel": lim["velocity_rad_s"], "max_tau": lim["effort_peak_nm"],
                 "default_kp": a["default_kp"], "default_kd": a["default_kd"],
             })
@@ -522,27 +658,33 @@ def emit_firmware_config(model, motor_limits, out_path, setup):
 def emit_stm32_wiring(model, out_path):
     """The `joints:` block for the Stm32SerialTransport node (`stm32_serial`), generated from the
     model so the transport's identity map is derived, not hand-written (per the transport doc).
-    chain = index of the actuator's bus_segment; motor = its slot; direction_sign and
-    zero_offset_rad come from the joint. Serial device and timeouts are deployment parameters and
-    stay in the launch, not here."""
+    One entry per motor, named by the joint it turns. chain = index of the actuator's bus_segment;
+    motor = its slot; direction_sign and zero_offset_rad come from that joint. A zero offset not yet
+    calibrated (null) is left out, so the transport refuses to configure rather than run on a guess.
+    Serial device and timeouts are deployment parameters and stay in the launch, not here."""
     segments = sorted({a["bus_segment"] for a in model["actuators"]})
     chain_of = {seg: i for i, seg in enumerate(segments)}
     act_by_name = {a["name"]: a for a in model["actuators"]}
+    joints_by_name = {j["name"]: j for j in model["joints"]}
     rows = []
-    for j in model["joints"]:
-        if j["type"] == "fixed":
-            continue
-        a = act_by_name[j["actuator"]]
+    for d in linkage.drives(model):
+        a, j = act_by_name[d["actuator"]], joints_by_name[d["actuated_joint"]]
         rows.append((chain_of[a["bus_segment"]], a["slot"], j["name"],
                      j["transmission"]["direction_sign"], j["calibration"]["zero_offset_rad"]))
     rows.sort()
-    joints = {name: {"chain": chain, "motor": motor,
-                     "direction_sign": sign, "zero_offset_rad": zero}
-              for chain, motor, name, sign, zero in rows}
+    joints = {}
+    for chain, motor, name, sign, zero in rows:
+        joints[name] = {"chain": chain, "motor": motor, "direction_sign": sign}
+        if zero is not None:
+            joints[name]["zero_offset_rad"] = zero
     doc = {"stm32_serial": {"ros__parameters": {"joints": joints}}}
     banner = (f"# AUTO-GENERATED by model/generators from {model['robot']['name']}. Do not edit.\n"
               "# The Stm32SerialTransport joints map (chain/motor/direction_sign/zero_offset_rad).\n"
               "# zero_offset_rad and direction_sign are provisional until verified by hand.\n")
+    uncalibrated = [name for _, _, name, _, zero in rows if zero is None]
+    if uncalibrated:
+        banner += (f"# Not calibrated, so the transport will refuse to start: "
+                   f"{', '.join(uncalibrated)}.\n")
     with open(out_path, "w") as f:
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
