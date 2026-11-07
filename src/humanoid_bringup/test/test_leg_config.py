@@ -3,6 +3,7 @@
 Mistakes here only show when the leg is launched: a controller joint the description does not
 command, or ankle gains that the linkage turns into motor gains the RS02 silently clamps.
 """
+import importlib.util
 import os
 import xml.etree.ElementTree as ET
 
@@ -58,3 +59,16 @@ def test_each_mode_selects_its_transport():
             'humanoidactuatorsystem']['ros__parameters']
         assert params['transport_plugin'] == plugin
         assert params['accepted_degradation'] == 'none'
+
+
+def test_the_sliders_offer_only_the_commanded_joints():
+    # The slider GUI publishes every movable joint of the description it is given, and the
+    # controller reads references by index: a linkage's input or coupler there would shift them.
+    spec = importlib.util.spec_from_file_location(
+        'leg_launch', os.path.join(PACKAGE, 'launch', 'leg.launch.py'))
+    launch = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(launch)
+    with open(os.path.join(GENERATED, 'robot.urdf')) as f:
+        sliders = ET.fromstring(launch.commanded_only(f.read()))
+    movable = [j.get('name') for j in sliders.findall('joint') if j.get('type') != 'fixed']
+    assert movable == _controller()['joints']

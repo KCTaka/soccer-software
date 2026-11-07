@@ -12,6 +12,12 @@ Arguments:
           out until robot_model.yaml has one, and the transport then refuses to configure
           (docs/leg-prototype.md).
   rviz    true (default): RViz2. Needs an X display.
+  sliders auto (default): true in sil, false otherwise. true opens a slider window next to RViz
+          (joint_state_publisher_gui) that commands the ankle: it publishes each commanded joint's
+          slider value, within its URDF limits, on /humanoid_mit_controller/joint_references.
+          The sliders start at 0 and each drag is a step the controller does not interpolate, so on
+          the real leg (sliders:=true with mode:=hil) start with the foot near 0. RViz shows the
+          linkage from the measured, or simulated, states. Do not run bench_trajectories with it.
   foxglove  false (default): foxglove_bridge on ws://<host>:8765, for a host without a display.
   serial_device  monitor and hil. The master's USB CDC device, /host-dev/robosoccer-master in the
           dev container; on a bare host pass /dev/robosoccer-master.
@@ -24,6 +30,8 @@ humanoid_mit_controller, which holds the measured pose until a reference arrives
     -p joints:=[left_ankle_pitch_joint] -p amplitude_rad:=0.2 -p frequency_hz:=0.25
 """
 import os
+import tempfile
+import xml.etree.ElementTree as ET
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
@@ -38,11 +46,26 @@ def _truthy(value):
     return str(value).lower() in ('true', '1', 'yes')
 
 
+def commanded_only(urdf):
+    """`urdf` with every joint its <ros2_control> block does not command made fixed. Given it, the
+    slider GUI offers and publishes exactly the joints the controller reads, in their order, and
+    never a linkage's input or coupler, which the hardware component derives."""
+    robot = ET.fromstring(urdf)
+    commanded = {j.get('name') for c in robot.findall('ros2_control') for j in c.findall('joint')
+                 if j.find('command_interface') is not None}
+    for joint in robot.findall('joint'):
+        if joint.get('name') not in commanded:
+            joint.set('type', 'fixed')
+    return ET.tostring(robot, encoding='unicode')
+
+
 def _setup(context, *_args, **_kwargs):
     mode = LaunchConfiguration('mode').perform(context)
     if mode not in MODES:
         raise RuntimeError(f"mode must be one of {MODES}, got {mode!r}")
     rviz = _truthy(LaunchConfiguration('rviz').perform(context))
+    sliders = LaunchConfiguration('sliders').perform(context)
+    sliders = mode == 'sil' if sliders == 'auto' else _truthy(sliders)
     foxglove = _truthy(LaunchConfiguration('foxglove').perform(context))
     serial_device = LaunchConfiguration('serial_device').perform(context)
 
@@ -75,6 +98,17 @@ def _setup(context, *_args, **_kwargs):
     if rviz:
         nodes.append(Node(package='rviz2', executable='rviz2',
                           arguments=['-d', os.path.join(config, 'leg.rviz')], output='screen'))
+    if sliders:
+        # The GUI reads its description from a file, and in its own namespace no one publishes on
+        # its robot_description topic, so the full description never replaces the filtered one.
+        fd, slider_urdf = tempfile.mkstemp(prefix='leg_sliders_', suffix='.urdf')
+        with os.fdopen(fd, 'w') as f:
+            f.write(commanded_only(robot_description['robot_description']))
+        nodes.append(Node(
+            package='joint_state_publisher_gui', executable='joint_state_publisher_gui',
+            namespace='ankle_slider', arguments=[slider_urdf], parameters=[{'rate': 50}],
+            remappings=[('joint_states', '/humanoid_mit_controller/joint_references')],
+            output='screen'))
     if foxglove:
         # Viewer-only: no client publishing, services or parameter access.
         nodes.append(Node(package='foxglove_bridge', executable='foxglove_bridge',
@@ -90,6 +124,9 @@ def generate_launch_description():
             description='sil: MuJoCo, no hardware. monitor: the real leg, never armed. '
                         'hil: the real leg, armed'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz2'),
+        DeclareLaunchArgument(
+            'sliders', default_value='auto',
+            description='Slider window commanding the ankle. auto: on in sil, off otherwise'),
         DeclareLaunchArgument('foxglove', default_value='false',
                               description='Start foxglove_bridge on ws://<host>:8765'),
         DeclareLaunchArgument(

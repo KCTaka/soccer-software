@@ -6,7 +6,7 @@ closed loop is handled, SIL, and the procedure for the first hardware session.
 
 ```bash
 ros2 run rmw_zenoh_cpp rmw_zenohd                                   # first, in its own terminal
-ros2 launch humanoid_bringup leg.launch.py                          # SIL (MuJoCo), the default
+ros2 launch humanoid_bringup leg.launch.py                          # SIL (MuJoCo) with sliders
 ros2 launch humanoid_bringup leg.launch.py mode:=monitor            # real leg, never armed
 ros2 launch humanoid_bringup leg.launch.py mode:=hil                # real leg, motor armed
 ros2 run humanoid_bringup bench_trajectories --ros-args \
@@ -104,8 +104,9 @@ with no lookup table or fitted polynomial, and it is cheap.
   horn joint's mass matrix but computes the pin force without it. With armature 0 on a 35 g horn,
   the pin stretches by millimetres. Every real motor has rotor inertia, and with it the stretch
   stays at the numbers above. Check L-06 requires it.
-- **SIL tracking.** A 0.3 rad, 0.5 Hz sine on the ankle tracks with gain 0.9925 and a 1.7 mrad
-  residual after removing a 60 ms pipeline lag.
+- **SIL tracking.** A 0.3 rad, 0.5 Hz sine on the ankle tracks with gain 1.0001 and a 1.7 mrad
+  residual after removing a 60 ms pipeline lag. A slider held at 0.3 rad puts the ankle at
+  0.2999 rad, the motor at 0.2654 rad and the rod at −0.3018 rad, as the linkage predicts.
 
 ## Model provenance and what is provisional
 
@@ -129,6 +130,18 @@ welded 88 mm above the floor, which is just clear of it over the ankle's whole r
 still until the controller's first command. `humanoid_mit_controller` holds the measured pose with
 kp 10 N·m/rad and kd 0.3 N·m·s/rad until a reference arrives. `/joint_states` reports the ankle, the
 motor's joint and the rod.
+
+**Sliders.** SIL opens a slider window (`joint_state_publisher_gui`) next to RViz that commands the
+ankle (`sliders:=auto`, the default, turns it on in `sil` only).
+- It publishes the slider's value on `/humanoid_mit_controller/joint_references`, within the
+  ankle's ±40° URDF limits, and RViz shows the linkage from the simulated states.
+- The window is given a copy of the description with every joint the `<ros2_control>` block does
+  not command made fixed. It offers only the ankle, and never puts the horn or rod in a reference,
+  which the controller reads by index.
+- Each drag is a step that the controller does not interpolate. Don't run `bench_trajectories`
+  while the window is open, because both publish references.
+- On the real leg, `sliders:=true` with `mode:=hil` works the same way. The slider starts at 0,
+  so start with the foot near 0.
 
 ## First hardware session
 
