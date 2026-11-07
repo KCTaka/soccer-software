@@ -20,6 +20,7 @@
 #define HUMANOID_ACTUATOR_SYSTEM__HUMANOID_ACTUATOR_SYSTEM_HPP_
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -36,6 +37,7 @@
 #include "rclcpp/time.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
+#include "humanoid_actuator_system/drive_layout.hpp"
 #include "humanoid_actuator_system/tuple_ownership.hpp"
 #include "humanoid_safety/safety_kernel.hpp"
 #include "humanoid_transport/actuator_transport.hpp"
@@ -134,6 +136,10 @@ private:
   /// transport can observe a partially updated tuple.
   void snapshot_commands() noexcept;
 
+  /// Writes `state` to the state interfaces of joint `slot`: the command joints first, then the
+  /// state-only joints, in DriveLayout order.
+  void write_state(std::size_t slot, const transport::JointFeedback & state) noexcept;
+
   void enter_protective_state(safety::Trigger trigger) noexcept;
 
   /// Non-real-time. Logs stats_; called when a run ends (deactivate or shutdown).
@@ -170,7 +176,10 @@ private:
   transport::JointManifest joint_manifest_{};
   transport::SafetyManifest safety_manifest_{};
 
-  std::vector<std::string> joint_names_;
+  // Which joints controllers command, which are only reported, and how each command reaches its
+  // motor. command_storage_ holds the command joints' tuples; state_storage_ the command joints'
+  // states and then the state-only joints'.
+  DriveLayout layout_;
   std::vector<double> command_storage_;
   std::vector<double> state_storage_;
   // The IMU's state interfaces, in kImuStateFields order. Empty when the description declares no

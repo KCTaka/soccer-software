@@ -28,6 +28,8 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
 endforeach()
 
 add_library(${PROJECT_NAME} SHARED
+  src/drive_layout.cpp
+  src/four_bar_linkage.cpp
   src/hardware_contract.cpp
   src/humanoid_actuator_system.cpp
   src/safety_manifest_parser.cpp
@@ -77,6 +79,7 @@ if(BUILD_TESTING)
   # These read the generated artifacts in place, so an emitter change that this package does not
   # accept fails here rather than at launch.
   set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated")
+  set(LEG_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated")
 
   ament_add_gtest(${PROJECT_NAME}_safety_manifest_parser_test
     test/safety_manifest_parser_test.cpp)
@@ -87,7 +90,38 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_hardware_contract_test test/hardware_contract_test.cpp)
   target_link_libraries(${PROJECT_NAME}_hardware_contract_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_hardware_contract_test PRIVATE
-    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf")
+    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf"
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf")
+
+  # The leg prototype is the robot with a linkage: its generated description, manifest and MJCF.
+  ament_add_gtest(${PROJECT_NAME}_four_bar_linkage_test test/four_bar_linkage_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_four_bar_linkage_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_four_bar_linkage_test PRIVATE
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf")
+
+  ament_add_gtest(${PROJECT_NAME}_drive_layout_test test/drive_layout_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_drive_layout_test ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_drive_layout_test PRIVATE
+    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf"
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf"
+    HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH="${LEG_GENERATED_DIR}/safety_manifest.yaml")
+
+  # The component's linkage against the plant SIL simulates. MuJoCo as humanoid_transport_mujoco
+  # finds it: its CMake config, else the library and header.
+  find_package(mujoco QUIET)
+  if(NOT mujoco_FOUND)
+    find_library(MUJOCO_LIBRARY NAMES mujoco REQUIRED)
+    find_path(MUJOCO_INCLUDE_DIR mujoco/mujoco.h REQUIRED)
+    add_library(mujoco::mujoco UNKNOWN IMPORTED)
+    set_target_properties(mujoco::mujoco PROPERTIES
+      IMPORTED_LOCATION "${MUJOCO_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${MUJOCO_INCLUDE_DIR}")
+  endif()
+  ament_add_gtest(${PROJECT_NAME}_four_bar_mujoco_test test/four_bar_mujoco_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_four_bar_mujoco_test ${PROJECT_NAME} mujoco::mujoco)
+  target_compile_definitions(${PROJECT_NAME}_four_bar_mujoco_test PRIVATE
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf"
+    HUMANOID_TEST_LEG_MJCF_PATH="${LEG_GENERATED_DIR}/scene.xml")
 
   # ADR-007: these run against a fault-injection ActuatorTransport, never against a substituted
   # SystemInterface. mock_components::GenericSystem is prohibited in any environment that produces

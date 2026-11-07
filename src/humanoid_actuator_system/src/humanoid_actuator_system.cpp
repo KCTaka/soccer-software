@@ -36,7 +36,6 @@ constexpr std::string_view kNoDegradation = "none";
 constexpr std::string_view kPositionVelocityOnly = "position_velocity_only";
 
 // File-local helpers. Declared here, defined at the end of this file.
-std::vector<std::string> joint_names_from_info(const hardware_interface::HardwareInfo & info);
 std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value);
 std::string_view trigger_name(safety::Trigger trigger);
 std::string_view transport_error_name(transport::TransportError error);
@@ -53,7 +52,11 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_init(
   if (const auto violation = hardware_contract_violation(info_)) {
     return fail(std::format("Robot description: {}", *violation));
   }
-  joint_names_ = joint_names_from_info(info_);
+  auto layout = drive_layout(info_);
+  if (const auto * error = std::get_if<std::string>(&layout)) {
+    return fail(std::format("Robot description: {}", *error));
+  }
+  layout_ = std::move(std::get<DriveLayout>(layout));
 
   auto parameters = read_parameters();
   if (const auto * error = std::get_if<std::string>(&parameters)) {
@@ -75,13 +78,15 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       info_.rw_rate, transport::kControlRateHz, transport::kControlRateHz));
   }
 
-  // 1. Build joint manifest from URDF info. hardware_contract_violation() has bounded the joint
-  //    count and each name's length, so every name fits its zeroed entry with the terminator.
-  const auto joint_count = static_cast<std::uint8_t>(joint_names_.size());
+  // 1. Build the joint manifest: one entry per motor, named by the joint it turns.
+  //    hardware_contract_violation() has bounded the joint count and each name's length, so every
+  //    name fits its zeroed entry with the terminator.
+  const auto & motors = layout_.transport_joints;
+  const auto joint_count = static_cast<std::uint8_t>(motors.size());
   joint_manifest_ = transport::JointManifest{};
   joint_manifest_.joint_count = joint_count;
   for (std::size_t i = 0; i < joint_count; ++i) {
-    std::ranges::copy(joint_names_[i], joint_manifest_.joints[i].name.begin());
+    std::ranges::copy(motors[i], joint_manifest_.joints[i].name.begin());
   }
 
   // 2. Load the safety manifest
@@ -92,7 +97,7 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
     return fail(std::format(
       "Failed to load safety manifest '{}': {}", parameters_.safety_manifest_path, e.what()));
   }
-  auto parsed = parse_safety_manifest(manifest_yaml, joint_names_);
+  auto parsed = parse_safety_manifest(manifest_yaml, motors);
   if (const auto * error = std::get_if<std::string>(&parsed)) {
     return fail(std::format("Safety manifest '{}': {}", parameters_.safety_manifest_path, *error));
   }
@@ -152,8 +157,10 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
   //    switched in again, which perform_command_mode_switch() records.
   owned_joints_.store(0U, std::memory_order_release);
 
-  RCLCPP_INFO(get_logger(), "Configured: %u joints at %u Hz, transport=%s",
-    joint_count, info_.rw_rate, parameters_.transport_plugin.c_str());
+  RCLCPP_INFO(get_logger(), "Configured: %u joints (%zu through a linkage) at %u Hz, transport=%s",
+    joint_count, static_cast<std::size_t>(std::ranges::count_if(
+      layout_.linkages, [](const auto & drive) {return drive.has_value();})),
+    info_.rw_rate, parameters_.transport_plugin.c_str());
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -244,15 +251,17 @@ std::vector<hardware_interface::StateInterface::ConstSharedPtr>
 HumanoidActuatorSystem::on_export_state_interfaces()
 {
   constexpr auto & kFields = transport::kJointStateFields;
+  std::vector<std::string> joints = layout_.command_joints;
+  joints.insert(joints.end(), layout_.passive_joints.begin(), layout_.passive_joints.end());
   std::vector<hardware_interface::StateInterface::ConstSharedPtr> interfaces;
-  interfaces.reserve(joint_names_.size() * kFields.size());
+  interfaces.reserve(joints.size() * kFields.size());
 
-  state_storage_.resize(joint_names_.size() * kFields.size(), 0.0);
+  state_storage_.resize(joints.size() * kFields.size(), 0.0);
 
-  for (std::size_t j = 0; j < joint_names_.size(); ++j) {
+  for (std::size_t j = 0; j < joints.size(); ++j) {
     for (std::size_t f = 0; f < kFields.size(); ++f) {
       interfaces.push_back(std::make_shared<hardware_interface::StateInterface>(
-        joint_names_[j], std::string{kFields[f].name}, &state_storage_[j * kFields.size() + f]));
+        joints[j], std::string{kFields[f].name}, &state_storage_[j * kFields.size() + f]));
     }
   }
 
@@ -273,14 +282,15 @@ HumanoidActuatorSystem::on_export_command_interfaces()
 {
   constexpr auto & kFields = transport::kMitFields;
   std::vector<hardware_interface::CommandInterface::SharedPtr> interfaces;
-  interfaces.reserve(joint_names_.size() * kFields.size());
+  const auto & joints = layout_.command_joints;
+  interfaces.reserve(joints.size() * kFields.size());
 
-  command_storage_.resize(joint_names_.size() * kFields.size(), 0.0);
+  command_storage_.resize(joints.size() * kFields.size(), 0.0);
 
-  for (std::size_t j = 0; j < joint_names_.size(); ++j) {
+  for (std::size_t j = 0; j < joints.size(); ++j) {
     for (std::size_t f = 0; f < kFields.size(); ++f) {
       interfaces.push_back(std::make_shared<hardware_interface::CommandInterface>(
-        joint_names_[j], std::string{kFields[f].name}, &command_storage_[j * kFields.size() + f]));
+        joints[j], std::string{kFields[f].name}, &command_storage_[j * kFields.size() + f]));
     }
   }
   return interfaces;
@@ -295,7 +305,7 @@ hardware_interface::return_type HumanoidActuatorSystem::prepare_command_mode_swi
   const std::vector<std::string> & stop_interfaces)
 {
   // No logging: this can run on the real-time thread. The resource manager reports the rejection.
-  return tuple_claims(start_interfaces, stop_interfaces, joint_names_) ?
+  return tuple_claims(start_interfaces, stop_interfaces, layout_.command_joints) ?
          hardware_interface::return_type::OK : hardware_interface::return_type::ERROR;
 }
 
@@ -305,7 +315,7 @@ hardware_interface::return_type HumanoidActuatorSystem::perform_command_mode_swi
 {
   // Parsed again rather than cached from prepare: a prepared switch can be abandoned, and the
   // real-time error path calls prepare and perform back to back with lists of its own.
-  const auto claims = tuple_claims(start_interfaces, stop_interfaces, joint_names_);
+  const auto claims = tuple_claims(start_interfaces, stop_interfaces, layout_.command_joints);
   if (!claims) {
     return hardware_interface::return_type::ERROR;
   }
@@ -350,12 +360,19 @@ hardware_interface::return_type HumanoidActuatorSystem::read(
 
   consecutive_bad_cycles_ = 0;
 
-  // Write feedback to state interfaces
-  constexpr auto & kFields = transport::kJointStateFields;
+  // Write feedback to state interfaces. A motor behind a linkage reports the commanded joint, and
+  // its own and the coupler's joints, through the linkage.
+  const std::size_t passive_slots = layout_.command_joints.size();
   for (std::size_t i = 0; i < joint_manifest_.joint_count; ++i) {
-    for (std::size_t f = 0; f < kFields.size(); ++f) {
-      state_storage_[i * kFields.size() + f] = feedback_.joints[i].*kFields[f].member;
+    const auto & drive = layout_.linkages[i];
+    if (!drive) {
+      write_state(i, feedback_.joints[i]);
+      continue;
     }
+    const auto states = drive->linkage.to_joints(feedback_.joints[i]);
+    write_state(i, states.output);
+    write_state(passive_slots + drive->input_state, states.input);
+    write_state(passive_slots + drive->coupler_state, states.coupler);
   }
 
   // An invalid sample reads NaN rather than the last or a zero value: a robot that is falling must
@@ -406,7 +423,15 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
       }
     }
 
-    // 3. Safety kernel projection
+    // 3. Joint space to motor space: a joint behind a linkage becomes its motor's tuple. Every
+    //    field is NaN where the linkage cannot close, which the kernel rejects.
+    for (std::size_t i = 0; i < joint_manifest_.joint_count; ++i) {
+      if (const auto & drive = layout_.linkages[i]) {
+        command_snapshot_.joints[i] = drive->linkage.to_input(command_snapshot_.joints[i]);
+      }
+    }
+
+    // 4. Safety kernel projection, in motor space: it bounds what each motor is asked to do.
     auto verdict = safety_kernel_.project(feedback_, command_snapshot_, now);
     if (verdict.protective_state_required) {
       enter_protective_state(verdict.trigger);
@@ -417,7 +442,7 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
     safety_kernel_.apply_damping(command_snapshot_);
   }
 
-  // 4. Single exchange with transport. This is the ONLY call to exchange()
+  // 5. Single exchange with transport. This is the ONLY call to exchange()
   //    per cycle. In SIL it applies torque, steps physics, and returns
   //    the resulting state. In production it sends the command and reads
   //    hardware feedback.
@@ -446,6 +471,15 @@ void HumanoidActuatorSystem::snapshot_commands() noexcept
     for (std::size_t f = 0; f < kFields.size(); ++f) {
       command_snapshot_.joints[i].*kFields[f].member = command_storage_[i * kFields.size() + f];
     }
+  }
+}
+
+void HumanoidActuatorSystem::write_state(
+  std::size_t slot, const transport::JointFeedback & state) noexcept
+{
+  constexpr auto & kFields = transport::kJointStateFields;
+  for (std::size_t f = 0; f < kFields.size(); ++f) {
+    state_storage_[slot * kFields.size() + f] = state.*kFields[f].member;
   }
 }
 
@@ -566,19 +600,6 @@ bool HumanoidActuatorSystem::check_tuple_capability() noexcept
 
 namespace
 {
-
-// Parse joint names from the ros2_control URDF <joint> tags.
-// The framework provides them via info_.joints.
-std::vector<std::string> joint_names_from_info(
-  const hardware_interface::HardwareInfo & info)
-{
-  std::vector<std::string> names;
-  names.reserve(info.joints.size());
-  for (const auto & joint : info.joints) {
-    names.push_back(joint.name);
-  }
-  return names;
-}
 
 std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value)
 {

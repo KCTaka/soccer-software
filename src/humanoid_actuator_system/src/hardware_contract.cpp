@@ -5,6 +5,7 @@
 #include <format>
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -36,9 +37,11 @@ std::optional<std::string> hardware_contract_violation(
       return std::format("required <hardware> parameter '{}' is not set", name);
     }
   }
-  if (info.joints.empty() || info.joints.size() > transport::kMaxJoints) {
+  const auto commanded = std::ranges::count_if(
+    info.joints, [](const auto & joint) {return !joint.command_interfaces.empty();});
+  if (commanded == 0 || static_cast<std::size_t>(commanded) > transport::kMaxJoints) {
     return std::format(
-      "{} joints declared; between 1 and {} are supported", info.joints.size(),
+      "{} joints with command interfaces declared; between 1 and {} are supported", commanded,
       transport::kMaxJoints);
   }
   for (const auto & joint : info.joints) {
@@ -47,11 +50,14 @@ std::optional<std::string> hardware_contract_violation(
         "joint name '{}' has {} characters; between 1 and {} are supported", joint.name,
         joint.name.size(), transport::kMaxNameLength - 1U);
     }
-    if (auto v = interfaces_violation(
-        std::format("joint '{}'", joint.name), "command", joint.command_interfaces,
-        transport::kMitFields))
-    {
-      return v;
+    // A state-only joint is a linkage's input or coupler; drive_layout() checks which.
+    if (!joint.command_interfaces.empty()) {
+      if (auto v = interfaces_violation(
+          std::format("joint '{}'", joint.name), "command", joint.command_interfaces,
+          transport::kMitFields))
+      {
+        return v;
+      }
     }
     if (auto v = interfaces_violation(
         std::format("joint '{}'", joint.name), "state", joint.state_interfaces,
