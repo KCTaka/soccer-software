@@ -25,8 +25,8 @@ Visualization Manager:
       Collision Enabled: false
     - Class: rviz_default_plugins/TF
       Name: TF
-      Enabled: true
-      Show Names: true
+      Enabled: false
+      Show Names: false
   Global Options:
     Fixed Frame: left_shin_link
     Frame Rate: 30
