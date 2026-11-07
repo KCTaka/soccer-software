@@ -1,0 +1,77 @@
+# Config for importing the Fusion 360 export into robot_model.yaml:
+#   python3 -m model.generators.ingest_fusion model/robots/leg_prototype/source/ingest.yaml
+# Re-export from Fusion (acdc4robot) into Leg-Assembly---Export-v<N>/, point `export` at it, re-run,
+# then diff. Points and boxes below are in each export body's own frame, in metres, measured from
+# its meshes (hole centres by circle fits, boxes from each solid's extents).
+model_name: leg_prototype
+export: model/robots/leg_prototype/source/Leg-Assembly---Export-v2/Leg-Assembly---Export-v2.xml
+model_out: model/robots/leg_prototype/source/robot_model.yaml
+meshes_out: model/robots/leg_prototype/source/meshes
+notes:
+  - "Masses and inertias are Fusion's. Most parts carry its default steel (7.85 g/cm^3): provisional until"
+  - "weighed. The shin's RS02 placeholder, a 1.03 kg steel block, is replaced by the motor's 380 g."
+  - "left_ankle_motor_joint armature 0.002 kg m^2 is an ESTIMATE of the RS02's reflected rotor inertia (a 59 g,"
+  - "phi 55/45 x 10 mm rotor ring x 7.75^2; factor 2-3 uncertain): RobStride publishes none. Replace it with the"
+  - "value identified on hardware (docs/leg-prototype.md)."
+
+# The CAD's toe direction and up direction: the robot's x and z (REP-103); y = z x x points left.
+forward: [0.0, 1.0, 0.0]
+up: [0.0, 0.0, 1.0]
+
+# The shin is clamped to the test stand. Its frame sits on the ankle axis.
+root: Left-Shin-v3_1
+root_frame_at_joint: Revolute-16
+base: fixed
+
+links:
+  Left-Shin-v3_1: left_shin_link
+  Left-Foot-v3_1: left_foot_link
+  Left-Ankle-Horn-v2_1: left_ankle_horn_link
+  Left-Ankle-Rod-v1_1: left_ankle_rod_link
+
+# Every pin turns about the robot's y axis; positive is toes down for the ankle (as for the G1),
+# and the horn and rod follow the same right-hand rule about +y.
+joints:
+  Revolute-16: {name: left_ankle_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  Revolute-17: {name: left_ankle_motor_joint, axis: [0.0, 1.0, 0.0]}
+  Revolute-15: {name: left_ankle_rod_joint, axis: [0.0, 1.0, 0.0]}
+
+# The rod's top pin, which the export leaves out. The motor turns the horn (input); the rod
+# (coupler) drives the foot (output) about the ankle. Rod: 5 mm plate, top hole 120 mm above its
+# bottom pin. Horn: tip hole 45 mm from the motor axis, on the rod's mid-plane.
+linkages:
+  - name: left_ankle_pitch_linkage
+    input_joint: Revolute-17
+    output_joint: Revolute-16
+    coupler_joint: Revolute-15
+    closure:
+      coupler_body: Left-Ankle-Rod-v1_1
+      coupler_point_m: [0.0025, 0.0, 0.12]
+      input_body: Left-Ankle-Horn-v2_1
+      input_point_m: [0.0, 0.045, 0.0075]
+
+# CAD bodies that stand in for bought parts: their CAD mass is replaced by the catalogue mass.
+purchased_parts:
+  - body: Left-Shin-v3_1
+    placeholder_point_m: [0.0, 0.026, 0.070]   # centre of the 57 x 52 x 57 mm motor block
+    mass_kg: 0.380
+    part: "RobStride RS02, 380 g +- 3 g (RS02 User Manual 260713)"
+
+# Collision primitives, MJCF-native dimensions: box half-extents; cylinder [radius, half-length].
+collision:
+  Left-Foot-v3_1:
+    - {shape: box, centre_m: [0.0, 0.0, 0.003], dimensions_m: [0.030, 0.080, 0.003]}   # 6 mm sole
+    - {shape: box, centre_m: [-0.0009, -0.020, 0.020], dimensions_m: [0.0229, 0.01073, 0.014]}  # ankle clevis
+    - {shape: box, centre_m: [0.003735, -0.060, 0.020], dimensions_m: [0.014865, 0.01073, 0.014]}  # rod clevis
+  Left-Shin-v3_1:
+    - {shape: box, centre_m: [0.0, -0.0025, 0.0775], dimensions_m: [0.0285, 0.0025, 0.10597]}  # side plate
+    - {shape: box, centre_m: [0.0, 0.0825, 0.0775], dimensions_m: [0.0285, 0.0025, 0.10597]}   # side plate
+    - {shape: box, centre_m: [0.0, 0.026, 0.070], dimensions_m: [0.02847, 0.026, 0.0285]}      # motor
+    - {shape: box, centre_m: [-0.007035, 0.0655, 0.069995], dimensions_m: [0.021465, 0.0145, 0.028495]}  # motor mount
+    - {shape: box, centre_m: [0.0, 0.040, -0.0205], dimensions_m: [0.021, 0.040, 0.0415]}      # ankle block
+  Left-Ankle-Horn-v2_1:
+    - {shape: cylinder, centre_m: [0.0, 0.0, 0.0023], dimensions_m: [0.0175, 0.0023]}          # hub
+    - {shape: box, centre_m: [0.0, 0.0175, 0.0023], dimensions_m: [0.0084, 0.0175, 0.0023]}    # arm
+    - {shape: box, centre_m: [0.0, 0.0455, 0.0085], dimensions_m: [0.01088, 0.0105, 0.0085]}   # tip clevis
+  Left-Ankle-Rod-v1_1:
+    - {shape: box, centre_m: [0.0025, 0.0025, 0.060], dimensions_m: [0.0025, 0.0135, 0.071]}   # bowed rod

@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="leg_prototype">
+  <compiler angle="radian" balanceinertia="false" boundmass="0" boundinertia="0" settotalmass="-1" inertiafromgeom="false" fusestatic="false" strippath="false" discardvisual="false" meshdir="../source/meshes" />
+  <asset>
+    <mesh name="left_ankle_horn_link" file="left_ankle_horn_link.stl" />
+    <mesh name="left_ankle_rod_link" file="left_ankle_rod_link.stl" />
+    <mesh name="left_foot_link" file="left_foot_link.stl" />
+    <mesh name="left_shin_link" file="left_shin_link.stl" />
+  </asset>
+  <worldbody>
+    <body name="left_shin_link" pos="0 0 0.088167">
+      <inertial pos="0.0011937485 0.0004240892 0.0775410474" mass="1.984391784" fullinertia="0.006008123407 0.004938007039 0.001713846845 6.107229504e-05 -9.927792895e-05 -2.837119559e-05" />
+      <geom name="left_shin_link_visual" type="mesh" mesh="left_shin_link" contype="0" conaffinity="0" group="2" />
+      <geom name="left_shin_link_collision_0" type="box" size="0.0285 0.0025 0.10597" pos="0 0.0425 0.1275" quat="1 0 0 0" group="3" />
+      <geom name="left_shin_link_collision_1" type="box" size="0.0285 0.0025 0.10597" pos="0 -0.0425 0.1275" quat="1 0 0 0" group="3" />
+      <geom name="left_shin_link_collision_2" type="box" size="0.02847 0.026 0.0285" pos="0 0.014 0.12" quat="1 0 0 0" group="3" />
+      <geom name="left_shin_link_collision_3" type="box" size="0.021465 0.0145 0.028495" pos="0.007035 -0.0255 0.119995" quat="1 0 0 0" group="3" />
+      <geom name="left_shin_link_collision_4" type="box" size="0.021 0.04 0.0415" pos="0 0 0.0295" quat="1 0 0 0" group="3" />
+      <body name="left_foot_link" pos="0 0 0" quat="1 0 0 0">
+        <inertial pos="0.0112712471 -0.000132657 -0.0188892541" mass="0.5929643967" fullinertia="0.0001886249053 0.001198949943 0.001303338805 -4.593366839e-06 6.631215965e-05 2.002667414e-06" />
+        <geom name="left_foot_link_visual" type="mesh" mesh="left_foot_link" contype="0" conaffinity="0" group="2" />
+        <geom name="left_foot_link_collision_0" type="box" size="0.08 0.03 0.003" pos="0.02 0 -0.023" quat="1 0 0 0" group="3" />
+        <geom name="left_foot_link_collision_1" type="box" size="0.01073 0.0229 0.014" pos="0 0.0009 -0.006" quat="1 0 0 0" group="3" />
+        <geom name="left_foot_link_collision_2" type="box" size="0.01073 0.014865 0.014" pos="-0.04 -0.003735 -0.006" quat="1 0 0 0" group="3" />
+        <joint name="left_ankle_pitch_joint" type="hinge" axis="0 1 0" range="-1.2217 0.7679" damping="0" frictionloss="0" armature="0" />
+        <body name="left_ankle_rod_link" pos="-0.04 -0.0091 0" quat="1 0 0 0">
+          <inertial pos="-0.0084287096 0 0.0597006558" mass="0.06071574629" fullinertia="8.898058569e-05 9.10152904e-05 2.28768698e-06 -1.81090093e-21 3.621554472e-06 1.766880471e-20" />
+          <geom name="left_ankle_rod_link_visual" type="mesh" mesh="left_ankle_rod_link" contype="0" conaffinity="0" group="2" />
+          <geom name="left_ankle_rod_link_collision_0" type="box" size="0.0025 0.0135 0.071" pos="-0.0049977687 0 0.0598437325" quat="0.7069532533 -0.01473423498 -0.01473423498 0.7069532533" group="3" />
+          <site name="left_ankle_pitch_linkage_coupler_pin" pos="-0.0049998793 0 0.1198957932" size="0.002" />
+          <joint name="left_ankle_rod_joint" type="hinge" axis="0 1 0" damping="0" frictionloss="0" armature="0" />
+        </body>
+      </body>
+      <body name="left_ankle_horn_link" pos="0 -0.012 0.12" quat="1 0 0 0">
+        <inertial pos="-0.0259448075 0.0009129546 -6.00807e-05" mass="0.03479854227" fullinertia="2.719989966e-06 1.676901729e-05 1.581403791e-05 2.130473937e-06 -3.032221849e-08 4.933566002e-09" />
+        <geom name="left_ankle_horn_link_visual" type="mesh" mesh="left_ankle_horn_link" contype="0" conaffinity="0" group="2" />
+        <geom name="left_ankle_horn_link_collision_0" type="cylinder" size="0.0175 0.0023" pos="0 -0.0023 0" quat="0.5005785919 -0.5005785919 0.4994207378 0.4994207378" group="3" />
+        <geom name="left_ankle_horn_link_collision_1" type="box" size="0.0084 0.0175 0.0023" pos="-0.0174999531 -0.0023 -4.05249e-05" quat="0.5005785919 -0.5005785919 0.4994207378 0.4994207378" group="3" />
+        <geom name="left_ankle_horn_link_collision_2" type="box" size="0.01088 0.0105 0.0085" pos="-0.045499878 0.0039 -0.0001053647" quat="0.5005785919 -0.5005785919 0.4994207378 0.4994207378" group="3" />
+        <site name="left_ankle_pitch_linkage_input_pin" pos="-0.0449998793 0.0029 -0.0001042068" size="0.002" />
+        <joint name="left_ankle_motor_joint" type="hinge" axis="0 1 0" damping="0" frictionloss="0" armature="0.002" />
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude body1="left_shin_link" body2="left_foot_link" />
+    <exclude body1="left_shin_link" body2="left_ankle_horn_link" />
+    <exclude body1="left_shin_link" body2="left_ankle_rod_link" />
+    <exclude body1="left_foot_link" body2="left_ankle_horn_link" />
+    <exclude body1="left_foot_link" body2="left_ankle_rod_link" />
+    <exclude body1="left_ankle_horn_link" body2="left_ankle_rod_link" />
+  </contact>
+  <equality>
+    <connect name="left_ankle_pitch_linkage_pin" site1="left_ankle_pitch_linkage_coupler_pin" site2="left_ankle_pitch_linkage_input_pin" solref="0.002 1" solimp="0.9999 0.9999 0.001 0.5 2" />
+  </equality>
+  <actuator>
+    <general name="left_ankle_motor" joint="left_ankle_motor_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-3.04813941 3.04813941" />
+  </actuator>
+</mujoco>

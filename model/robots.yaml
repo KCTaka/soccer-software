@@ -12,6 +12,10 @@
 # on z = 0 at its reference pose; needs the mujoco Python package) and scene.xml (robot.xml in
 # the simulated world: physics settings and a floor).
 # firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
+#
+# leg_prototype's source was imported from a Fusion 360 export with
+# `python3 -m model.generators.ingest_fusion` (see its source/ingest.yaml), which a CAD re-export
+# re-runs; robot_model.yaml stays the source of truth for everything the CAD does not own.
 robots:
   unitree_g1:
     source: model/robots/unitree_g1/source/robot_model.yaml
@@ -44,6 +48,18 @@ robots:
     firmware_setup: 1s_5m
     stm32_wiring: true
     safety_manifest_path: config/bench_1s_5m/safety_manifest.yaml
+    safety_manifest_package: humanoid_bringup
+  leg_prototype:
+    source: model/robots/leg_prototype/source/robot_model.yaml
+    overlay: null
+    generated: model/robots/leg_prototype/generated
+    assets_dir: model/robots/leg_prototype/source/meshes
+    urdf: true
+    mjcf: true
+    firmware_config: true
+    firmware_setup: 1s_1m
+    stm32_wiring: true
+    safety_manifest_path: config/leg_prototype/safety_manifest.yaml
     safety_manifest_package: humanoid_bringup
 
 default_robot: unitree_g1

@@ -1,0 +1,163 @@
+{
+  "active_dof_count": 3,
+  "default_length_units": "mm",
+  "design_name": "Leg Assembly - Export v2",
+  "errors": [],
+  "joint_count": 3,
+  "joints": [
+    {
+      "child": "Left Ankle Rod v1:1",
+      "export_name": "Revolute-15",
+      "name": "Revolute 15",
+      "object_type": "adsk::fusion::Joint",
+      "parent": "Left Foot v3:1",
+      "type": "revolute"
+    },
+    {
+      "child": "Left Shin v3:1",
+      "export_name": "Revolute-16",
+      "name": "Revolute 16",
+      "object_type": "adsk::fusion::Joint",
+      "parent": "Left Foot v3:1",
+      "type": "revolute"
+    },
+    {
+      "child": "Left Ankle Horn v2:1",
+      "export_name": "Revolute-17",
+      "name": "Revolute 17",
+      "object_type": "adsk::fusion::Joint",
+      "parent": "Left Shin v3:1",
+      "type": "revolute"
+    }
+  ],
+  "occurrences": [
+    {
+      "body_count": 7,
+      "child_occurrence_count": 0,
+      "component_name": "Left Foot v3",
+      "export_name": "Left-Foot-v3_1",
+      "full_path_name": "Left Foot v3:1",
+      "referenced_component": false,
+      "transform_fusion_internal_cm": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "visible_mesh_body_count": 0,
+      "visible_solid_brep_count": 7,
+      "visible_surface_brep_count": 0,
+      "visible_unknown_brep_count": 0
+    },
+    {
+      "body_count": 1,
+      "child_occurrence_count": 0,
+      "component_name": "Left Ankle Rod v1",
+      "export_name": "Left-Ankle-Rod-v1_1",
+      "full_path_name": "Left Ankle Rod v1:1",
+      "referenced_component": false,
+      "transform_fusion_internal_cm": [
+        -0.9999999999999972,
+        8.580196325893218e-16,
+        1.3626495268246347e-16,
+        1.1600000000000001,
+        -7.635910175839413e-16,
+        -0.9378477752327913,
+        -0.34704689955523194,
+        -6.0,
+        -9.481109043189657e-17,
+        -0.3470468995552338,
+        0.9378477752327893,
+        2.6000000089406936,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "visible_mesh_body_count": 0,
+      "visible_solid_brep_count": 1,
+      "visible_surface_brep_count": 0,
+      "visible_unknown_brep_count": 0
+    },
+    {
+      "body_count": 5,
+      "child_occurrence_count": 0,
+      "component_name": "Left Shin v3",
+      "export_name": "Left-Shin-v3_1",
+      "full_path_name": "Left Shin v3:1",
+      "referenced_component": false,
+      "transform_fusion_internal_cm": [
+        1.5814491093658117e-16,
+        1.0000000000000009,
+        -2.2417341655494092e-17,
+        -4.0000000000000036,
+        -1.0,
+        -2.90911819527481e-16,
+        -8.326672684688674e-17,
+        -1.9999999999999982,
+        -1.942890293094024e-16,
+        8.657042175043189e-16,
+        0.9999999999999967,
+        7.599999999999985,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "visible_mesh_body_count": 0,
+      "visible_solid_brep_count": 5,
+      "visible_surface_brep_count": 0,
+      "visible_unknown_brep_count": 0
+    },
+    {
+      "body_count": 3,
+      "child_occurrence_count": 0,
+      "component_name": "Left Ankle Horn v2",
+      "export_name": "Left-Ankle-Horn-v2_1",
+      "full_path_name": "Left Ankle Horn v2:1",
+      "referenced_component": false,
+      "transform_fusion_internal_cm": [
+        1.0633161588099392e-15,
+        4.5064792263530413e-17,
+        -1.000000000000001,
+        1.6599999999999984,
+        1.1102230246251565e-15,
+        -0.999999999999997,
+        1.6934926750491237e-16,
+        -1.9999999999999964,
+        -0.999999999999998,
+        -1.1102230246251565e-16,
+        -9.06443588299963e-16,
+        14.599999999999985,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "visible_mesh_body_count": 0,
+      "visible_solid_brep_count": 3,
+      "visible_surface_brep_count": 0,
+      "visible_unknown_brep_count": 0
+    }
+  ],
+  "passed": true,
+  "plugin_version": "1.1.1",
+  "root_links": [
+    "Left Foot v3:1"
+  ],
+  "schema_version": 1,
+  "visible_link_count": 4,
+  "warnings": []
+}
