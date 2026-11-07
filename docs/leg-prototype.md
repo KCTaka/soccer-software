@@ -49,7 +49,7 @@ crank cannot both be level when the rod closes the loop.
 **Range.** A CAD interference sweep puts the rod against the shin between +44° and +45° toes down,
 and toes up is clear to −70°. Those are the hard stops (`−1.2217`, `+0.7679` rad). The software
 limits are ±40° (±0.6981 rad): the ratio stays within 1.125–1.22 and the transmission angle above
-47°. With the motor limp, the foot hangs at about +17°, inside the range.
+47°. With the motor limp, the foot hangs at about +12°, inside the range.
 
 ## How the closed loop is handled
 
@@ -95,10 +95,11 @@ with no lookup table or fitted polynomial, and it is cheap.
   over the whole range (`four_bar_mujoco_test`). The same test checks the static ratio against
   MuJoCo's constraint forces, which carry the motor's torque round the loop.
 - **Statics.** In a sweep of the generated scene, the ratio matches τ_ankle = τ_motor / r to
-  0.002% at −40°, 0° and +40°.
-- **Pin stretch.** MuJoCo's constraints are soft, so the pin stretches under load: under 1 µm at the
-  RS02's 17 N·m held statically, and 11 µm transiently on a 0.2 rad step at the leg's gains.
-  At kp 200–330 N·m/rad with the drive saturated it reaches 0.4–0.6 mm.
+  0.012% at −40°, 0° and +40°.
+- **Pin stretch.** MuJoCo's constraints are soft, so the pin stretches under load. Held statically,
+  it opens under 1 µm at the motor's 3.05 N·m envelope and 5 µm at the RS02's 17 N·m peak. On a
+  0.2 rad step at the leg's gains it reaches 15 µm transiently, and 0.5–0.75 mm at kp 200–330
+  N·m/rad with the drive saturated.
 - **Why the armature matters.** MuJoCo's implicit integrator applies the MIT damping through the
   horn joint's mass matrix but computes the pin force without it. With armature 0 on a 35 g horn,
   the pin stretches by millimetres. Every real motor has rotor inertia, and with it the stretch
@@ -113,9 +114,9 @@ model/robots/leg_prototype/source/ingest.yaml`. Re-run it on a new CAD export (s
 
 | Value | Status |
 |---|---|
-| Masses and inertias | **Provisional.** Fusion's, with most parts on its default steel (7.85 g/cm³). Fitting the shin's shells to Fusion's mass properties shows the side plates are aluminium and the blocks steel. Replace with weighed masses. |
-| Shin motor mass | The 57 × 52 × 57 mm placeholder (1.03 kg of steel) is replaced by the RS02's 380 g. The shin is clamped, so this matters only for the full leg. |
-| Horn joint armature, 0.002 kg·m² | **An estimate.** The RS02's reflected rotor inertia, taken as a 59 g, Φ55/45 × 10 mm rotor ring × 7.75², uncertain by a factor of 2–3. RobStride publishes none. Identify it on hardware (below). |
+| Masses and inertias | **Provisional.** Every part is solid PLA (1.24 g/cm³, infill not modelled), integrated exactly over its CAD mesh: foot 95.5 g, horn 13.3 g, rod 9.6 g, shin 343 g. Fusion's own values used its default steel on most parts, so they are not used. Replace with weighed masses. |
+| Shin motor mass | The 57 × 52 × 57 mm placeholder block in the shin takes the RS02's 380 g (shin total 723 g). The shin is clamped, so this matters only for the full leg. |
+| Horn joint armature, 0.002 kg·m² | **An estimate.** The RS02's reflected rotor inertia, taken as a 59 g, Φ55/45 × 10 mm rotor ring × 7.75², uncertain by a factor of 2–3. RobStride publishes none. With PLA parts it is 87% of the ankle's effective inertia, so it decides the leg's dynamics in SIL: identify it on hardware (below). |
 | Hard stops | From the CAD interference sweep. |
 | `zero_offset_rad` | **Not calibrated.** Null, so the STM32 transport refuses to start. |
 | `direction_sign` | **Provisional.** +1, to verify. |

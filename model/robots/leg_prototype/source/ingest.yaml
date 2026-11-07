@@ -8,8 +8,8 @@ export: model/robots/leg_prototype/source/Leg-Assembly---Export-v2/Leg-Assembly-
 model_out: model/robots/leg_prototype/source/robot_model.yaml
 meshes_out: model/robots/leg_prototype/source/meshes
 notes:
-  - "Masses and inertias are Fusion's. Most parts carry its default steel (7.85 g/cm^3): provisional until"
-  - "weighed. The shin's RS02 placeholder, a 1.03 kg steel block, is replaced by the motor's 380 g."
+  - "Masses and inertias are PROVISIONAL until weighed: every part solid PLA (1.24 g/cm^3, infill not"
+  - "modelled) over its CAD geometry, except the RS02, whose placeholder block in the shin takes its 380 g."
   - "left_ankle_motor_joint armature 0.002 kg m^2 is an ESTIMATE of the RS02's reflected rotor inertia (a 59 g,"
   - "phi 55/45 x 10 mm rotor ring x 7.75^2; factor 2-3 uncertain): RobStride publishes none. Replace it with the"
   - "value identified on hardware (docs/leg-prototype.md)."
@@ -50,7 +50,11 @@ linkages:
       input_body: Left-Ankle-Horn-v2_1
       input_point_m: [0.0, 0.045, 0.0075]
 
-# CAD bodies that stand in for bought parts: their CAD mass is replaced by the catalogue mass.
+# Inertials are computed from each part's mesh at this density, not taken from Fusion, whose
+# materials are its default steel on most parts. Solid PLA, the printed parts' material.
+density_kg_m3: 1240.0
+
+# CAD bodies that stand in for bought parts: their shell takes the catalogue mass instead.
 purchased_parts:
   - body: Left-Shin-v3_1
     placeholder_point_m: [0.0, 0.026, 0.070]   # centre of the 57 x 52 x 57 mm motor block

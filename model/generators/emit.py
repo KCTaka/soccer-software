@@ -21,9 +21,10 @@ FOUR_BAR_PLUGIN = "humanoid_actuator_system/FourBarLinkage"
 # A linkage's closure in MJCF: a connect equality between two sites. MuJoCo's constraints are soft,
 # so the pin stretches under load. solref's time constant is two 1 ms timesteps, the smallest that
 # stays stable, and solimp's impedance the largest MuJoCo accepts. Measured on leg_prototype: under
-# 1 um at the RS02's 17 N*m held statically, 11 um transiently on a 0.2 rad step at kp 10 N*m/rad
-# (0.4-0.6 mm at kp 200-330, the drive saturated). The input joint's armature is what keeps it
-# small: see validator check L-06 and docs/leg-prototype.md.
+# 1 um at its 3.05 N*m motor envelope and 5 um at the RS02's 17 N*m, held statically; 15 um
+# transiently on a 0.2 rad step at kp 10 N*m/rad (0.5-0.75 mm at kp 200-330, the drive saturated).
+# The input joint's armature is what keeps it small: see validator check L-06 and
+# docs/leg-prototype.md.
 LINKAGE_SOLREF = "0.002 1"
 LINKAGE_SOLIMP = "0.9999 0.9999 0.001 0.5 2"
 
