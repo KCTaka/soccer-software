@@ -43,3 +43,11 @@ def quat_to_matrix(q):
 def rpy_to_quat(rpy):
     """(w, x, y, z), with w >= 0."""
     return np.roll(Rotation.from_euler("xyz", rpy).as_quat(canonical=True), 1).tolist()
+
+def rpy_to_matrix(rpy):
+    return Rotation.from_euler("xyz", rpy).as_matrix()
+
+def matrix_to_rpy(m):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Gimbal lock detected", UserWarning)
+        return Rotation.from_matrix(m).as_euler("xyz").tolist()

@@ -4,6 +4,7 @@ schema_version: 1.0.0
 robot:
   name: unitree_g1
   root_link: pelvis
+  base: floating
 links:
 - name: pelvis
   parent_joint: null
