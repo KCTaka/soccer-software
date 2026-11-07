@@ -1,0 +1,6 @@
+# SIL: HumanoidActuatorSystem runs MujocoActuatorTransport on the generated scene. MuJoCo simulates
+# the real closed loop: the RS02 on the horn, the rod pinned to it by an equality constraint.
+humanoidactuatorsystem:
+  ros__parameters:
+    transport_plugin: "humanoid_transport_mujoco/MujocoActuatorTransport"
+    accepted_degradation: "none"
