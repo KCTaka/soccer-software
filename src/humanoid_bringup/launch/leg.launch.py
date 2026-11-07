@@ -3,16 +3,20 @@
 Arguments:
   mode    sil (default): MuJoCo software-in-the-loop. MujocoActuatorTransport simulates the
           generated scene, the closed loop included; nothing touches hardware.
+          monitor: the real leg, read-only. The same stack as hil, but Stm32SerialTransport never
+          arms: every cycle asks the RS02 for IDLE, and /joint_states shows the ankle through the
+          linkage. Use it to check the zero offset and direction sign before arming.
           hil: the real leg. Stm32SerialTransport talks to the master STM32 and the RS02 behind it.
-          The motor is armed and will move. Needs the calibrated zero offset: the generated
-          stm32_wiring.yaml leaves it out until robot_model.yaml has one, and the transport then
-          refuses to configure (docs/leg-prototype.md).
+          The motor is armed and will move.
+          monitor and hil need the calibrated zero offset: the generated stm32_wiring.yaml leaves it
+          out until robot_model.yaml has one, and the transport then refuses to configure
+          (docs/leg-prototype.md).
   rviz    true (default): RViz2. Needs an X display.
   foxglove  false (default): foxglove_bridge on ws://<host>:8765, for a host without a display.
-  serial_device  hil only. The master's USB CDC device, /host-dev/robosoccer-master in the dev
-          container; on a bare host pass /dev/robosoccer-master.
+  serial_device  monitor and hil. The master's USB CDC device, /host-dev/robosoccer-master in the
+          dev container; on a bare host pass /dev/robosoccer-master.
 
-Both modes run the same stack: controller_manager with HumanoidActuatorSystem, which maps the
+Every mode runs the same stack: controller_manager with HumanoidActuatorSystem, which maps the
 ankle's MIT tuple through the linkage to the motor, joint_state_broadcaster, and
 humanoid_mit_controller, which holds the measured pose until a reference arrives on
 /humanoid_mit_controller/joint_references. Drive it with bench_trajectories, e.g.
@@ -27,7 +31,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-MODES = ('sil', 'hil')
+MODES = ('sil', 'monitor', 'hil')
 
 
 def _truthy(value):
@@ -48,7 +52,7 @@ def _setup(context, *_args, **_kwargs):
         robot_description = {'robot_description': f.read()}
 
     parameters = [robot_description, os.path.join(config, 'controllers.yaml'),
-                  os.path.join(config, f'{mode}.yaml')]
+                  os.path.join(config, 'sil.yaml' if mode == 'sil' else 'hil.yaml')]
     if mode == 'sil':
         parameters.append({
             'mjcf_path': os.path.join(
@@ -58,7 +62,7 @@ def _setup(context, *_args, **_kwargs):
         })
     else:
         parameters += [os.path.join(config, 'stm32_wiring.yaml'),
-                       {'serial_device': serial_device}]
+                       {'serial_device': serial_device, 'monitor_only': mode == 'monitor'}]
 
     nodes = [
         Node(package='robot_state_publisher', executable='robot_state_publisher',
@@ -81,13 +85,15 @@ def _setup(context, *_args, **_kwargs):
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('mode', default_value='sil',
-                              description='sil: MuJoCo, no hardware. hil: the real leg, armed'),
+        DeclareLaunchArgument(
+            'mode', default_value='sil',
+            description='sil: MuJoCo, no hardware. monitor: the real leg, never armed. '
+                        'hil: the real leg, armed'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz2'),
         DeclareLaunchArgument('foxglove', default_value='false',
                               description='Start foxglove_bridge on ws://<host>:8765'),
         DeclareLaunchArgument(
             'serial_device', default_value='/host-dev/robosoccer-master',
-            description="The master STM32's USB CDC device (mode:=hil only)"),
+            description="The master STM32's USB CDC device (mode:=monitor or hil)"),
         OpaqueFunction(function=_setup),
     ])
