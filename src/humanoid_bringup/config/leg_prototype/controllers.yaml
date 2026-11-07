@@ -15,10 +15,10 @@ humanoid_mit_controller:
   ros__parameters:
     joints:
       - left_ankle_pitch_joint
-    # Ankle impedance [N*m/rad], [N*m*s/rad]. kp holds the foot's gravity torque (~0.07 N*m with the
-    # provisional CAD masses) to under 0.01 rad; with the ankle's ~3e-3 kg*m^2 (foot plus the
-    # reflected RS02 armature estimate) kd gives a damping ratio near 0.85. Through the linkage the
-    # motor sees ratio^2 times these, at most 1.49x: well inside the RS02's 500 / 5 caps. The
-    # pre-reference fallback holds the measured position with them, so the foot is never limp.
+    # Ankle impedance [N*m/rad], [N*m*s/rad]. kp holds the foot's gravity torque (~0.01 N*m with the
+    # provisional PLA masses) to about 1 mrad; with the ankle's ~1.8e-3 kg*m^2 (mostly the reflected
+    # RS02 armature estimate) kd gives a damping ratio near 1.1. Through the linkage the motor sees
+    # ratio^2 times these, at most 1.49x: well inside the RS02's 500 / 5 caps. The pre-reference
+    # fallback holds the measured position with them, so the foot is never limp.
     default_kp: 10.0
     default_kd: 0.3

@@ -22,8 +22,9 @@ was left, with every closed loop cut open. The import, in order:
  4. Gives every link a frame on its parent joint's axis with the robot's axes (REP-103: x forward,
     y left, z up), so every joint origin has rpy 0. The root's frame sits on `root_frame_at_joint`.
  5. Writes each mesh in metres in its link frame, and transforms inertials, collision primitives
-    and closure points into the link frames. A purchased-part placeholder's CAD mass is replaced by
-    the part's catalogue mass first (see replace_placeholder).
+    and closure points into the link frames. With `density_kg_m3` set, each part's inertial is
+    computed from its mesh at that density, and a purchased part's placeholder shell takes the
+    part's catalogue mass (see mass_properties); without it, the inertials are Fusion's.
 """
 import argparse
 import os
@@ -46,8 +47,6 @@ KEPT_TOP_LEVEL = ("actuators", "home", "imu")
 # and it keeps CAD float noise (0.040000000000000036) out of the hand-edited file.
 POSITION_DECIMALS = 10
 DIRECTION_DECIMALS = 12
-# A placeholder's density fit must reproduce the CAD mass properties to this relative accuracy.
-DENSITY_FIT_TOL = 1e-3
 
 def read_stl(path):
     """Triangles (n, 3, 3) of a binary STL, in its file units."""
@@ -97,43 +96,33 @@ def volume_moments(v, f):
 def inertia_about_origin(second):
     return np.trace(second) * np.eye(3) - second
 
-def replace_placeholder(tri, mass, com, inertia, point, part_mass):
-    """Mass properties (mass, com, inertia about com) of a CAD body with the shell that contains
-    `point` (body frame) replaced by a part of `part_mass` filling the same volume.
-
-    Fusion reports one mass, COM and inertia per body, but a body's shells can have different
-    materials. Mass, first moment and inertia about the origin are linear in the shell densities, so
-    the ten scalars Fusion reports identify each shell's density by least squares when the shells
-    are distinguishable. The fit must reproduce the CAD values (DENSITY_FIT_TOL), or the shell
-    densities are not identified and the replacement is refused."""
+def mass_properties(tri, density, purchased):
+    """Mass, COM and inertia about the COM of a body, in its frame, from its mesh `tri` (m): every
+    shell solid at `density` (kg/m^3), except each purchased part's shell, the one whose bounding
+    box holds its placeholder point, which takes the part's catalogue mass over its volume. Exact for
+    the mesh: each closed shell's volume integrals, by signed tetrahedra."""
     body_shells = shells(tri)
-    parts = [volume_moments(v, f) for v, f in body_shells]
     boxes = [(v[np.unique(f)].min(0), v[np.unique(f)].max(0)) for v, f in body_shells]
-    inside = [k for k, (lo, hi) in enumerate(boxes) if np.all(lo <= point) and np.all(point <= hi)]
-    if len(inside) != 1:
-        raise ValueError(f"placeholder point {point} lies in the bounding box of {len(inside)} "
-                         "shells; it must pick exactly one")
-    inertia_o = inertia + mass * (com @ com * np.eye(3) - np.outer(com, com))
-    upper = np.triu_indices(3)
-    a = np.array([np.concatenate([[vol], first, inertia_about_origin(second)[upper]])
-                  for vol, first, second in parts]).T
-    y = np.concatenate([[mass], mass * com, inertia_o[upper]])
-    w = 1.0 / np.abs(y).clip(min=1e-12)
-    rho = np.linalg.lstsq(a * w[:, None], y * w, rcond=None)[0]
-    fit = np.abs((a @ rho - y) * w).max()
-    if fit > DENSITY_FIT_TOL or np.any(rho <= 0):
-        raise ValueError(f"shell densities are not identified (relative residual {fit:.2e}, "
-                         f"densities {np.round(rho, 1)} kg/m^3)")
-    k = inside[0]
-    vol, first, second = parts[k]
-    scale = part_mass / (rho[k] * vol) - 1.0     # replace the shell's CAD mass by part_mass
-    new_mass = mass + scale * rho[k] * vol
-    new_first = mass * com + scale * rho[k] * first
-    new_inertia_o = inertia_o + scale * rho[k] * inertia_about_origin(second)
-    new_com = new_first / new_mass
-    new_inertia = new_inertia_o - new_mass * (new_com @ new_com * np.eye(3) -
-                                              np.outer(new_com, new_com))
-    return new_mass, new_com, new_inertia, rho[k] * vol
+    part_of = {}
+    for part in purchased:
+        point = np.asarray(part["placeholder_point_m"], float)
+        inside = [k for k, (lo, hi) in enumerate(boxes)
+                  if np.all(lo <= point) and np.all(point <= hi)]
+        if len(inside) != 1:
+            raise ValueError(f"placeholder point {point.tolist()} lies in the bounding box of "
+                             f"{len(inside)} shells; it must pick exactly one")
+        part_of[inside[0]] = part
+    mass, first_moment, inertia_o = 0.0, np.zeros(3), np.zeros((3, 3))
+    for k, (v, f) in enumerate(body_shells):
+        vol, first, second = volume_moments(v, f)
+        if vol <= 0:
+            raise ValueError(f"shell {k} has volume {vol}: not a closed, outward-facing mesh")
+        rho = part_of[k]["mass_kg"] / vol if k in part_of else density
+        mass += rho * vol
+        first_moment += rho * first
+        inertia_o += rho * inertia_about_origin(second)
+    com = first_moment / mass
+    return mass, com, inertia_o - mass * (com @ com * np.eye(3) - np.outer(com, com))
 
 def primitive_in_link(shape, dims, r_lb):
     """(rpy, dimensions) of a primitive whose axes are its body's, in link axes `r_lb`. A box is
@@ -234,7 +223,13 @@ def ingest(config_path):
                                                mesh.get("scale", "1 1 1").split()])
     geom_mesh = {m.geom_bodyid[g]: m.mesh(m.geom_dataid[g]).name for g in range(m.ngeom)
                  if m.geom_dataid[g] >= 0}
-    placeholders = {p["body"]: p for p in cfg.get("purchased_parts", [])}
+    density = cfg.get("density_kg_m3")
+    purchased = {}
+    for part in cfg.get("purchased_parts", []):
+        purchased.setdefault(part["body"], []).append(part)
+    if purchased and density is None:
+        raise ValueError("purchased_parts replace a placeholder's mass, which needs the other "
+                         "shells' density: set density_kg_m3")
     os.makedirs(cfg["meshes_out"], exist_ok=True)
     links = []
     for b in order:
@@ -242,20 +237,17 @@ def ingest(config_path):
         r_wb, p_wb = d.xmat[b].reshape(3, 3), d.xpos[b]
         tri = read_stl(mesh_files[geom_mesh[b]]) * scale_of[geom_mesh[b]]   # body frame, m
 
-        # The compiled inertial, in the body frame.
-        mass = float(m.body_mass[b])
-        com_b = m.body_ipos[b].copy()
-        r_ib = np.zeros(9)
-        mujoco.mju_quat2Mat(r_ib, m.body_iquat[b])
-        r_ib = r_ib.reshape(3, 3)
-        inertia_b = r_ib @ np.diag(m.body_inertia[b]) @ r_ib.T
-        if bname in placeholders:
-            p = placeholders[bname]
-            mass, com_b, inertia_b, cad_mass = replace_placeholder(
-                tri, mass, com_b, inertia_b, np.asarray(p["placeholder_point_m"], float),
-                p["mass_kg"])
-            print(f"{lname}: placeholder of CAD mass {cad_mass:.4f} kg replaced by "
-                  f"{p['mass_kg']} kg ({p['part']})")
+        if density is None:
+            # Fusion's inertial, compiled by MuJoCo, in the body frame.
+            mass = float(m.body_mass[b])
+            com_b = m.body_ipos[b].copy()
+            r_ib = np.zeros(9)
+            mujoco.mju_quat2Mat(r_ib, m.body_iquat[b])
+            r_ib = r_ib.reshape(3, 3)
+            inertia_b = r_ib @ np.diag(m.body_inertia[b]) @ r_ib.T
+        else:
+            mass, com_b, inertia_b = mass_properties(tri, density, purchased.get(bname, []))
+        print(f"{lname}: {mass:.4f} kg")
         r_lb = r_rc @ r_wb                                   # body axes in link axes
         com = to_link(b, p_wb + r_wb @ com_b)
         inertia = r_lb @ inertia_b @ r_lb.T

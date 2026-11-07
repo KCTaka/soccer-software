@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="leg_prototype">
   <link name="left_shin_link">
-    <inertial xyz="0.0011937485 0.0004240892 0.0775410474" rpy="0 0 0">
-      <mass value="1.984391784" />
-      <inertia ixx="0.006008123407" iyy="0.004938007039" izz="0.001713846845" ixy="6.107229504e-05" ixz="-9.927792895e-05" iyz="-2.837119559e-05" />
+    <inertial xyz="0.0005172538 0.0065571135 0.1025531724" rpy="0 0 0">
+      <mass value="0.7230718214" />
+      <inertia ixx="0.001932659139" iyy="0.001584818358" izz="0.0006255312376" ixy="1.193622893e-05" ixz="-6.320279423e-06" iyz="-8.155701196e-05" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
@@ -43,9 +43,9 @@
     </collision>
   </link>
   <link name="left_foot_link">
-    <inertial xyz="0.0112712471 -0.000132657 -0.0188892541" rpy="0 0 0">
-      <mass value="0.5929643967" />
-      <inertia ixx="0.0001886249053" iyy="0.001198949943" izz="0.001303338805" ixy="-4.593366839e-06" ixz="6.631215965e-05" iyz="2.002667414e-06" />
+    <inertial xyz="0.0108015884 -0.0001869328 -0.0185307623" rpy="0 0 0">
+      <mass value="0.09548609762" />
+      <inertia ixx="3.070209793e-05" iyy="0.0001918040092" izz="0.0002078629575" ixy="-9.976287613e-07" ixz="1.129865593e-05" iyz="4.125474138e-07" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
@@ -73,9 +73,9 @@
     </collision>
   </link>
   <link name="left_ankle_horn_link">
-    <inertial xyz="-0.0259448075 0.0009129546 -6.00807e-05" rpy="0 0 0">
-      <mass value="0.03479854227" />
-      <inertia ixx="2.719989966e-06" iyy="1.676901729e-05" izz="1.581403791e-05" ixy="2.130473937e-06" ixz="-3.032221849e-08" iyz="4.933566002e-09" />
+    <inertial xyz="-0.0221155383 -0.0006746517 -5.12132e-05" rpy="0 0 0">
+      <mass value="0.01330685925" />
+      <inertia ixx="9.917366362e-07" iyy="6.439338583e-06" izz="5.837653492e-06" ixy="4.949489737e-07" ixz="-1.122181252e-08" iyz="1.146159733e-09" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
@@ -103,9 +103,9 @@
     </collision>
   </link>
   <link name="left_ankle_rod_link">
-    <inertial xyz="-0.0084287096 0 0.0597006558" rpy="0 0 0">
-      <mass value="0.06071574629" />
-      <inertia ixx="8.898058569e-05" iyy="9.10152904e-05" izz="2.28768698e-06" ixy="-1.81090093e-21" ixz="3.621554472e-06" iyz="1.766880471e-20" />
+    <inertial xyz="-0.0084255138 0 0.059700789" rpy="0 0 0">
+      <mass value="0.009590323635" />
+      <inertia ixx="1.405100479e-05" iyy="1.437181134e-05" izz="3.607662315e-07" ixy="-3.651081662e-22" ixz="5.719032255e-07" iyz="5.330101771e-21" />
     </inertial>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
