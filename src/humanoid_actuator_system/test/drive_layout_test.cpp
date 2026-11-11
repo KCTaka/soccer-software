@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -12,6 +13,8 @@
 #include "humanoid_actuator_system/drive_layout.hpp"
 #include "humanoid_actuator_system/hardware_contract.hpp"
 #include "humanoid_actuator_system/safety_manifest_parser.hpp"
+#include "humanoid_transport/batch_types.hpp"
+#include "humanoid_transport/safety_manifest.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace
@@ -20,6 +23,9 @@ namespace
 using humanoid::actuator_system::drive_layout;
 using humanoid::actuator_system::DriveLayout;
 using humanoid::actuator_system::hardware_contract_violation;
+using humanoid::actuator_system::parse_safety_manifest;
+using humanoid::transport::JointCommand;
+using humanoid::transport::SafetyManifest;
 
 hardware_interface::HardwareInfo parse(const char * path)
 {
@@ -61,10 +67,45 @@ TEST(DriveLayout, NamesTheSafetyManifestsEnvelopesByMotor)
   // The component parses the manifest with the motors' names, so the generated manifest must key
   // its envelopes by the joint each motor turns.
   const auto layout = std::get<DriveLayout>(drive_layout(parse(HUMANOID_TEST_LEG_URDF_PATH)));
-  const auto manifest = humanoid::actuator_system::parse_safety_manifest(
+  const auto manifest = parse_safety_manifest(
     YAML::LoadFile(HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH), layout.transport_joints);
   const auto * error = std::get_if<std::string>(&manifest);
   EXPECT_EQ(error ? *error : std::string{}, "");
+}
+
+TEST(DriveLayout, MapsEveryCommandTheJointsLimitsAllowIntoTheMotorsEnvelope)
+{
+  // The component checks the ankle's command against the ankle's limits, then the kernel checks
+  // the motor's against the motor's envelope. The envelope must hold the whole image of the
+  // ankle's limits as the component computes it, or a command the ankle allows, such as one at
+  // its limit, stops the robot.
+  const auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
+  const auto layout = std::get<DriveLayout>(drive_layout(info));
+  const auto manifest = parse_safety_manifest(
+    YAML::LoadFile(HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH), layout.transport_joints);
+  ASSERT_TRUE(std::holds_alternative<SafetyManifest>(manifest));
+  const auto & envelope = std::get<SafetyManifest>(manifest).envelopes.front();
+  const auto & limits = info.limits.at(layout.command_joints.front());
+  const auto & linkage = layout.linkages.front()->linkage;
+
+  std::vector<double> positions{limits.min_position, limits.max_position};
+  for (int k = 1; k < 80; ++k) {
+    positions.push_back(
+      limits.min_position + (limits.max_position - limits.min_position) * k / 80.0);
+  }
+  for (const double q : positions) {
+    for (const double sign : {-1.0, 1.0}) {
+      const auto motor = linkage.to_input(
+        JointCommand{
+          .position_rad = q, .velocity_rad_s = sign * limits.max_velocity,
+          .effort_nm = sign * limits.max_effort});
+      ASSERT_TRUE(motor) << q;
+      EXPECT_GE(motor->position_rad, envelope.position_min_rad) << q;
+      EXPECT_LE(motor->position_rad, envelope.position_max_rad) << q;
+      EXPECT_LE(std::abs(motor->velocity_rad_s), envelope.velocity_max_rad_s) << q;
+      EXPECT_LE(std::abs(motor->effort_nm), envelope.torque_peak_nm) << q;
+    }
+  }
 }
 
 TEST(DriveLayout, DrivesEveryJointDirectlyWithoutTransmissions)
