@@ -5,11 +5,11 @@ max_consecutive_bad_cycles: 3
 feedback_max_age_us: 15000
 envelopes:
   left_ankle_motor_joint:
-    position_min_rad: -0.6101437645
-    position_max_rad: 0.6058312002
-    velocity_max_rad_s: 8.8890023509
-    torque_continuous_nm: 3.0481394097
-    torque_peak_nm: 3.0481394097
+    position_min_rad: -0.6101437637
+    position_max_rad: 0.6058312009
+    velocity_max_rad_s: 8.8890023502
+    torque_continuous_nm: 3.0481394089
+    torque_peak_nm: 3.0481394089
     torque_peak_duration_s: 1.0
     stiffness_max_nm_rad: 500.0
     damping_max_nm_s_rad: 5.0

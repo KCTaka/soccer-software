@@ -229,8 +229,22 @@ class FourBar:
         return out
 
 # Linkage-derived limits are rounded so that a last-bit difference between two machines' libm
-# cannot change a generated file.
+# cannot change a generated file, and rounded outward, so that they still hold everything the
+# output's limits allow.
 DERIVED_DECIMALS = 10
+
+def _down(x):
+    return math.floor(float(x) * 10 ** DERIVED_DECIMALS) / 10 ** DERIVED_DECIMALS
+
+def _up(x):
+    return math.ceil(float(x) * 10 ** DERIVED_DECIMALS) / 10 ** DERIVED_DECIMALS
+
+def _described(params):
+    """`params` as the description's <transmission> carries them, to 10 significant digits. The
+    hardware component builds its linkage from these, so the limits are derived from them too:
+    from the unrounded ones, the component's map would differ by ~1e-9 rad, enough to put a
+    command at the output's limit outside the input's."""
+    return {k: v if isinstance(v, int) else float(f"{v:.10g}") for k, v in params.items()}
 
 def members(model):
     """Names of every joint a linkage drives rather than a controller: its inputs and couplers."""
@@ -254,7 +268,7 @@ def drives(model):
                       effort_peak_duration_s. Through a linkage they are derived over the output's
                       software range: the input range is the image of it (the map is monotone),
                       and the input's speed and torque bounds are what the output's imply at the
-                      worst ratio in that range.
+                      worst ratio in that range, each rounded outward.
       coupler         through a linkage, the coupler joint's range and speed bound over it
     Raises ValueError for a linkage that does not close over the output's software range."""
     joints = {j["name"]: j for j in model["joints"]}
@@ -276,7 +290,7 @@ def drives(model):
         params, errs = planar_parameters(model, lk)
         if errs:
             raise ValueError("; ".join(errs))
-        four_bar = FourBar(params)
+        four_bar = FourBar(_described(params))
         sweep = four_bar.sweep(lim["software_lower_rad"], lim["software_upper_rad"])
         if sweep is None:
             raise ValueError(f"{lk['name']}: the linkage does not close, or passes a toggle, "
@@ -285,19 +299,18 @@ def drives(model):
         q_cpl = [s[2] for s in sweep]
         ratio = [abs(s[3]) for s in sweep]
         cpl_rate = [abs(s[4]) for s in sweep]
-        r = lambda x: round(float(x), DERIVED_DECIMALS)
         out.append({
             "joint": j["name"], "actuated_joint": lk["input_joint"],
             "actuator": joints[lk["input_joint"]]["actuator"], "linkage": lk,
             "four_bar": four_bar,
             "limits": {
-                "position_min_rad": r(min(q_in)), "position_max_rad": r(max(q_in)),
-                "velocity_rad_s": r(lim["velocity_rad_s"] / min(ratio)),
-                "effort_continuous_nm": r(lim["effort_continuous_nm"] * max(ratio)),
-                "effort_peak_nm": r(lim["effort_peak_nm"] * max(ratio)),
+                "position_min_rad": _down(min(q_in)), "position_max_rad": _up(max(q_in)),
+                "velocity_rad_s": _up(lim["velocity_rad_s"] / min(ratio)),
+                "effort_continuous_nm": _up(lim["effort_continuous_nm"] * max(ratio)),
+                "effort_peak_nm": _up(lim["effort_peak_nm"] * max(ratio)),
                 "effort_peak_duration_s": lim["effort_peak_duration_s"]},
-            "coupler": {"joint": lk["coupler_joint"], "position_min_rad": r(min(q_cpl)),
-                        "position_max_rad": r(max(q_cpl)),
-                        "velocity_rad_s": r(lim["velocity_rad_s"] * max(cpl_rate))},
+            "coupler": {"joint": lk["coupler_joint"], "position_min_rad": _down(min(q_cpl)),
+                        "position_max_rad": _up(max(q_cpl)),
+                        "velocity_rad_s": _up(lim["velocity_rad_s"] * max(cpl_rate))},
         })
     return out
