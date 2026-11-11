@@ -133,7 +133,7 @@
     <parent link="left_shin_link" />
     <child link="left_ankle_horn_link" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.6101437645" upper="0.6058312002" effort="3.04813941" velocity="8.889002351" />
+    <limit lower="-0.6101437637" upper="0.6058312009" effort="3.048139409" velocity="8.88900235" />
     <dynamics damping="0" friction="0" />
   </joint>
   <joint name="left_ankle_rod_joint" type="revolute">
@@ -141,7 +141,7 @@
     <parent link="left_foot_link" />
     <child link="left_ankle_rod_link" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.7098473163" upper="0.6882711745" effort="0" velocity="10.39755775" />
+    <limit lower="-0.7098473159" upper="0.6882711748" effort="0" velocity="10.39755775" />
     <dynamics damping="0" friction="0" />
   </joint>
   <ros2_control name="HumanoidActuatorSystem" type="system">

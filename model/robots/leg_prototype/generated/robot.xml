@@ -54,6 +54,6 @@
     <connect name="left_ankle_pitch_linkage_pin" site1="left_ankle_pitch_linkage_coupler_pin" site2="left_ankle_pitch_linkage_input_pin" solref="0.002 1" solimp="0.9999 0.9999 0.001 0.5 2" />
   </equality>
   <actuator>
-    <general name="left_ankle_motor" joint="left_ankle_motor_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-3.04813941 3.04813941" />
+    <general name="left_ankle_motor" joint="left_ankle_motor_joint" gaintype="fixed" gainprm="1" biastype="affine" biasprm="0 0 0" ctrllimited="false" forcelimited="true" forcerange="-3.048139409 3.048139409" />
   </actuator>
 </mujoco>
