@@ -89,7 +89,8 @@ std::variant<FourBarLinkage, std::string> FourBarLinkage::create(
     return std::string{"the linkage does not close at its zero pose"};
   }
 
-  const FourBarLinkage linkage{parameters, *from_output_side, *from_input_side};
+  const FourBarLinkage linkage{
+    parameters, output_lower_rad, output_upper_rad, *from_output_side, *from_input_side};
   double first_ratio = 0.0;
   for (int k = 0; k < kRangeSamples; ++k) {
     const double output = output_lower_rad + (output_upper_rad - output_lower_rad) * k /
@@ -114,8 +115,10 @@ std::variant<FourBarLinkage, std::string> FourBarLinkage::create(
 }
 
 FourBarLinkage::FourBarLinkage(
-  const FourBarParameters & parameters, double side_from_output, double side_from_input) noexcept
-: p_{parameters}, side_from_output_{side_from_output}, side_from_input_{side_from_input}
+  const FourBarParameters & parameters, double output_lower_rad, double output_upper_rad,
+  double side_from_output, double side_from_input) noexcept
+: p_{parameters}, output_lower_rad_{output_lower_rad}, output_upper_rad_{output_upper_rad},
+  side_from_output_{side_from_output}, side_from_input_{side_from_input}
 {
 }
 
@@ -140,9 +143,12 @@ FourBarConfiguration FourBarLinkage::from_input(double input_rad) const noexcept
   return output ? configuration(p_, input, *output) : unreachable();
 }
 
-transport::JointCommand FourBarLinkage::to_input(
+std::optional<transport::JointCommand> FourBarLinkage::to_input(
   const transport::JointCommand & output) const noexcept
 {
+  if (!(output_lower_rad_ <= output.position_rad && output.position_rad <= output_upper_rad_)) {
+    return std::nullopt;
+  }
   const auto c = from_output(output.position_rad);
   const double ratio_squared = c.ratio * c.ratio;
   return transport::JointCommand{

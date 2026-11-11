@@ -6,10 +6,12 @@
 // model and writes them into the description's <transmission>. Given either crank's angle, the loop
 // closes at an intersection of two circles; the assembly mode is the one the zero pose closes in,
 // and it cannot change without passing a toggle, which create() rejects inside the output's limits.
-// No table and no fit: the map is exact, smooth, and costs a few trigonometric calls.
+// Only there is the map one-to-one, so commands are accepted only there. No table and no fit: the
+// map is exact, smooth, and costs a few trigonometric calls.
 #ifndef HUMANOID_ACTUATOR_SYSTEM__FOUR_BAR_LINKAGE_HPP_
 #define HUMANOID_ACTUATOR_SYSTEM__FOUR_BAR_LINKAGE_HPP_
 
+#include <optional>
 #include <string>
 #include <variant>
 
@@ -63,7 +65,7 @@ public:
   /// Non-real-time. The linkage `parameters` describe, or why they cannot be used. It must close
   /// at its zero pose, with the input at 0 when the output is, and over all of
   /// [output_lower_rad, output_upper_rad] without passing a toggle, where the ratio is unbounded
-  /// and the motor's angle no longer determines the output's.
+  /// and the motor's angle no longer determines the output's. to_input() accepts only that range.
   [[nodiscard]] static std::variant<FourBarLinkage, std::string> create(
     const FourBarParameters & parameters, double output_lower_rad, double output_upper_rad);
 
@@ -73,15 +75,19 @@ public:
 
   [[nodiscard]] FourBarConfiguration from_input(double input_rad) const noexcept;
 
-  /// The motor's MIT tuple that realises `output`, an MIT tuple for the output joint:
+  /// The motor's MIT tuple that realises `output`, an MIT tuple for the output joint, or nullopt
+  /// if its position is outside the output's limits. Outside them the map is not one-to-one: past
+  /// a toggle, or a turn away, a command can reach a motor angle that an output angle inside the
+  /// limits also maps to, so no check in motor space could reject it.
   ///   position  the input angle at the commanded output angle;
   ///   velocity  output velocity / ratio;
   ///   effort    output torque * ratio (virtual work);
   ///   stiffness, damping  output gains * ratio^2,
-  /// with the ratio at the commanded position, so the impedance is exact about the setpoint and
-  /// first-order accurate away from it. NaN in every field where the linkage cannot close, so the
-  /// SafetyKernel rejects the command.
-  [[nodiscard]] transport::JointCommand to_input(
+  /// with the ratio r at the commanded position. There, the output torque is the commanded one.
+  /// So is its static stiffness, unless a feed-forward torque is commanded, which adds
+  /// effort * r' / r (r' = dr/d(output)). Away from it the spring's torque error is second order
+  /// in the distance.
+  [[nodiscard]] std::optional<transport::JointCommand> to_input(
     const transport::JointCommand & output) const noexcept;
 
   /// The joints' states from the motor's feedback `input`: the output's angle through the linkage,
@@ -95,12 +101,15 @@ private:
   // --- Member functions ---
 
   FourBarLinkage(
-    const FourBarParameters & parameters, double side_from_output,
-    double side_from_input) noexcept;
+    const FourBarParameters & parameters, double output_lower_rad, double output_upper_rad,
+    double side_from_output, double side_from_input) noexcept;
 
   // --- Data ---
 
   FourBarParameters p_;
+  /// The output's limits, which create() checked the linkage over.
+  double output_lower_rad_;
+  double output_upper_rad_;
   /// Which intersection (+1: left of the line between the circles' centres) the zero pose closes
   /// in, solving for the input tip from the output and for the output tip from the input.
   double side_from_output_;

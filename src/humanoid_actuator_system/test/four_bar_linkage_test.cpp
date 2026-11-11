@@ -187,13 +187,14 @@ TEST(FourBarLinkage, MapsTheMitTupleByVirtualWork)
       .position_rad = q, .velocity_rad_s = 1.5, .effort_nm = 0.7, .stiffness_nm_rad = 12.0,
       .damping_nm_s_rad = 0.4};
     const auto motor = linkage.to_input(joint);
+    ASSERT_TRUE(motor);
     const double ratio = linkage.from_output(q).ratio;
-    EXPECT_NEAR(motor.position_rad, linkage.from_output(q).input_rad, 1e-15);
+    EXPECT_NEAR(motor->position_rad, linkage.from_output(q).input_rad, 1e-15);
     // Power is the same on both sides of the linkage.
-    EXPECT_NEAR(motor.effort_nm * motor.velocity_rad_s, joint.effort_nm * joint.velocity_rad_s,
-      1e-12);
-    EXPECT_NEAR(motor.stiffness_nm_rad, joint.stiffness_nm_rad * ratio * ratio, 1e-12);
-    EXPECT_NEAR(motor.damping_nm_s_rad, joint.damping_nm_s_rad * ratio * ratio, 1e-12);
+    EXPECT_NEAR(
+      motor->effort_nm * motor->velocity_rad_s, joint.effort_nm * joint.velocity_rad_s, 1e-12);
+    EXPECT_NEAR(motor->stiffness_nm_rad, joint.stiffness_nm_rad * ratio * ratio, 1e-12);
+    EXPECT_NEAR(motor->damping_nm_s_rad, joint.damping_nm_s_rad * ratio * ratio, 1e-12);
   }
 }
 
@@ -207,11 +208,35 @@ TEST(FourBarLinkage, MotorStiffnessGivesTheCommandedJointStiffness)
   for (const double q : samples(l.lower + 0.01, l.upper - 0.01, 9)) {
     const auto motor =
       linkage.to_input(JointCommand{.position_rad = q, .stiffness_nm_rad = kStiffness});
+    ASSERT_TRUE(motor);
     for (const double d : {-1e-4, 1e-4}) {
       const auto displaced = linkage.from_output(q + d);
-      const double torque = motor.stiffness_nm_rad * (motor.position_rad - displaced.input_rad);
+      const double torque = motor->stiffness_nm_rad * (motor->position_rad - displaced.input_rad);
       EXPECT_NEAR(torque / displaced.ratio, -kStiffness * d, 1e-3 * kStiffness * std::abs(d));
     }
+  }
+}
+
+TEST(FourBarLinkage, CommandsOnlyInsideTheOutputsLimits)
+{
+  // The leg's foot crank turns fully, so the loop closes at every ankle angle, and past the toggle
+  // the horn swings back through its range. A command on that branch, or a turn away from one
+  // inside the limits, reaches a motor angle inside the motor's range: a check in motor space
+  // would let it through.
+  const auto l = leg();
+  const auto & linkage = l.layout.linkages.front()->linkage;
+  const double motor_lower = linkage.from_output(l.lower).input_rad;
+  const double motor_upper = linkage.from_output(l.upper).input_rad;
+  for (const double q : {2.44, 0.1 + 2.0 * kPi}) {
+    const double motor = linkage.from_output(q).input_rad;
+    EXPECT_TRUE(motor_lower < motor && motor < motor_upper) << q;
+    EXPECT_FALSE(linkage.to_input(JointCommand{.position_rad = q})) << q;
+  }
+  for (const double q : {std::nextafter(l.lower, -kPi), std::nextafter(l.upper, kPi)}) {
+    EXPECT_FALSE(linkage.to_input(JointCommand{.position_rad = q})) << q;
+  }
+  for (const double q : {l.lower, l.upper}) {
+    EXPECT_TRUE(linkage.to_input(JointCommand{.position_rad = q})) << q;
   }
 }
 

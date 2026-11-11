@@ -423,11 +423,17 @@ hardware_interface::return_type HumanoidActuatorSystem::write(
       }
     }
 
-    // 3. Joint space to motor space: a joint behind a linkage becomes its motor's tuple. Every
-    //    field is NaN where the linkage cannot close, which the kernel rejects.
+    // 3. Joint space to motor space: a joint behind a linkage becomes its motor's tuple. A
+    //    position outside the joint's limits is rejected here, in joint space: the linkage can map
+    //    it to a motor angle inside the motor's envelope, which the kernel would accept.
     for (std::size_t i = 0; i < joint_manifest_.joint_count; ++i) {
       if (const auto & drive = layout_.linkages[i]) {
-        command_snapshot_.joints[i] = drive->linkage.to_input(command_snapshot_.joints[i]);
+        const auto motor = drive->linkage.to_input(command_snapshot_.joints[i]);
+        if (!motor) {
+          enter_protective_state(safety::Trigger::kPositionEnvelope);
+          return hardware_interface::return_type::ERROR;
+        }
+        command_snapshot_.joints[i] = *motor;
       }
     }
 
