@@ -39,7 +39,9 @@ meshes. It is not a parallelogram, so the transmission ratio varies:
 The ankle turns faster than the motor and with less torque: ankle torque = motor torque / ratio. The
 foot crank is the shortest link (Grashof crank-rocker), so the horn is the rocker. At its two toggles,
 ankle +81.5° and −102°, the ratio is unbounded and the motor can no longer hold the foot. The joint
-limits keep the foot well clear of both.
+limits keep the foot well clear of both. Because the foot crank turns fully, the loop closes at every
+ankle angle. Past a toggle the horn swings back, so an ankle angle of 111°–177°, or any angle a full
+turn from the range, puts the motor inside its own range.
 
 **Conventions.** Link frames follow REP-103 (x toward the toe, y left, z up), and every joint turns
 about +y. Positive ankle angle is toes down, as for the G1. Zero is the foot square to the shin with
@@ -67,8 +69,13 @@ The model now carries the loop explicitly, and each consumer gets the representa
   of plugin `humanoid_actuator_system/FourBarLinkage` carries the four-bar's parameters.
 - **HumanoidActuatorSystem.** Controllers work in joint space. The component maps the ankle's MIT
   tuple to the motor's with the exact closed-form four-bar (`FourBarLinkage`) and maps the motor's
-  feedback back to the ankle, horn and rod. The SafetyKernel runs after the map, in motor space, so
-  it bounds what the motor is asked to do even if the map were wrong.
+  feedback back to the ankle, horn and rod. An ankle command outside ±40° is rejected before the
+  map (trigger `position envelope`): outside the range the map is not one-to-one, so no check on the
+  motor could catch it. The SafetyKernel runs after the map, in motor space, so it bounds what the
+  motor is asked to do even if the map were wrong.
+- **Generator.** The motor's envelope is the image of the ankle's limits. It is computed from the
+  `<transmission>` parameters as the URDF carries them (10 significant digits), and rounded
+  outward, so a command at the ankle's limit stays inside it.
 
 The command map at commanded ankle angle q, with r = d(ankle)/d(motor) there, is:
 
@@ -79,7 +86,14 @@ The command map at commanded ankle angle q, with r = d(ankle)/d(motor) there, is
 | feed-forward torque | ankle torque × r |
 | stiffness, damping | ankle gain × r² |
 
-That makes the impedance exact about the setpoint and first-order accurate away from it.
+At the setpoint the ankle torque is exactly the commanded one. So is the static stiffness, as long
+as there is no feed-forward. A feed-forward torque τ adds τ·r′/r to the stiffness, where r′ = dr/dq.
+r′/r is −0.22/rad at −40° and +0.31/rad at +40°, so 2.5 N·m of feed-forward shifts the stiffness by
+up to 0.77 N·m/rad. Away from the setpoint, the spring's torque error is second order in the
+offset. With no feed-forward it is −1.7% at 0.3 rad from 0°, and +9.7% at 0.3 rad in from +40°.
+The controllers here send no feed-forward. A controller that does, or one whose targets sit far from
+the joint (as an RL policy's do), needs a transfer that accounts for the ratio's slope, such as
+LAAS's ([arXiv 2503.22459](https://arxiv.org/abs/2503.22459), Sec. II-D).
 
 **Why the ankle, not the motor, is the commanded joint.** The URDF, TF and any learned policy need
 the ankle angle on a serial tree, so the four-bar map has to run at runtime either way. Joint-space
