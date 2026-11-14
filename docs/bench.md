@@ -73,7 +73,9 @@ prints per-joint RMS/max tracking error, peak |effort|, direction match, and non
 (flagged above 0.01 rad). Start small on the real bench (amplitude ~0.1–0.3 rad): the 3 N·m torque
 cap limits how hard it can pull.
 
-The bench's joints are the non-fixed joints of `/robot_description`, so it works on either board.
+It drives the joints that the `<ros2_control>` block of `/robot_description` commands, so it works
+on either board and on the leg prototype ([leg-prototype.md](leg-prototype.md)), where it never
+names the linkage's passive joints.
 
 A draggable alternative on the real bench: run the slider GUI with its output remapped onto the
 reference topic (interactive, but each drag is a step the controller does not interpolate):
