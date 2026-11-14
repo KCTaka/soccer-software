@@ -133,7 +133,7 @@ model/robots/leg_prototype/source/ingest.yaml`. Re-run it on a new CAD export (s
 |---|---|
 | Masses and inertias | **Provisional.** Every part is solid PLA (1.24 g/cm³, infill not modelled), integrated exactly over its CAD mesh: foot 95.5 g, horn 13.3 g, rod 9.6 g, shin 343 g. Fusion's own values used its default steel on most parts, so they are not used. Replace with weighed masses. |
 | Shin motor mass | The 57 × 52 × 57 mm placeholder block in the shin takes the RS02's 380 g (shin total 723 g). The shin is clamped, so this matters only for the full leg. |
-| Horn joint armature, 0.002 kg·m² | **An estimate.** The RS02's reflected rotor inertia, taken as a 59 g, Φ55/45 × 10 mm rotor ring × 7.75², uncertain by a factor of 2–3. RobStride publishes none. With PLA parts it is 87% of the ankle's effective inertia, so it decides the leg's dynamics in SIL: identify it on hardware (below). |
+| Horn joint armature, 0.002 kg·m² | **An estimate.** The RS02's reflected rotor inertia, taken as a 59 g, Φ55/45 × 10 mm rotor ring × 7.75², uncertain by a factor of 2–3. RobStride publishes none. With PLA parts it is 86% of the ankle's effective inertia at 0° (1.58 of 1.84 × 10⁻³ kg·m², horn and rod included), so it decides the leg's dynamics in SIL: identify it on hardware (below). |
 | Hard stops | From the CAD interference sweep. |
 | `zero_offset_rad` | **Not calibrated.** Null, so the STM32 transport refuses to start. |
 | `direction_sign` | **Provisional.** +1, to verify. |
