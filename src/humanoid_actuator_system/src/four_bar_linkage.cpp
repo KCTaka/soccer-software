@@ -38,6 +38,11 @@ std::optional<Vec> intersect(Vec c0, double r0, Vec c1, double r1, double side) 
 FourBarConfiguration configuration(const FourBarParameters & p, Vec input, Vec output) noexcept;
 FourBarConfiguration unreachable() noexcept;
 std::optional<std::string> parameters_violation(const FourBarParameters & p);
+std::optional<double> closing_side(
+  Vec pivot, double crank_length_m, Vec other_tip, double coupler_length_m,
+  double zero_angle_rad) noexcept;
+std::optional<std::string> range_violation(
+  const FourBarLinkage & linkage, double output_lower_rad, double output_upper_rad);
 }  // namespace
 
 // ===========================================================================
@@ -58,58 +63,22 @@ std::variant<FourBarLinkage, std::string> FourBarLinkage::create(
       output_upper_rad);
   }
 
-  // The assembly mode: the intersection that reproduces the zero pose, solving either way.
-  const Vec ground{parameters.ground_length_m, 0.0};
-  const auto side_that_closes = [](auto solve, double expected_angle) -> std::optional<double> {
-      for (const double side : {1.0, -1.0}) {
-        if (const auto tip = solve(side)) {
-          if (std::abs(wrap(std::atan2(tip->y, tip->x) - expected_angle)) <
-            kZeroPoseToleranceRad)
-          {
-            return side;
-          }
-        }
-      }
-      return std::nullopt;
-    };
-  const auto from_output_side = side_that_closes(
-    [&](double side) -> std::optional<Vec> {
-      const auto tip = intersect(
-        ground, parameters.input_crank_length_m, output_tip(parameters, 0.0),
-        parameters.coupler_length_m, side);
-      return tip ? std::optional<Vec>{Vec{tip->x - ground.x, tip->y}} : std::nullopt;
-    }, parameters.input_zero_angle_rad);
-  const auto from_input_side = side_that_closes(
-    [&](double side) {
-      return intersect(
-        Vec{0.0, 0.0}, parameters.output_crank_length_m, input_tip(parameters, 0.0),
-        parameters.coupler_length_m, side);
-    }, parameters.output_zero_angle_rad);
+  // The assembly mode, solving either way: the same circles from_output() and from_input() solve.
+  const auto & p = parameters;
+  const auto from_output_side = closing_side(
+    Vec{p.ground_length_m, 0.0}, p.input_crank_length_m, output_tip(p, 0.0), p.coupler_length_m,
+    p.input_zero_angle_rad);
+  const auto from_input_side = closing_side(
+    Vec{0.0, 0.0}, p.output_crank_length_m, input_tip(p, 0.0), p.coupler_length_m,
+    p.output_zero_angle_rad);
   if (!from_output_side || !from_input_side) {
     return std::string{"the linkage does not close at its zero pose"};
   }
 
   const FourBarLinkage linkage{
     parameters, output_lower_rad, output_upper_rad, *from_output_side, *from_input_side};
-  double first_ratio = 0.0;
-  for (int k = 0; k < kRangeSamples; ++k) {
-    const double output = output_lower_rad + (output_upper_rad - output_lower_rad) * k /
-      (kRangeSamples - 1);
-    const auto forward = linkage.from_output(output);
-    const auto back = linkage.from_input(forward.input_rad);
-    if (!std::isfinite(forward.ratio) || forward.ratio == 0.0) {
-      return std::format("the linkage cannot close at output {} rad, inside its limits", output);
-    }
-    if (k == 0) {
-      first_ratio = forward.ratio;
-    } else if ((forward.ratio > 0.0) != (first_ratio > 0.0)) {
-      return std::format("the linkage passes a toggle at output {} rad, inside its limits", output);
-    }
-    if (!(std::abs(back.output_rad - output) < kRoundTripToleranceRad)) {
-      return std::format(
-        "the motor's angle does not determine the output at {} rad (round trip gives {})", output,
-        back.output_rad);
-    }
+  if (const auto violation = range_violation(linkage, output_lower_rad, output_upper_rad)) {
+    return *violation;
   }
   return linkage;
 }
@@ -267,6 +236,53 @@ std::optional<std::string> parameters_violation(const FourBarParameters & p)
   for (const int sign : {p.input_axis_sign, p.output_axis_sign, p.coupler_axis_sign}) {
     if (sign != 1 && sign != -1) {
       return std::format("axis sign {} is not +1 or -1", sign);
+    }
+  }
+  return std::nullopt;
+}
+
+/// The side of intersect(pivot, crank_length_m, other_tip, coupler_length_m, side) on which the
+/// crank about `pivot` points at `zero_angle_rad`, with the other crank's tip at its zero pose: the
+/// assembly mode the zero pose closes in. nullopt if neither side closes it.
+std::optional<double> closing_side(
+  Vec pivot, double crank_length_m, Vec other_tip, double coupler_length_m,
+  double zero_angle_rad) noexcept
+{
+  for (const double side : {1.0, -1.0}) {
+    const auto tip = intersect(pivot, crank_length_m, other_tip, coupler_length_m, side);
+    if (tip && std::abs(wrap(std::atan2(tip->y - pivot.y, tip->x - pivot.x) - zero_angle_rad)) <
+      kZeroPoseToleranceRad)
+    {
+      return side;
+    }
+  }
+  return std::nullopt;
+}
+
+/// Why `linkage` cannot command every output angle in [output_lower_rad, output_upper_rad], or
+/// nullopt. At every sample the loop closes, the ratio keeps one sign (no toggle), and the motor's
+/// angle maps back to the same output angle.
+std::optional<std::string> range_violation(
+  const FourBarLinkage & linkage, double output_lower_rad, double output_upper_rad)
+{
+  double first_ratio = 0.0;
+  for (int k = 0; k < kRangeSamples; ++k) {
+    const double output = output_lower_rad + (output_upper_rad - output_lower_rad) * k /
+      (kRangeSamples - 1);
+    const auto forward = linkage.from_output(output);
+    const auto back = linkage.from_input(forward.input_rad);
+    if (!std::isfinite(forward.ratio) || forward.ratio == 0.0) {
+      return std::format("the linkage cannot close at output {} rad, inside its limits", output);
+    }
+    if (k == 0) {
+      first_ratio = forward.ratio;
+    } else if ((forward.ratio > 0.0) != (first_ratio > 0.0)) {
+      return std::format("the linkage passes a toggle at output {} rad, inside its limits", output);
+    }
+    if (!(std::abs(back.output_rad - output) < kRoundTripToleranceRad)) {
+      return std::format(
+        "the motor's angle does not determine the output at {} rad (round trip gives {})", output,
+        back.output_rad);
     }
   }
   return std::nullopt;
