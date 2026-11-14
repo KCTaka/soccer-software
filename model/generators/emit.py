@@ -245,8 +245,9 @@ def emit_urdf(model, out_path, assets_dir,
             ET.SubElement(je, "command_interface", name=c)
         for s in STATE_INTERFACES:
             ET.SubElement(je, "state_interface", name=s)
+    state_only = linkage.members(model)
     for j in joints:
-        if j["name"] in linkage.members(model):
+        if j["name"] in state_only:
             je = ET.SubElement(rc, "joint", name=j["name"])
             for s in STATE_INTERFACES:
                 ET.SubElement(je, "state_interface", name=s)
@@ -470,8 +471,7 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
         contact = ET.SubElement(mj, "contact")
         equality = ET.SubElement(mj, "equality")
         for lk in linkages:
-            j_in, j_out, j_cpl = (joints_by_name[lk[k]] for k in
-                                  ("input_joint", "output_joint", "coupler_joint"))
+            j_in, j_out, j_cpl = (joints_by_name[lk[k]] for k in linkage.ROLES)
             bodies = [j_out["parent_link"], j_out["child_link"], j_in["child_link"],
                       j_cpl["child_link"]]
             for i, b1 in enumerate(bodies):

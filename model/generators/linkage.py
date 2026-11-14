@@ -24,6 +24,8 @@ from .common import rpy_to_matrix
 # exports with ~1e-16 relative noise; anything above these is a modelling error, not rounding.
 CLOSURE_TOL_M = 1e-6
 PARALLEL_TOL = 1e-9
+# A linkage's member joints, in the order planar_parameters and the validator unpack them.
+ROLES = ("input_joint", "output_joint", "coupler_joint")
 
 def zero_pose_frames(model):
     """link -> (R, p): every link frame in the root link's frame, every joint at 0."""
@@ -44,8 +46,7 @@ def planar_parameters(model, linkage):
     """The linkage's planar four-bar parameters at the zero pose, and a list of what is wrong with
     the linkage (empty if it is a closed planar four-bar there). Lengths in m, angles in rad."""
     joints = {j["name"]: j for j in model["joints"]}
-    j_in, j_out, j_cpl = (joints.get(linkage[k]) for k in
-                          ("input_joint", "output_joint", "coupler_joint"))
+    j_in, j_out, j_cpl = (joints.get(linkage[k]) for k in ROLES)
     if None in (j_in, j_out, j_cpl):
         return None, [f"L-02: {linkage['name']}: a member joint is not declared"]
     errs = []

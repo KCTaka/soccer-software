@@ -87,9 +87,10 @@ def structural_checks(model, motor_limits):
     # coupler; the linkage's input carries the motor).
     act_names = {a["name"] for a in model["actuators"]}
     linkages = model.get("linkages", [])
-    passive = {lk[k] for lk in linkages for k in ("output_joint", "coupler_joint")}
+    linkage_driven = {lk[k] for lk in linkages for k in ("output_joint", "coupler_joint")}
     for j in joints:
-        if (j["type"] != "fixed" and j["name"] not in passive) != (j["actuator"] is not None):
+        needs_actuator = j["type"] != "fixed" and j["name"] not in linkage_driven
+        if needs_actuator != (j["actuator"] is not None):
             errs.append(f"A-01: joint {j['name']} must have an actuator exactly when it is neither "
                         "fixed nor a linkage's output or coupler")
         if j["actuator"] is not None and j["actuator"] not in act_names:
@@ -101,22 +102,19 @@ def structural_checks(model, motor_limits):
             errs.append(f"A-02: duplicate can_node_id {key}")
         seen.add(key)
 
-    # L-01 to L-05: linkages.
-    roles = {}
+    # L-01 to L-06: linkages.
+    member_of = {}
     for lk in linkages:
-        for role in ("input_joint", "output_joint", "coupler_joint"):
-            if lk[role] in roles:
-                errs.append(f"L-01: joint {lk[role]} is a member of {roles[lk[role]]} and "
+        for role in linkage.ROLES:
+            if lk[role] in member_of:
+                errs.append(f"L-01: joint {lk[role]} is a member of {member_of[lk[role]]} and "
                             f"{lk['name']}")
-            roles[lk[role]] = lk["name"]
+            member_of[lk[role]] = lk["name"]
         params, geometry_errs = linkage.planar_parameters(model, lk)
         errs += geometry_errs   # L-02 (a planar four-bar) and L-03 (closed at the zero pose)
-        members_ok = all(lk[r] in joints_by_name for r in ("input_joint", "output_joint",
-                                                           "coupler_joint"))
-        if not members_ok:
+        if not all(lk[r] in joints_by_name for r in linkage.ROLES):
             continue
-        j_in, j_out, j_cpl = (joints_by_name[lk[r]] for r in ("input_joint", "output_joint",
-                                                               "coupler_joint"))
+        j_in, j_out, j_cpl = (joints_by_name[lk[r]] for r in linkage.ROLES)
         if j_in["limits"] is not None or j_cpl["limits"] is not None or j_out["limits"] is None:
             errs.append(f"L-04: {lk['name']}: the output joint has limits; the input and coupler "
                         "joints have none (the linkage derives them)")
@@ -133,9 +131,9 @@ def structural_checks(model, motor_limits):
         if j_in["transmission"]["armature_kg_m2"] <= 0:
             errs.append(f"L-06: {lk['name']}: input joint {j_in['name']} needs its motor's "
                         "reflected rotor inertia as a positive armature")
+    derived_limits = linkage.members(model)   # each linkage's input and coupler
     for j in joints:
-        if j["limits"] is None and j["name"] not in {lk[k] for lk in linkages
-                                                     for k in ("input_joint", "coupler_joint")}:
+        if j["limits"] is None and j["name"] not in derived_limits:
             errs.append(f"L-04: joint {j['name']} has no limits but is not a linkage's input or "
                         "coupler")
 
@@ -144,7 +142,7 @@ def structural_checks(model, motor_limits):
         sign = j["transmission"]["direction_sign"]
         if j["actuator"] is not None and sign is None:
             errs.append(f"D-01: joint {j['name']} has an actuator but no direction_sign")
-        if j["name"] in passive and sign is not None:
+        if j["name"] in linkage_driven and sign is not None:
             errs.append(f"D-01: joint {j['name']} is moved by a linkage, so its direction_sign "
                         "must be null")
 
