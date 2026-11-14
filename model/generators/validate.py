@@ -126,8 +126,8 @@ def structural_checks(model, motor_limits):
                             f"{j_out['name']}'s hard stops")
         # L-06: the motor's reflected rotor inertia. Every motor has one, and MuJoCo needs it: its
         # implicit integrator applies the MIT damping through the input's mass matrix but computes
-        # the closure force without it, so on a light crank with no armature the pin stretches by
-        # millimetres (docs/leg-prototype.md).
+        # the closure force without it, so on a light crank with no armature the damping alone pulls
+        # the pin apart (docs/leg-prototype.md).
         if j_in["transmission"]["armature_kg_m2"] <= 0:
             errs.append(f"L-06: {lk['name']}: input joint {j_in['name']} needs its motor's "
                         "reflected rotor inertia as a positive armature")
