@@ -191,7 +191,7 @@
           "properties": {
             "direction_sign": {
               "enum": [-1, 1, null],
-              "description": "Null for a joint no motor drives (a linkage's output and coupler joints, validator check L-04). Relates the motor's encoder angle to this joint's angle: joint = direction_sign * (motor - zero_offset_rad). A property of how the motor is mounted, so it lives here and not in `axis`: flipping the axis instead would change the joint-space convention every controller and policy depends on."
+              "description": "Null for a joint no motor drives (a linkage's output and coupler joints, validator check D-01). Relates the motor's encoder angle to this joint's angle: joint = direction_sign * (motor - zero_offset_rad). A property of how the motor is mounted, so it lives here and not in `axis`: flipping the axis instead would change the joint-space convention every controller and policy depends on."
             },
             "friction_coulomb_nm": { "type": "number", "minimum": 0 },
             "friction_viscous_nm_s_rad": { "type": "number", "minimum": 0 },
@@ -266,7 +266,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "type", "input_joint", "output_joint", "coupler_joint", "closure"],
-      "description": "A closed loop the kinematic tree cuts open. planar_four_bar: the input and output joints share a parent (the ground link), the coupler joint hangs from the output joint's child, and the closure pin joins the coupler joint's child to the input joint's child. All four axes are parallel. Controllers command the output joint; the motor turns the input joint. Validator checks L-01 to L-05.",
+      "description": "A closed loop the kinematic tree cuts open. planar_four_bar: the input and output joints share a parent (the ground link), the coupler joint hangs from the output joint's child, and the closure pin joins the coupler joint's child to the input joint's child. All four axes are parallel. Controllers command the output joint; the motor turns the input joint. Validator checks L-01 to L-06.",
       "properties": {
         "name": { "$ref": "#/$defs/identifier" },
         "type": { "const": "planar_four_bar" },
