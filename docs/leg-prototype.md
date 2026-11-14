@@ -50,8 +50,8 @@ crank cannot both be level when the rod closes the loop.
 
 **Range.** A CAD interference sweep puts the rod against the shin between +44° and +45° toes down,
 and toes up is clear to −70°. Those are the hard stops (`−1.2217`, `+0.7679` rad). The software
-limits are ±40° (±0.6981 rad): the ratio stays within 1.125–1.22 and the transmission angle above
-47°. With the motor limp, the foot hangs at about +12°, inside the range.
+limits are ±40° (±0.6981 rad): the ratio stays within 1.125–1.22 and the transmission angle at or
+above 46.9°. With the motor limp, the foot hangs at about +12°, inside the range.
 
 ## How the closed loop is handled
 
@@ -110,13 +110,15 @@ with no lookup table or fitted polynomial, and it is cheap.
   MuJoCo's constraint forces, which carry the motor's torque round the loop.
 - **Statics.** In a sweep of the generated scene, the ratio matches τ_ankle = τ_motor / r to
   0.012% at −40°, 0° and +40°.
-- **Pin stretch.** MuJoCo's constraints are soft, so the pin stretches under load. Held statically,
-  it opens under 1 µm at the motor's 3.05 N·m envelope and 5 µm at the RS02's 17 N·m peak. On a
-  0.2 rad step at the leg's gains it reaches 15 µm transiently, and 0.5–0.75 mm at kp 200–330
-  N·m/rad with the drive saturated.
+- **Pin stretch.** MuJoCo's constraints are soft, so the pin stretches under load. With the motor
+  pressing the foot into its hard stop, it opens under 1 µm at the motor's 3.05 N·m envelope and
+  about 5 µm at the RS02's 17 N·m peak. On a 0.2 rad step at the leg's gains (kp 10 N·m/rad,
+  kd 0.3 N·m·s/rad) it reaches 15 µm transiently. At kp 200–330 N·m/rad, with the drive saturated,
+  it reaches 39 µm, and it grows with damping: 0.18 mm at kd 3.35 N·m·s/rad.
 - **Why the armature matters.** MuJoCo's implicit integrator applies the MIT damping through the
-  horn joint's mass matrix but computes the pin force without it. With armature 0 on a 35 g horn,
-  the pin stretches by millimetres. Every real motor has rotor inertia, and with it the stretch
+  horn joint's mass matrix but computes the pin force without it. With armature 0 on the 13 g horn,
+  the leg's kd of 0.3 alone pulls the pin centimetres apart while holding the zero pose. With kd 0,
+  a 0.2 rad step stays under 13 µm. Every real motor has rotor inertia, and with it the stretch
   stays at the numbers above. Check L-06 requires it.
 - **SIL tracking.** A 0.3 rad, 0.5 Hz sine on the ankle tracks with gain 1.0001 and a 1.7 mrad
   residual after removing a 60 ms pipeline lag. A slider held at 0.3 rad puts the ankle at
