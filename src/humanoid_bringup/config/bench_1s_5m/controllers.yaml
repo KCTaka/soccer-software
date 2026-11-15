@@ -17,7 +17,6 @@ controller_manager:
 humanoidactuatorsystem:
   ros__parameters:
     transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
-    accepted_degradation: "none"
 humanoid_mit_controller:
   ros__parameters:
     # Bench impedance: kp 15 N*m/rad, kd 1 N*m*s/rad on every joint (matches the slave's configured

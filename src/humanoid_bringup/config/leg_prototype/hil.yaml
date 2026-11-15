@@ -3,4 +3,3 @@
 humanoidactuatorsystem:
   ros__parameters:
     transport_plugin: "humanoid_transport_stm32/Stm32SerialTransport"
-    accepted_degradation: "none"

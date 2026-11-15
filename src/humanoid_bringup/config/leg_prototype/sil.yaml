@@ -3,4 +3,3 @@
 humanoidactuatorsystem:
   ros__parameters:
     transport_plugin: "humanoid_transport_mujoco/MujocoActuatorTransport"
-    accepted_degradation: "none"
