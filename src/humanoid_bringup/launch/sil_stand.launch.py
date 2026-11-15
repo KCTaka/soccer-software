@@ -16,13 +16,13 @@ def generate_launch_description():
         get_package_share_directory('humanoid_bringup'), 'config', 'stand_keyframes.yaml')
     with open(keyframes_path) as f:
         keyframes = yaml.safe_load(f)
+    robot_dir = PathJoinSubstitution(
+        [FindPackageShare('humanoid_description'), 'robots', 'unitree_g1'])
 
     launch_args = [
         DeclareLaunchArgument(
             'mjcf_path',
-            default_value=PathJoinSubstitution([
-                FindPackageShare('humanoid_bringup'),
-                'model', 'robots', 'unitree_g1', 'generated', 'scene.xml']),
+            default_value=PathJoinSubstitution([robot_dir, 'mjcf', 'scene.xml']),
             description='MJCF model loaded by MujocoActuatorTransport'),
         DeclareLaunchArgument(
             'push_force_n', default_value='0.0',
@@ -53,9 +53,7 @@ def generate_launch_description():
             LaunchConfiguration('push_start_time_s'), value_type=float),
     }
 
-    robot_description_path = PathJoinSubstitution([
-        FindPackageShare('humanoid_bringup'), 'config', 'robot_description.urdf'
-    ])
+    robot_description_path = PathJoinSubstitution([robot_dir, 'urdf', 'robot.urdf'])
     robot_description = ParameterValue(
         Command(['cat ', robot_description_path]), value_type=str)
 

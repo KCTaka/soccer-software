@@ -73,10 +73,11 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  # The generated model lives in the source tree; tests get its path at compile
-  # time, so no environment variable is involved and the tests never skip.
-  set(TEST_MJCF_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated/scene.xml")
+  # The tests load the MJCF humanoid_description installs, the model SIL simulates. They get its
+  # path at compile time, so no environment variable is involved and the tests never skip.
+  # humanoid_description_DIR is <prefix>/share/humanoid_description/cmake.
+  find_package(humanoid_description REQUIRED)
+  set(TEST_MJCF_PATH "${humanoid_description_DIR}/../robots/unitree_g1/mjcf/scene.xml")
 
   # Custom main: configure() creates an rclcpp::Node (mujoco_sim), which
   # requires rclcpp::init(). The main also hands the transport its mjcf_path

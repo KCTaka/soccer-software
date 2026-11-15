@@ -71,20 +71,21 @@ def _setup(context, *_args, **_kwargs):
 
     share = FindPackageShare('humanoid_bringup').perform(context)
     config = os.path.join(share, 'config', 'leg_prototype')
-    with open(os.path.join(share, 'config', 'leg_prototype_description.urdf')) as f:
+    description = os.path.join(
+        FindPackageShare('humanoid_description').perform(context), 'robots', 'leg_prototype')
+    with open(os.path.join(description, 'urdf', 'robot.urdf')) as f:
         robot_description = {'robot_description': f.read()}
 
     parameters = [robot_description, os.path.join(config, 'controllers.yaml'),
                   os.path.join(config, 'sil.yaml' if mode == 'sil' else 'hil.yaml')]
     if mode == 'sil':
         parameters.append({
-            'mjcf_path': os.path.join(
-                share, 'model', 'robots', 'leg_prototype', 'generated', 'scene.xml'),
+            'mjcf_path': os.path.join(description, 'mjcf', 'scene.xml'),
             # The controllers take seconds to start; held until then, the foot does not drop.
             'hold_until_commanded': True,
         })
     else:
-        parameters += [os.path.join(config, 'stm32_wiring.yaml'),
+        parameters += [os.path.join(description, 'config', 'stm32_wiring.yaml'),
                        {'serial_device': serial_device, 'monitor_only': mode == 'monitor'}]
 
     nodes = [

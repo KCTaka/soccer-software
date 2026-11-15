@@ -5,8 +5,12 @@
 Robots are declared in model/robots.yaml. With no --robot, `check` runs every robot and
 `generate` uses the registry's default_robot. Each robot's robot_model.yaml is the hand-edited
 source of truth; `check` validates it and diffs the generated files against a regeneration.
+
+Each robot's description goes to src/humanoid_description/robots/<robot>/, the files other
+repositories import to model/robots/<robot>/generated/. Both are wholly generated: `generate`
+replaces them, and `check` fails on a file that differs, is missing or is no longer generated.
 """
-import argparse, filecmp, os, sys, tempfile
+import argparse, filecmp, os, shutil, sys, tempfile
 import yaml
 
 from . import emit, validate
@@ -15,6 +19,7 @@ REGISTRY = "model/robots.yaml"
 SCHEMA = "model/schema/robot_model.schema.json"
 MOTORS = "model/motors.yaml"
 MOTORS_SCHEMA = "model/schema/motors.schema.json"
+DESCRIPTIONS = "src/humanoid_description/robots"
 
 def _registry():
     with open(REGISTRY) as f:
@@ -39,18 +44,45 @@ def _all_robots():
     reg = _registry()
     return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
 
-def _generate(r, motor_limits, out_dir):
-    emit.generate(r["source"], r["overlay"], motor_limits, out_dir, r["generated"], r["assets_dir"],
-                  urdf=r["urdf"], mjcf=r["mjcf"],
+def _outputs(r):
+    """The robot's two generated directories in the repository: its description, and its exports."""
+    return (os.path.join(DESCRIPTIONS, r["name"]),
+            os.path.join("model", "robots", r["name"], "generated"))
+
+def _generate(r, motor_limits, root):
+    """Generate the robot into `root`, laid out as the repository holds it: the outputs' paths
+    under it are _outputs(r)."""
+    description_dir, export_dir = (os.path.join(root, d) for d in _outputs(r))
+    emit.generate(r["name"], r["source"], r["overlay"], motor_limits, description_dir, export_dir,
+                  r["assets_dir"], urdf=r["urdf"], mjcf=r["mjcf"], license_path=r.get("license"),
                   firmware_config=r.get("firmware_config", False),
                   firmware_setup=r.get("firmware_setup"),
-                  stm32_wiring=r.get("stm32_wiring", False),
-                  safety_manifest_path=r.get("safety_manifest_path"),
-                  safety_manifest_package=r.get("safety_manifest_package"))
+                  stm32_wiring=r.get("stm32_wiring", False))
 
 def cmd_generate(args):
+    # Generated aside, then swapped in, so a failed run leaves the repository as it was and no file
+    # a previous run wrote outlives the run that stopped writing it.
     r = _robot(args.robot)
-    _generate(r, _motor_limits(), r["generated"])
+    with tempfile.TemporaryDirectory() as td:
+        _generate(r, _motor_limits(), td)
+        for d in _outputs(r):
+            shutil.rmtree(d, ignore_errors=True)
+            if os.path.isdir(os.path.join(td, d)):
+                shutil.copytree(os.path.join(td, d), d)
+
+def _files(d):
+    return {os.path.relpath(os.path.join(p, f), d)
+            for p, _, fs in os.walk(d) for f in fs} if os.path.isdir(d) else set()
+
+def _tree_drift(committed, regenerated):
+    """How the committed tree differs from a regeneration, one message per file."""
+    have, want = _files(committed), _files(regenerated)
+    errs = [f"{committed}/{f} is not generated any more" for f in sorted(have - want)]
+    errs += [f"{committed}/{f} is missing" for f in sorted(want - have)]
+    errs += [f"{committed}/{f} differs from regeneration" for f in sorted(have & want)
+             if not filecmp.cmp(os.path.join(committed, f), os.path.join(regenerated, f),
+                                shallow=False)]
+    return errs
 
 def _mj_smoke(scene):
     """The scene loads, the robot starts on the floor rather than in it at qpos0 and at every
@@ -91,7 +123,7 @@ def _check_one(r, motor_limits, mj_smoke):
             print(f"ERROR: {e}", file=sys.stderr)
         return False
 
-    mjcf = os.path.join(r["generated"], "scene.xml")
+    mjcf = os.path.join(_outputs(r)[0], "mjcf", "scene.xml")
     if mj_smoke and os.path.exists(mjcf):
         smoke_errs = _mj_smoke(mjcf)
         for e in smoke_errs:
@@ -101,14 +133,12 @@ def _check_one(r, motor_limits, mj_smoke):
 
     # ADR-009-07: regenerate into a temp dir and diff.
     with tempfile.TemporaryDirectory() as td:
-        t_out = os.path.join(td, "gen")
-        _generate(r, motor_limits, t_out)
-        for f in os.listdir(t_out):
-            if not filecmp.cmp(os.path.join(r["generated"], f), os.path.join(t_out, f),
-                               shallow=False):
-                print(f"ERROR: drift: {r['generated']}/{f} differs from regeneration",
-                      file=sys.stderr)
-                return False
+        _generate(r, motor_limits, td)
+        drift = [e for d in _outputs(r) for e in _tree_drift(d, os.path.join(td, d))]
+    for e in drift:
+        print(f"ERROR: drift: {e} (run `generate --robot {r['name']}`)", file=sys.stderr)
+    if drift:
+        return False
     print(f"check OK: {r['name']}")
     return True
 

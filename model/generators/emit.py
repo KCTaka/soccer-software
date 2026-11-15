@@ -1,4 +1,8 @@
-"""robot_model.yaml (+ contact overlay) -> URDF, MJCF, safety_manifest.yaml.
+"""robot_model.yaml (+ contact overlay) -> URDF, MJCF, meshes, safety_manifest.yaml.
+
+Each robot's description is written into the humanoid_description package as it installs under
+share/humanoid_description/robots/<robot>/ (urdf/, mjcf/, meshes/, config/), and every path one of
+its files names is a function of the robot's name alone, never of where the model's sources live.
 
 Every actuated joint gets one MJCF <general> actuator that MujocoActuatorTransport turns into the
 drive's MIT impedance law (ADR-001 tuple); see emit_mjcf_actuators. Compiler flags are the pinned
@@ -8,6 +12,7 @@ import hashlib
 import math
 import os
 import re
+import shutil
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -17,6 +22,10 @@ from . import linkage
 from .common import quat_to_rpy, rpy_to_quat
 
 TIMING_HPP = "src/humanoid_transport/include/humanoid_transport/timing.hpp"
+DESCRIPTION_PACKAGE = "humanoid_description"
+# MJCF has no package:// and resolves meshdir against the model file's directory, so the meshes sit
+# beside mjcf/ in the same tree, installed and in the repository alike.
+MJCF_MESHDIR = "../meshes"
 FOUR_BAR_PLUGIN = "humanoid_actuator_system/FourBarLinkage"
 # A linkage's closure in MJCF: a connect equality between two sites. MuJoCo's constraints are soft,
 # so the pin stretches under load. solref's time constant is two 1 ms timesteps, the smallest that
@@ -84,9 +93,9 @@ def mesh_file(mesh, disk_assets):
         found = mesh if "." in mesh else f"{mesh}.STL"
     return found
 
-def emit_urdf(model, out_path, assets_dir,
-              safety_manifest_path="config/safety_manifest.yaml",
-              safety_manifest_package="humanoid_bringup"):
+def emit_urdf(model, out_path, assets_dir, meshes_uri, safety_manifest_path):
+    """Write robot.urdf, its meshes under `meshes_uri` and its manifest at `safety_manifest_path` in
+    the description package. Returns the mesh files it names."""
     joints = model["joints"]
     drives = linkage.drives(model)
     drive_by_input = {d["actuated_joint"]: d for d in drives if d["linkage"] is not None}
@@ -97,10 +106,8 @@ def emit_urdf(model, out_path, assets_dir,
     # Index actual files on disk (case-insensitive mapping). A primitive-only robot has no assets.
     disk_assets = os.listdir(assets_dir) if assets_dir and os.path.exists(assets_dir) else []
     # package:// rather than file://: the URI must not depend on where this ran (/ws, a laptop),
-    # and Foxglove only fetches package:// meshes over its bridge. humanoid_bringup installs the
-    # assets under the same repo-relative path (see its CMakeLists.txt).
-    assets_uri = ("package://humanoid_bringup/" + os.path.relpath(assets_dir).replace("\\", "/")
-                  if assets_dir else None)
+    # and Foxglove only fetches package:// meshes over its bridge.
+    mesh_files = set()
 
     for l in model["links"]:
         le = ET.SubElement(robot, "link", name=l["name"])
@@ -124,8 +131,10 @@ def emit_urdf(model, out_path, assets_dir,
             if mesh:
                 ve = ET.SubElement(le, tag)
                 ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
+                f = mesh_file(mesh, disk_assets)
+                mesh_files.add(f)
                 ET.SubElement(ve, "geometry").append(ET.Element(
-                    "mesh", filename=f"{assets_uri}/{mesh_file(mesh, disk_assets)}"))
+                    "mesh", filename=f"{meshes_uri}/{f}"))
 
         def add_primitive(tag, prim, le=le):
             ve = ET.SubElement(le, tag)
@@ -231,12 +240,8 @@ def emit_urdf(model, out_path, assets_dir,
     ET.SubElement(hw, "plugin").text = (
         "humanoid_actuator_system/HumanoidActuatorSystem"
     )
-    ET.SubElement(hw, "param", name="safety_manifest_path").text = (
-        safety_manifest_path
-    )
-    ET.SubElement(hw, "param", name="safety_manifest_package").text = (
-        safety_manifest_package
-    )
+    ET.SubElement(hw, "param", name="safety_manifest_path").text = safety_manifest_path
+    ET.SubElement(hw, "param", name="safety_manifest_package").text = DESCRIPTION_PACKAGE
     # Controllers command the commanded joints. A linkage's input and coupler are state-only: the
     # hardware component derives them through the linkage, which <transmission> describes.
     for d in drives:
@@ -263,6 +268,7 @@ def emit_urdf(model, out_path, assets_dir,
     ET.ElementTree(robot).write(
         out_path, xml_declaration=True, encoding="utf-8"
     )
+    return mesh_files
 
 def emit_transmission(rc, drive):
     """A linkage as a ros2_control <transmission>: the joint controllers command (role output),
@@ -359,8 +365,9 @@ def mount_height(mjcf_xml, model, samples=41):
                          "floor")
     return math.ceil(-lowest * 1e6) / 1e6
 
-def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
-    """Write robot.xml. Returns the standing qpos of the model's `home` pose, or None without one.
+def emit_mjcf(model, overlay, out_path, assets_dir):
+    """Write robot.xml. Returns the standing qpos of the model's `home` pose (None without one) and
+    the mesh files it names.
 
     Geometry comes from the contact overlay when the robot has one (G1, imported from Menagerie);
     otherwise from the model: each link's visual mesh as a non-colliding geom (group 2) and its
@@ -380,7 +387,7 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     comp = ET.SubElement(mj, "compiler")
     for key, value in MJCF_COMPILER:
         comp.set(key, value)
-    comp.set("meshdir", assets_rel.replace("\\", "/"))
+    comp.set("meshdir", MJCF_MESHDIR)
 
     asset = ET.SubElement(mj, "asset")
     if overlay:
@@ -504,12 +511,12 @@ def emit_mjcf(model, overlay, out_path, assets_dir, assets_rel):
     else:
         root_z = mount_height(xml, model)
         home = None
-    comp.set("meshdir", assets_rel.replace("\\", "/"))
+    comp.set("meshdir", MJCF_MESHDIR)
     root_body.set("pos", fmt([0.0, 0.0, root_z]))
 
     ET.indent(mj)
     ET.ElementTree(mj).write(out_path, xml_declaration=True, encoding="utf-8")
-    return home
+    return home, {f for f in meshes.values() if f}
 
 def emit_mjcf_actuators(mj, drives):
     """One actuator per drive, on the joint its motor turns, for MujocoActuatorTransport to drive
@@ -690,46 +697,48 @@ def emit_stm32_wiring(model, out_path):
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
 
-def generate(src, overlay_path, motor_limits, out_dir, generated_dir, assets_dir, urdf, mjcf,
-             firmware_config=False, firmware_setup=None, stm32_wiring=False,
-             safety_manifest_path=None, safety_manifest_package=None):
-    """Write the robot's generated files to out_dir. generated_dir is where they live in the repo:
-    the MJCF's relative meshdir is computed from it, so a regeneration elsewhere (check's temp
-    dir) still matches the committed file."""
+def generate(robot, src, overlay_path, motor_limits, description_dir, export_dir, assets_dir,
+             urdf, mjcf, license_path=None, firmware_config=False, firmware_setup=None,
+             stm32_wiring=False):
+    """Write robot `robot`'s description to description_dir, laid out as humanoid_description
+    installs it under share/humanoid_description/robots/<robot>/, and the files other repositories
+    import (the firmware config) to export_dir. Both directories hold nothing else, so `check` can
+    regenerate them anywhere and compare the trees."""
     model, overlay = load(src, overlay_path)
-    os.makedirs(out_dir, exist_ok=True)
     written = []
 
+    def out(*parts):
+        written.append("/".join(parts))
+        path = os.path.join(description_dir, *parts)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        return path
+
+    meshes = set()
     if urdf:
-        # URDF gets assets_dir to build package:// URIs with .STL extensions. The safety-manifest
-        # path/package override is per-robot; the defaults keep G1's ros2_control block unchanged.
-        urdf_kwargs = {}
-        if safety_manifest_path:
-            urdf_kwargs["safety_manifest_path"] = safety_manifest_path
-        if safety_manifest_package:
-            urdf_kwargs["safety_manifest_package"] = safety_manifest_package
-        emit_urdf(model, os.path.join(out_dir, "robot.urdf"), assets_dir, **urdf_kwargs)
-        written.append("robot.urdf")
-
+        meshes |= emit_urdf(model, out("urdf", "robot.urdf"), assets_dir,
+                            f"package://{DESCRIPTION_PACKAGE}/robots/{robot}/meshes",
+                            f"robots/{robot}/config/safety_manifest.yaml")
     if mjcf:
-        # MJCF keeps relative path because of the <compiler meshdir="..." /> tag
-        assets_rel = os.path.relpath(assets_dir, generated_dir).replace("\\", "/")
-        home_qpos = emit_mjcf(model, overlay, os.path.join(out_dir, "robot.xml"), assets_dir,
-                              assets_rel)
-        emit_scene(model, os.path.join(out_dir, "scene.xml"), home_qpos)
-        written += ["robot.xml", "scene.xml"]
+        home_qpos, mjcf_meshes = emit_mjcf(model, overlay, out("mjcf", "robot.xml"), assets_dir)
+        meshes |= mjcf_meshes
+        emit_scene(model, out("mjcf", "scene.xml"), home_qpos)
+    # Only the meshes the description names, copied byte for byte: the package must stand alone
+    # once installed, and a symlink would dangle there.
+    for f in sorted(meshes):
+        shutil.copyfile(os.path.join(assets_dir, f), out("meshes", f))
+    # The license the robot's sources came under travels with what is derived from them.
+    if license_path:
+        shutil.copyfile(license_path, out("LICENSE"))
 
-    emit_safety_manifest(model, motor_limits, os.path.join(out_dir, "safety_manifest.yaml"))
-    written.append("safety_manifest.yaml")
+    emit_safety_manifest(model, motor_limits, out("config", "safety_manifest.yaml"))
+    if stm32_wiring:
+        emit_stm32_wiring(model, out("config", "stm32_wiring.yaml"))
 
     if firmware_config:
+        os.makedirs(export_dir, exist_ok=True)
         setup = firmware_setup or model["robot"]["name"]
-        emit_firmware_config(model, motor_limits, os.path.join(out_dir, "firmware_config.yaml"),
+        emit_firmware_config(model, motor_limits, os.path.join(export_dir, "firmware_config.yaml"),
                              setup)
-        written += ["firmware_config.yaml", "firmware_config.yaml.sha256"]
+        print(f"generated firmware_config.yaml (+ .sha256) in {export_dir}")
 
-    if stm32_wiring:
-        emit_stm32_wiring(model, os.path.join(out_dir, "stm32_wiring.yaml"))
-        written.append("stm32_wiring.yaml")
-
-    print(f"generated {', '.join(written)} in {out_dir}")
+    print(f"generated {len(written)} files in {description_dir}")
