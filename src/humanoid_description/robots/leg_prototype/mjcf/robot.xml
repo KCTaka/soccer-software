@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="leg_prototype">
-  <compiler angle="radian" balanceinertia="false" boundmass="0" boundinertia="0" settotalmass="-1" inertiafromgeom="false" fusestatic="false" strippath="false" discardvisual="false" meshdir="../source/meshes" />
+  <compiler angle="radian" balanceinertia="false" boundmass="0" boundinertia="0" settotalmass="-1" inertiafromgeom="false" fusestatic="false" strippath="false" discardvisual="false" meshdir="../meshes" />
   <asset>
     <mesh name="left_ankle_horn_link" file="left_ankle_horn_link.stl" />
     <mesh name="left_ankle_rod_link" file="left_ankle_rod_link.stl" />

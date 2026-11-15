@@ -76,35 +76,38 @@ if(BUILD_TESTING)
   target_link_libraries(${PROJECT_NAME}_tuple_ownership_test
     humanoid_transport::humanoid_transport)
 
-  # These read the generated artifacts in place, so an emitter change that this package does not
-  # accept fails here rather than at launch.
-  set(GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/unitree_g1/generated")
-  set(LEG_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../model/robots/leg_prototype/generated")
+  # These read the description humanoid_description installs, the files the component loads at
+  # launch, so an emitter change that this package does not accept fails here rather than there.
+  # humanoid_description_DIR is <prefix>/share/humanoid_description/cmake.
+  find_package(humanoid_description REQUIRED)
+  set(ROBOTS_DIR "${humanoid_description_DIR}/../robots")
+  set(G1_DIR "${ROBOTS_DIR}/unitree_g1")
+  set(LEG_DIR "${ROBOTS_DIR}/leg_prototype")
 
   ament_add_gtest(${PROJECT_NAME}_safety_manifest_parser_test
     test/safety_manifest_parser_test.cpp)
   target_link_libraries(${PROJECT_NAME}_safety_manifest_parser_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_safety_manifest_parser_test PRIVATE
-    HUMANOID_TEST_SAFETY_MANIFEST_PATH="${GENERATED_DIR}/safety_manifest.yaml")
+    HUMANOID_TEST_SAFETY_MANIFEST_PATH="${G1_DIR}/config/safety_manifest.yaml")
 
   ament_add_gtest(${PROJECT_NAME}_hardware_contract_test test/hardware_contract_test.cpp)
   target_link_libraries(${PROJECT_NAME}_hardware_contract_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_hardware_contract_test PRIVATE
-    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf"
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf")
+    HUMANOID_TEST_ROBOT_URDF_PATH="${G1_DIR}/urdf/robot.urdf"
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf")
 
   # The leg prototype is the robot with a linkage: its generated description, manifest and MJCF.
   ament_add_gtest(${PROJECT_NAME}_four_bar_linkage_test test/four_bar_linkage_test.cpp)
   target_link_libraries(${PROJECT_NAME}_four_bar_linkage_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_four_bar_linkage_test PRIVATE
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf")
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf")
 
   ament_add_gtest(${PROJECT_NAME}_drive_layout_test test/drive_layout_test.cpp)
   target_link_libraries(${PROJECT_NAME}_drive_layout_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_drive_layout_test PRIVATE
-    HUMANOID_TEST_ROBOT_URDF_PATH="${GENERATED_DIR}/robot.urdf"
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf"
-    HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH="${LEG_GENERATED_DIR}/safety_manifest.yaml")
+    HUMANOID_TEST_ROBOT_URDF_PATH="${G1_DIR}/urdf/robot.urdf"
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf"
+    HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH="${LEG_DIR}/config/safety_manifest.yaml")
 
   # The component's linkage against the plant SIL simulates. MuJoCo as humanoid_transport_mujoco
   # finds it: its CMake config, else the library and header.
@@ -120,8 +123,8 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_four_bar_mujoco_test test/four_bar_mujoco_test.cpp)
   target_link_libraries(${PROJECT_NAME}_four_bar_mujoco_test ${PROJECT_NAME} mujoco::mujoco)
   target_compile_definitions(${PROJECT_NAME}_four_bar_mujoco_test PRIVATE
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_GENERATED_DIR}/robot.urdf"
-    HUMANOID_TEST_LEG_MJCF_PATH="${LEG_GENERATED_DIR}/scene.xml")
+    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf"
+    HUMANOID_TEST_LEG_MJCF_PATH="${LEG_DIR}/mjcf/scene.xml")
 
   # ADR-007: these run against a fault-injection ActuatorTransport, never against a substituted
   # SystemInterface. mock_components::GenericSystem is prohibited in any environment that produces

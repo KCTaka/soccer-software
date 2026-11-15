@@ -7,11 +7,13 @@ import importlib.util
 import os
 import xml.etree.ElementTree as ET
 
+from ament_index_python.packages import get_package_share_directory
 import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PACKAGE = os.path.dirname(HERE)
-GENERATED = os.path.join(PACKAGE, '..', '..', 'model', 'robots', 'leg_prototype', 'generated')
+DESCRIPTION = os.path.join(
+    get_package_share_directory('humanoid_description'), 'robots', 'leg_prototype')
 
 
 def _yaml(*path):
@@ -25,7 +27,7 @@ def _controller():
 
 
 def _urdf():
-    return ET.parse(os.path.join(GENERATED, 'robot.urdf')).getroot()
+    return ET.parse(os.path.join(DESCRIPTION, 'urdf', 'robot.urdf')).getroot()
 
 
 def test_the_controller_commands_the_descriptions_command_joints():
@@ -38,7 +40,7 @@ def test_the_controller_commands_the_descriptions_command_joints():
 def test_ankle_gains_stay_inside_the_motors_caps_through_the_linkage():
     # The hardware component multiplies the ankle's gains by ratio^2. The worst ratio is the
     # manifest's motor torque bound over the description's ankle torque bound, both generated.
-    manifest = _yaml(GENERATED, 'safety_manifest.yaml')['envelopes']
+    manifest = _yaml(DESCRIPTION, 'config', 'safety_manifest.yaml')['envelopes']
     (motor, envelope), = manifest.items()
     transmission = _urdf().find('ros2_control').find('transmission')
     assert transmission.find('actuator').get('name') == motor
@@ -68,7 +70,7 @@ def test_the_sliders_offer_only_the_commanded_joints():
         'leg_launch', os.path.join(PACKAGE, 'launch', 'leg.launch.py'))
     launch = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(launch)
-    with open(os.path.join(GENERATED, 'robot.urdf')) as f:
+    with open(os.path.join(DESCRIPTION, 'urdf', 'robot.urdf')) as f:
         sliders = ET.fromstring(launch.commanded_only(f.read()))
     movable = [j.get('name') for j in sliders.findall('joint') if j.get('type') != 'fixed']
     assert movable == _controller()['joints']

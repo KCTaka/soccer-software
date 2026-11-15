@@ -8,7 +8,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/robots/leg_prototype/source/meshes/left_shin_link.stl" />
+        <mesh filename="package://humanoid_description/robots/leg_prototype/meshes/left_shin_link.stl" />
       </geometry>
     </visual>
     <collision>
@@ -50,7 +50,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/robots/leg_prototype/source/meshes/left_foot_link.stl" />
+        <mesh filename="package://humanoid_description/robots/leg_prototype/meshes/left_foot_link.stl" />
       </geometry>
     </visual>
     <collision>
@@ -80,7 +80,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/robots/leg_prototype/source/meshes/left_ankle_horn_link.stl" />
+        <mesh filename="package://humanoid_description/robots/leg_prototype/meshes/left_ankle_horn_link.stl" />
       </geometry>
     </visual>
     <collision>
@@ -110,7 +110,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://humanoid_bringup/model/robots/leg_prototype/source/meshes/left_ankle_rod_link.stl" />
+        <mesh filename="package://humanoid_description/robots/leg_prototype/meshes/left_ankle_rod_link.stl" />
       </geometry>
     </visual>
     <collision>
@@ -147,8 +147,8 @@
   <ros2_control name="HumanoidActuatorSystem" type="system">
     <hardware>
       <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
-      <param name="safety_manifest_path">config/leg_prototype/safety_manifest.yaml</param>
-      <param name="safety_manifest_package">humanoid_bringup</param>
+      <param name="safety_manifest_path">robots/leg_prototype/config/safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_description</param>
     </hardware>
     <joint name="left_ankle_pitch_joint">
       <command_interface name="position" />

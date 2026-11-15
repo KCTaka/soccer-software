@@ -151,8 +151,8 @@
   <ros2_control name="HumanoidActuatorSystem" type="system">
     <hardware>
       <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
-      <param name="safety_manifest_path">config/bench_1s_5m/safety_manifest.yaml</param>
-      <param name="safety_manifest_package">humanoid_bringup</param>
+      <param name="safety_manifest_path">robots/bench_1s_5m/config/safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_description</param>
     </hardware>
     <joint name="bench_j1">
       <command_interface name="position" />

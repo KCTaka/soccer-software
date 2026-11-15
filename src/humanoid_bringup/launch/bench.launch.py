@@ -9,10 +9,12 @@ Arguments:
           Stm32SerialTransport with mit_controller active; the motors are armed and the controller
           subscribes to /humanoid_mit_controller/joint_references. Drive it with bench_trajectories.
 
-Everything is per-robot and generated: config/<robot>_description.urdf, config/<robot>/controllers.yaml
-and config/<robot>/stm32_wiring.yaml. serial_device defaults to /host-dev/robosoccer-master inside
-the devcontainer (on a bare host pass serial_device:=/dev/robosoccer-master); it is used only when
-sim:=false. gui:=false publishes a zero pose instead of the slider GUI (sim only).
+Everything is per-robot: the generated description and STM32 wiring come from humanoid_description
+(robots/<robot>/urdf/robot.urdf and robots/<robot>/config/stm32_wiring.yaml), the controller config
+from this package's config/<robot>/controllers.yaml. serial_device defaults to
+/host-dev/robosoccer-master inside the devcontainer (on a bare host pass
+serial_device:=/dev/robosoccer-master); it is used only when sim:=false. gui:=false publishes a
+zero pose instead of the slider GUI (sim only).
 """
 import os
 
@@ -39,7 +41,9 @@ def _setup(context, *_args, **_kwargs):
     serial_device = LaunchConfiguration('serial_device').perform(context)
 
     share = FindPackageShare('humanoid_bringup').perform(context)
-    urdf_path = os.path.join(share, 'config', f'{robot}_description.urdf')
+    description = os.path.join(
+        FindPackageShare('humanoid_description').perform(context), 'robots', robot)
+    urdf_path = os.path.join(description, 'urdf', 'robot.urdf')
     rviz_cfg = os.path.join(share, 'config', 'bench_dial.rviz')
     with open(urdf_path) as f:
         robot_description = {'robot_description': f.read()}
@@ -56,7 +60,7 @@ def _setup(context, *_args, **_kwargs):
     else:
         # Real bench: controller_manager + transport + mit_controller (armed).
         controllers = os.path.join(share, 'config', robot, 'controllers.yaml')
-        wiring = os.path.join(share, 'config', robot, 'stm32_wiring.yaml')
+        wiring = os.path.join(description, 'config', 'stm32_wiring.yaml')
         nodes += [
             Node(
                 package='controller_manager', executable='ros2_control_node',

@@ -8,10 +8,15 @@
 # MuJoCo Menagerie with `python3 -m model.generators.ingest` (see its source/ingest.yaml); that
 # import is a one-off tool, not part of `check`.
 #
-# urdf: emit <generated>/robot.urdf. mjcf: emit <generated>/robot.xml (the robot alone, standing
-# on z = 0 at its reference pose; needs the mujoco Python package) and scene.xml (robot.xml in
-# the simulated world: physics settings and a floor).
-# firmware_config: emit <generated>/firmware_config.yaml (+ .sha256) for the firmware repo.
+# Each robot's description is generated into the humanoid_description package, as it installs
+# under share/humanoid_description/robots/<robot>/: config/safety_manifest.yaml always;
+# urdf: urdf/robot.urdf. mjcf: mjcf/robot.xml (the robot alone, standing on z = 0 at its reference
+# pose; needs the mujoco Python package) and mjcf/scene.xml (robot.xml in the simulated world:
+# physics settings and a floor). stm32_wiring: config/stm32_wiring.yaml. meshes/ holds the files
+# in assets_dir that the URDF or MJCF names, and LICENSE a copy of `license`, the terms the
+# robot's sources came under.
+# firmware_config: emit model/robots/<robot>/generated/firmware_config.yaml (+ .sha256), which
+# the firmware repo's import script reads from there.
 #
 # leg_prototype's source was imported from a Fusion 360 export with
 # `python3 -m model.generators.ingest_fusion` (see its source/ingest.yaml), which a CAD re-export
@@ -20,46 +25,37 @@ robots:
   unitree_g1:
     source: model/robots/unitree_g1/source/robot_model.yaml
     overlay: model/robots/unitree_g1/source/menagerie_contact_overlay.yaml
-    generated: model/robots/unitree_g1/generated
     assets_dir: model/robots/unitree_g1/source/menagerie/unitree_g1/assets
+    license: model/robots/unitree_g1/source/menagerie/unitree_g1/LICENSE
     urdf: true
     mjcf: true
     firmware_config: false
   bench_2s_10m:
     source: model/robots/bench_2s_10m/source/robot_model.yaml
     overlay: null
-    generated: model/robots/bench_2s_10m/generated
     assets_dir: null
     urdf: true
     mjcf: false
     firmware_config: true
     firmware_setup: 2s_10m
     stm32_wiring: true
-    safety_manifest_path: config/bench_2s_10m/safety_manifest.yaml
-    safety_manifest_package: humanoid_bringup
   bench_1s_5m:
     source: model/robots/bench_1s_5m/source/robot_model.yaml
     overlay: null
-    generated: model/robots/bench_1s_5m/generated
     assets_dir: null
     urdf: true
     mjcf: false
     firmware_config: true
     firmware_setup: 1s_5m
     stm32_wiring: true
-    safety_manifest_path: config/bench_1s_5m/safety_manifest.yaml
-    safety_manifest_package: humanoid_bringup
   leg_prototype:
     source: model/robots/leg_prototype/source/robot_model.yaml
     overlay: null
-    generated: model/robots/leg_prototype/generated
     assets_dir: model/robots/leg_prototype/source/meshes
     urdf: true
     mjcf: true
     firmware_config: true
     firmware_setup: 1s_1m
     stm32_wiring: true
-    safety_manifest_path: config/leg_prototype/safety_manifest.yaml
-    safety_manifest_package: humanoid_bringup
 
 default_robot: unitree_g1

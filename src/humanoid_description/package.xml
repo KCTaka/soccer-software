@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>humanoid_description</name>
+  <version>0.1.0</version>
+  <description>
+    Every robot's description, generated from model/ by model/generators: URDF, MJCF, meshes, and
+    the safety manifest and STM32 wiring the hardware component loads. Edit model/, not robots/.
+  </description>
+  <maintainer email="pinsonanthony@gmail.com">Anthony Pinson</maintainer>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
+  <license>Apache-2.0</license>
+  <license file="robots/unitree_g1/LICENSE">BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

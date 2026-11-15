@@ -22,8 +22,9 @@ using humanoid::actuator_system::kSafetyManifestPathParam;
 hardware_interface::HardwareInfo valid_info()
 {
   hardware_interface::HardwareInfo info;
-  info.hardware_parameters[std::string{kSafetyManifestPathParam}] = "config/safety_manifest.yaml";
-  info.hardware_parameters[std::string{kSafetyManifestPackageParam}] = "humanoid_bringup";
+  info.hardware_parameters[std::string{kSafetyManifestPathParam}] =
+    "robots/unitree_g1/config/safety_manifest.yaml";
+  info.hardware_parameters[std::string{kSafetyManifestPackageParam}] = "humanoid_description";
   hardware_interface::ComponentInfo joint;
   joint.name = "left_knee_joint";
   for (const auto & field : humanoid::transport::kMitFields) {

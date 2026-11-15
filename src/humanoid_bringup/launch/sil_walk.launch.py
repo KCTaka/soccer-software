@@ -9,12 +9,12 @@ from typing import List
 
 
 def generate_launch_description():
+    robot_dir = PathJoinSubstitution(
+        [FindPackageShare('humanoid_description'), 'robots', 'unitree_g1'])
     launch_args = [
         DeclareLaunchArgument(
             'mjcf_path',
-            default_value=PathJoinSubstitution([
-                FindPackageShare('humanoid_bringup'),
-                'model', 'robots', 'unitree_g1', 'generated', 'scene.xml']),
+            default_value=PathJoinSubstitution([robot_dir, 'mjcf', 'scene.xml']),
             description='MJCF model loaded by MujocoActuatorTransport'),
         DeclareLaunchArgument(
             'command', default_value='[0.0, 0.0, 0.0]',
@@ -49,7 +49,7 @@ def generate_launch_description():
     # belong to the policy, which was trained against exactly these torques.
     policy_params = PathJoinSubstitution([policy_dir, 'policy.yaml'])
 
-    robot_description_path = PathJoinSubstitution([share, 'config', 'robot_description.urdf'])
+    robot_description_path = PathJoinSubstitution([robot_dir, 'urdf', 'robot.urdf'])
     robot_description = ParameterValue(
         Command(['cat ', robot_description_path]), value_type=str)
 
@@ -74,7 +74,7 @@ def generate_launch_description():
             {
                 'policy_path': PathJoinSubstitution([policy_dir, 'policy.onnx']),
                 'joint_limits_file': PathJoinSubstitution(
-                    [share, 'config', 'safety_manifest.yaml']),
+                    [robot_dir, 'config', 'safety_manifest.yaml']),
                 'fallback_command': ParameterValue(
                     LaunchConfiguration('command'), value_type=List[float]),
             },
