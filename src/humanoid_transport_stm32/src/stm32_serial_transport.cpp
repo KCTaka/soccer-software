@@ -139,7 +139,6 @@ transport::TransportCapabilities Stm32SerialTransport::capabilities() const
   caps.provides_temperature = true;
   caps.provides_bus_voltage = false;
   caps.is_deterministic = false;
-  caps.tuple_completeness = transport::TupleCompleteness::kFull;
   return caps;
 }
 

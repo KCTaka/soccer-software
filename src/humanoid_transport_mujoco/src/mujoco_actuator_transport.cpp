@@ -136,7 +136,6 @@ transport::TransportCapabilities MujocoActuatorTransport::capabilities() const
   caps.provides_bus_voltage = false;
   caps.provides_imu = imu_sensors_.present();
   caps.is_deterministic = false;  // kSimulated, not kReplay
-  caps.tuple_completeness = transport::TupleCompleteness::kFull;
   return caps;
 }
 
