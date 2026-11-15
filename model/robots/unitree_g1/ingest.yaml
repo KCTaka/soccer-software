@@ -1,9 +1,12 @@
-# Config for the one-off Menagerie import (python3 -m model.generators.ingest).
+# Config for the one-off Menagerie import:
+#   python3 -m model.generators.ingest model/robots/unitree_g1/ingest.yaml \
+#     model/robots/unitree_g1/robot_model.yaml model/robots/unitree_g1/menagerie_contact_overlay.yaml
+# `mjcf` is relative to this file's directory.
 model_name: unitree_g1
 source:
   repository: https://github.com/google-deepmind/mujoco_menagerie
   commit: 8161bba264d7fa7c99ca301e91e7fb44737676ad # ADR-009-02: pin before first ingest
-  mjcf: model/robots/unitree_g1/source/menagerie/unitree_g1/g1.xml
+  mjcf: source/menagerie/unitree_g1/g1.xml
   # The G1's pelvis IMU, the one its stock locomotion policies read.
   imu_site: imu_in_pelvis
   # Menagerie's standing keyframe, imported as the model's home pose.

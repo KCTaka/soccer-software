@@ -1,12 +1,12 @@
-# Config for importing the Fusion 360 export into robot_model.yaml:
-#   python3 -m model.generators.ingest_fusion model/robots/leg_prototype/source/ingest.yaml
-# Re-export from Fusion (acdc4robot) into Leg-Assembly---Export-v<N>/, point `export` at it, re-run,
-# then diff. Points and boxes below are in each export body's own frame, in metres, measured from
+# Config for importing the Fusion 360 export into robot_model.yaml and meshes/:
+#   python3 -m model.generators.ingest_fusion model/robots/leg_prototype/ingest.yaml
+# Re-export from Fusion (acdc4robot) into source/Leg-Assembly---Export-v<N>/, point `export` at it,
+# re-run, then diff. Paths are relative to this file's directory. Points and boxes below are in each export body's own frame, in metres, measured from
 # its meshes (hole centres by circle fits, boxes from each solid's extents).
 model_name: leg_prototype
-export: model/robots/leg_prototype/source/Leg-Assembly---Export-v2/Leg-Assembly---Export-v2.xml
-model_out: model/robots/leg_prototype/source/robot_model.yaml
-meshes_out: model/robots/leg_prototype/source/meshes
+export: source/Leg-Assembly---Export-v2/Leg-Assembly---Export-v2.xml
+model_out: robot_model.yaml
+meshes_out: meshes
 notes:
   - "Masses and inertias are PROVISIONAL until weighed: every part solid PLA (1.24 g/cm^3, infill not"
   - "modelled) over its CAD geometry, except the RS02, whose placeholder block in the shin takes its 380 g."

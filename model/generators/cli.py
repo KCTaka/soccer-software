@@ -16,6 +16,7 @@ import yaml
 from . import emit, validate
 
 REGISTRY = "model/robots.yaml"
+ROBOTS = "model/robots"
 SCHEMA = "model/schema/robot_model.schema.json"
 MOTORS = "model/motors.yaml"
 MOTORS_SCHEMA = "model/schema/motors.schema.json"
@@ -32,8 +33,15 @@ def _robot(name):
         name = reg["default_robot"]
     if name not in robots:
         sys.exit(f"unknown robot {name!r}; known: {', '.join(sorted(robots))}")
-    r = dict(robots[name])
-    r["name"] = name
+    return _resolve(name, robots[name])
+
+def _resolve(name, entry):
+    """A registry entry with its paths resolved: the robot's robot_model.yaml by convention, the
+    others relative to the robot's directory."""
+    d = os.path.join(ROBOTS, name)
+    r = dict(entry, name=name, source=os.path.join(d, "robot_model.yaml"))
+    for key in ("overlay", "meshes", "license"):
+        r[key] = os.path.join(d, entry[key]) if entry.get(key) else None
     return r
 
 def _motor_limits():
@@ -42,19 +50,19 @@ def _motor_limits():
 
 def _all_robots():
     reg = _registry()
-    return [dict(reg["robots"][n], name=n) for n in reg["robots"]]
+    return [_resolve(n, e) for n, e in reg["robots"].items()]
 
 def _outputs(r):
     """The robot's two generated directories in the repository: its description, and its exports."""
     return (os.path.join(DESCRIPTIONS, r["name"]),
-            os.path.join("model", "robots", r["name"], "generated"))
+            os.path.join(ROBOTS, r["name"], "generated"))
 
 def _generate(r, motor_limits, root):
     """Generate the robot into `root`, laid out as the repository holds it: the outputs' paths
     under it are _outputs(r)."""
     description_dir, export_dir = (os.path.join(root, d) for d in _outputs(r))
     emit.generate(r["name"], r["source"], r["overlay"], motor_limits, description_dir, export_dir,
-                  r["assets_dir"], urdf=r["urdf"], mjcf=r["mjcf"], license_path=r.get("license"),
+                  r["meshes"], urdf=r["urdf"], mjcf=r["mjcf"], license_path=r["license"],
                   firmware_config=r.get("firmware_config", False),
                   firmware_setup=r.get("firmware_setup"),
                   stm32_wiring=r.get("stm32_wiring", False))
