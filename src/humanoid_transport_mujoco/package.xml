@@ -7,7 +7,7 @@
     MujocoActuatorTransport: SIL transport implementing the ActuatorTransport seam (ADR-007-01).
     Drives each joint's generated MJCF actuator with the MIT tuple, so MuJoCo evaluates the
     impedance law at every physics step. Steps physics in lockstep with integer substeps
-    asserted at configure (ADR-007-03). Reports kFull tuple completeness.
+    asserted at configure (ADR-007-03).
   </description>
   <maintainer email="pinsonanthony@gmail.com">Anthony Pinson</maintainer>
   <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
