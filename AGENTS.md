@@ -26,8 +26,10 @@ display (the Jetson over Remote-SSH) use `rviz:=false foxglove:=true` and open F
 - `humanoid_transport` never depends on ROS.
 - No environment variables for configuration: declare ROS 2 parameters.
 - No numbers copied from the robot model into code: derive them from the loaded model, or
-  regenerate `model/robots/<robot>/generated/` through `model/generators`. Never hand-edit
-  generated files.
+  regenerate through `model/generators` from `model/robots/<robot>/robot_model.yaml`. It writes
+  the description (URDF, MJCF, meshes, safety manifest, STM32 wiring) to
+  `src/humanoid_description/robots/<robot>/` and the firmware export to
+  `model/robots/<robot>/generated/`. Never hand-edit generated files.
 - The control period is defined only in `humanoid_transport/timing.hpp`; check runtime rates
   against it.
 - Return by value (`std::optional` for "may be absent"). The only out-parameter exception is

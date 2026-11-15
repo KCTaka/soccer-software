@@ -12,7 +12,8 @@ MuJoCo software-in-the-loop (SIL) simulation, and the robot model generators.
 | `src/humanoid_safety` | SafetyKernel |
 | `src/humanoid_mit_controller` | `MitImpedanceController` |
 | `src/humanoid_bringup` | Launch files and configuration |
-| `model/` | Robot model sources and the generators that emit URDF, MJCF and manifests |
+| `src/humanoid_description` | Robot descriptions generated from `model/`: URDF, MJCF, meshes, safety manifests, STM32 wiring |
+| `model/` | Each robot's sources of truth, the generators that emit its description into `humanoid_description`, and its firmware export |
 
 ## Setup
 

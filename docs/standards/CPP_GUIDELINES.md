@@ -84,9 +84,11 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
 ## 5. Model data and invariants: one source, derived or checked, never copied
 
 - **Never copy a number out of a model into C++.** The model pipeline is the single source of
-  truth: `model/robots/<robot>/source/robot_model.yaml` → `model/generators` →
-  `model/robots/<robot>/generated/`. Generated files are never hand-edited; `cli check` rejects
-  drift.
+  truth: `model/robots/<robot>/robot_model.yaml` → `model/generators` →
+  `src/humanoid_description/robots/<robot>/` (URDF, MJCF, meshes, safety manifest, STM32 wiring)
+  and `model/robots/<robot>/generated/` (the firmware export, kept there because the firmware
+  repo's import script reads it from that path). Generated files are never hand-edited;
+  `cli check` rejects drift in either tree.
 - If code needs a geometric quantity, **derive it from the loaded model at configure time**.
   The initial root height is computed from collision geometry
   ([mujoco_placement.hpp](../../src/humanoid_transport_mujoco/include/humanoid_transport_mujoco/mujoco_placement.hpp)).

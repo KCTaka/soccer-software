@@ -60,8 +60,9 @@ and select it: `transport_plugin: humanoid_transport_stm32/Stm32SerialTransport`
 `chain`, `motor`, `direction_sign` and `zero_offset_rad` have **no default** on purpose. A value that
 merely looks plausible goes unnoticed until the joint runs the wrong way. The mapping is a parameter
 because the telemetry carries no CAN id, so nothing on the wire can say which joint a motor is. The
-`joints` block is generated from the robot model as `model/robots/<robot>/generated/stm32_wiring.yaml`
-(chain = index of the actuator's `bus_segment`, motor = its `slot`); never write it by hand.
+`joints` block is generated from the robot model as `robots/<robot>/config/stm32_wiring.yaml` in
+`humanoid_description` (chain = index of the actuator's `bus_segment`, motor = its `slot`); never
+write it by hand.
 
 Angle convention: `joint = direction_sign * (wire - zero_offset_rad)`. Velocity and torque take the
 sign only. Stiffness and damping are magnitudes and are never negated.

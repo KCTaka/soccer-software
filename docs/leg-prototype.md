@@ -127,7 +127,7 @@ with no lookup table or fitted polynomial, and it is cheap.
 ## Model provenance and what is provisional
 
 `robot_model.yaml` was imported by `python3 -m model.generators.ingest_fusion
-model/robots/leg_prototype/source/ingest.yaml`. Re-run it on a new CAD export (see below).
+model/robots/leg_prototype/ingest.yaml`. Re-run it on a new CAD export (see below).
 
 | Value | Status |
 |---|---|
@@ -141,11 +141,12 @@ model/robots/leg_prototype/source/ingest.yaml`. Re-run it on a new CAD export (s
 
 ## SIL
 
-`leg.launch.py` (mode `sil`) runs MujocoActuatorTransport on `generated/scene.xml`. The shin is
-welded 88 mm above the floor, which is just clear of it over the ankle's whole range. The scene holds
-still until the controller's first command. `humanoid_mit_controller` holds the measured pose with
-kp 10 N·m/rad and kd 0.3 N·m·s/rad until a reference arrives. `/joint_states` reports the ankle, the
-motor's joint and the rod.
+`leg.launch.py` (mode `sil`) runs MujocoActuatorTransport on the generated
+`robots/leg_prototype/mjcf/scene.xml` in `humanoid_description`. The shin is welded 88 mm above the
+floor, which is just clear of it over the ankle's whole range. The scene holds still until the
+controller's first command. `humanoid_mit_controller` holds the measured pose with kp 10 N·m/rad and
+kd 0.3 N·m·s/rad until a reference arrives. `/joint_states` reports the ankle, the motor's joint and
+the rod.
 
 **Sliders.** SIL opens a slider window (`joint_state_publisher_gui`) next to RViz that commands the
 ankle (`sliders:=auto`, the default, turns it on in `sil` only).
@@ -189,7 +190,7 @@ The steps below come from the STM32 transport's code.
    `left_ankle_motor_joint` in `robot_model.yaml`. Then run
    `python3 -m model.generators.cli generate --robot leg_prototype` and
    `python3 -m model.generators.cli check`, and rebuild with
-   `colcon build --packages-select humanoid_bringup`. The wiring now carries the offset.
+   `colcon build --packages-select humanoid_description`. The wiring now carries the offset.
 5. **Monitor.** Launch with `mode:=monitor`. The transport never arms the motor.
    - With the foot square, `/joint_states` should read the ankle at 0 ± 0.01 rad.
    - Toes down should read positive.
@@ -214,9 +215,9 @@ The steps below come from the STM32 transport's code.
 ## Re-importing a CAD export
 
 Export from Fusion with acdc4robot into `source/Leg-Assembly---Export-v<N>/` and point `export` in
-`source/ingest.yaml` at it. Run `python3 -m model.generators.ingest_fusion
-model/robots/leg_prototype/source/ingest.yaml`, then `cli generate` and `cli check`, and diff before
-committing.
+`ingest.yaml` at it (its paths are relative to its own directory). Run
+`python3 -m model.generators.ingest_fusion model/robots/leg_prototype/ingest.yaml`, then
+`cli generate` and `cli check`, and diff before committing.
 
 The import rewrites only what the CAD owns: frames, inertials, meshes, collision boxes and the
 closure pin. It keeps limits, calibration, actuators and transmission fields. The closure pin's
