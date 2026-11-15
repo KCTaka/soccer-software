@@ -60,7 +60,6 @@ def test_each_mode_selects_its_transport():
         params = _yaml(PACKAGE, 'config', 'leg_prototype', f'{mode}.yaml')[
             'humanoidactuatorsystem']['ros__parameters']
         assert params['transport_plugin'] == plugin
-        assert params['accepted_degradation'] == 'none'
 
 
 def test_the_sliders_offer_only_the_commanded_joints():

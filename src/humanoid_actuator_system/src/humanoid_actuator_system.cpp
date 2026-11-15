@@ -31,12 +31,8 @@ namespace
 // ROS parameters of the component's own node, which ros2_control names after the description's
 // <ros2_control name>, lower-cased. They choose the deployment, so they have no defaults.
 constexpr char kTransportPluginParam[] = "transport_plugin";
-constexpr char kAcceptedDegradationParam[] = "accepted_degradation";
-constexpr std::string_view kNoDegradation = "none";
-constexpr std::string_view kPositionVelocityOnly = "position_velocity_only";
 
 // File-local helpers. Declared here, defined at the end of this file.
-std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value);
 std::string_view trigger_name(safety::Trigger trigger);
 std::string_view transport_error_name(transport::TransportError error);
 }  // namespace
@@ -131,13 +127,6 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       caps.nominal_cycle_period_us, transport::kControlPeriod.count()));
   }
 
-  // 7. Check tuple capability
-  if (!check_tuple_capability()) {
-    return fail(
-      "Tuple capability mismatch: the transport cannot deliver the five-field MIT tuple, the only "
-      "claim a controller may make, and degradation was not accepted");
-  }
-
   // The description declares an IMU the transport cannot deliver: not an error, because one
   // generated description serves every deployment, but its interfaces will read NaN.
   if (!info_.sensors.empty() && !caps.provides_imu) {
@@ -147,13 +136,13 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::on_configure(
       parameters_.transport_plugin.c_str());
   }
 
-  // 8. Preallocate batches
+  // 7. Preallocate batches
   command_snapshot_ = transport::CommandBatch{};
   feedback_ = transport::FeedbackBatch{};
   command_snapshot_.joint_count = joint_count;
   feedback_.joint_count = joint_count;
 
-  // 9. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
+  // 8. No claim survives UNCONFIGURED: its interfaces were withdrawn, and a controller must be
   //    switched in again, which perform_command_mode_switch() records.
   owned_joints_.store(0U, std::memory_order_release);
 
@@ -540,15 +529,10 @@ HumanoidActuatorSystem::ParametersOrError HumanoidActuatorSystem::read_parameter
     };
 
   Parameters parameters;
-  std::string degradation;
   try {
     parameters.transport_plugin = node->declare_parameter<std::string>(
       kTransportPluginParam,
       describe("ActuatorTransport plugin, e.g. humanoid_transport_mujoco/MujocoActuatorTransport"));
-    degradation = node->declare_parameter<std::string>(
-      kAcceptedDegradationParam,
-      describe("Tuple degradation accepted from the transport: 'none', or "
-      "'position_velocity_only' to run without stiffness, damping, and feed-forward torque"));
   } catch (const rclcpp::exceptions::UninitializedStaticallyTypedParameterException & e) {
     return std::format(
       "{}. Set it under '{}' in the controller_manager parameter file.", e.what(),
@@ -559,13 +543,6 @@ HumanoidActuatorSystem::ParametersOrError HumanoidActuatorSystem::read_parameter
   if (parameters.transport_plugin.empty()) {
     return std::format("Parameter '{}' is empty", kTransportPluginParam);
   }
-  const auto accepted = accepted_degradation_from(degradation);
-  if (!accepted) {
-    return std::format(
-      "Parameter '{}' is '{}'; expected '{}' or '{}'", kAcceptedDegradationParam, degradation,
-      kNoDegradation, kPositionVelocityOnly);
-  }
-  parameters.accepted_degradation = *accepted;
 
   // The manifest location is part of the generated description; hardware_contract_violation()
   // has already required both entries.
@@ -590,33 +567,8 @@ hardware_interface::CallbackReturn HumanoidActuatorSystem::fail(std::string_view
   return hardware_interface::CallbackReturn::ERROR;
 }
 
-bool HumanoidActuatorSystem::check_tuple_capability() noexcept
-{
-  if (!transport_) {
-    return false;
-  }
-  const auto caps = transport_->capabilities();
-  if (caps.tuple_completeness == transport::TupleCompleteness::kPositionVelocityOnly &&
-    parameters_.accepted_degradation != transport::TupleCompleteness::kPositionVelocityOnly)
-  {
-    return false;
-  }
-  return true;
-}
-
 namespace
 {
-
-std::optional<transport::TupleCompleteness> accepted_degradation_from(std::string_view value)
-{
-  if (value == kNoDegradation) {
-    return transport::TupleCompleteness::kFull;
-  }
-  if (value == kPositionVelocityOnly) {
-    return transport::TupleCompleteness::kPositionVelocityOnly;
-  }
-  return std::nullopt;
-}
 
 std::string_view trigger_name(safety::Trigger trigger)
 {

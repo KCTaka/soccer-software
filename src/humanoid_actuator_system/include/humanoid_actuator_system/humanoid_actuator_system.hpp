@@ -122,7 +122,6 @@ private:
   struct Parameters
   {
     std::string transport_plugin;
-    transport::TupleCompleteness accepted_degradation{transport::TupleCompleteness::kFull};
     /// Absolute.
     std::string safety_manifest_path;
   };
@@ -155,11 +154,6 @@ private:
 
   /// Logs `reason` and returns the failure, for a lifecycle callback to return.
   [[nodiscard]] hardware_interface::CallbackReturn fail(std::string_view reason) const;
-
-  /// Called from on_configure. Returns false (configuration error) if the transport cannot deliver
-  /// the five-field tuple and degradation has not been explicitly accepted. The tuple is the only
-  /// claim prepare_command_mode_switch() accepts, so this needs no knowledge of the claim.
-  [[nodiscard]] bool check_tuple_capability() noexcept;
 
   // --- Data ---
 
