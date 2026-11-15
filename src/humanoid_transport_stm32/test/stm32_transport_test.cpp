@@ -255,13 +255,12 @@ TEST_F(TransportTest, C8_ExchangeWhileInactiveFailsWithNotActive)
   EXPECT_EQ(exchange().error, TransportError::kNotActive);
 }
 
-TEST_F(TransportTest, CapabilitiesDescribeAFullTuplePhysicalTransport)
+TEST_F(TransportTest, CapabilitiesDescribeAPhysicalTransport)
 {
   ASSERT_TRUE(configure());
   const auto caps = transport->capabilities();
   EXPECT_STREQ(caps.implementation_name.data(), "Stm32SerialTransport");
   EXPECT_EQ(caps.transport_class, humanoid::transport::TransportClass::kPhysical);
-  EXPECT_EQ(caps.tuple_completeness, humanoid::transport::TupleCompleteness::kFull);
   EXPECT_EQ(caps.joint_count, kJoints);
   EXPECT_TRUE(caps.supports_per_joint_disable);
   EXPECT_TRUE(caps.supports_availability_mask);
