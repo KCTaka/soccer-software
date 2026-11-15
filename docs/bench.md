@@ -15,8 +15,9 @@ ros2 launch humanoid_bringup bench.launch.py robot:=bench_2s_10m sim:=false
 ## Arguments
 
 - **`robot`** — `bench_1s_5m` (default, 5 motors / 1 slave) or `bench_2s_10m` (10 motors / 2 slaves).
-  Selects the generated description (`config/<robot>_description.urdf`), the controller/hardware
-  config (`config/<robot>/controllers.yaml`), and the transport wiring (`config/<robot>/stm32_wiring.yaml`).
+  Selects the generated description (`robots/<robot>/urdf/robot.urdf` in `humanoid_description`),
+  the controller/hardware config (`config/<robot>/controllers.yaml` in `humanoid_bringup`), and the
+  generated transport wiring (`robots/<robot>/config/stm32_wiring.yaml` in `humanoid_description`).
 - **`sim`** — `true` (default): **not connected to a bench.** Model-only slider view —
   `joint_state_publisher_gui` drives `/joint_states` into RViz so you can pose the board by hand;
   no `controller_manager`, no transport, no hardware. `false`: the **real** STM32 bench —
