@@ -147,6 +147,8 @@ def ingest(config_path):
     import mujoco  # the importer compiles the export with MuJoCo
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
+    for key in ("export", "model_out", "meshes_out"):   # relative to the config's directory
+        cfg[key] = os.path.join(os.path.dirname(config_path), cfg[key])
     export_dir = os.path.dirname(cfg["export"])
     m = mujoco.MjModel.from_xml_path(cfg["export"])
     d = mujoco.MjData(m)
@@ -341,8 +343,7 @@ def ingest(config_path):
 def main():
     p = argparse.ArgumentParser(description="Import a Fusion 360 (acdc4robot) export into a "
                                             "robot_model.yaml.")
-    p.add_argument("config", help="import config, e.g. model/robots/leg_prototype/source/"
-                                  "ingest.yaml")
+    p.add_argument("config", help="import config, e.g. model/robots/leg_prototype/ingest.yaml")
     ingest(p.parse_args().config)
 
 if __name__ == "__main__":

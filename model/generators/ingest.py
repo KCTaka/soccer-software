@@ -243,7 +243,7 @@ def walk_body(body, parent_link, eff_class, angle, ctx, joint_defaults, geom_def
 def ingest(config_path, out_path, overlay_out_path):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
-    mjcf_path = cfg["source"]["mjcf"]
+    mjcf_path = os.path.join(os.path.dirname(config_path), cfg["source"]["mjcf"])
     root = ET.parse(mjcf_path).getroot()
 
     compiler = root.find("compiler")
@@ -328,7 +328,7 @@ def ingest(config_path, out_path, overlay_out_path):
 
 def main():
     p = argparse.ArgumentParser(description="Import a Menagerie MJCF into a robot_model.yaml.")
-    p.add_argument("config", help="import config, e.g. model/robots/unitree_g1/source/ingest.yaml")
+    p.add_argument("config", help="import config, e.g. model/robots/unitree_g1/ingest.yaml")
     p.add_argument("model_out", help="robot_model.yaml to write")
     p.add_argument("overlay_out", help="contact overlay to write")
     args = p.parse_args()

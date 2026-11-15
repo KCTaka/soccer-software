@@ -93,7 +93,7 @@ def mesh_file(mesh, disk_assets):
         found = mesh if "." in mesh else f"{mesh}.STL"
     return found
 
-def emit_urdf(model, out_path, assets_dir, meshes_uri, safety_manifest_path):
+def emit_urdf(model, out_path, meshes_dir, meshes_uri, safety_manifest_path):
     """Write robot.urdf, its meshes under `meshes_uri` and its manifest at `safety_manifest_path` in
     the description package. Returns the mesh files it names."""
     joints = model["joints"]
@@ -104,7 +104,7 @@ def emit_urdf(model, out_path, assets_dir, meshes_uri, safety_manifest_path):
     robot = ET.Element("robot", name=model["robot"]["name"])
 
     # Index actual files on disk (case-insensitive mapping). A primitive-only robot has no assets.
-    disk_assets = os.listdir(assets_dir) if assets_dir and os.path.exists(assets_dir) else []
+    disk_assets = os.listdir(meshes_dir) if meshes_dir and os.path.exists(meshes_dir) else []
     # package:// rather than file://: the URI must not depend on where this ran (/ws, a laptop),
     # and Foxglove only fetches package:// meshes over its bridge.
     mesh_files = set()
@@ -365,7 +365,7 @@ def mount_height(mjcf_xml, model, samples=41):
                          "floor")
     return math.ceil(-lowest * 1e6) / 1e6
 
-def emit_mjcf(model, overlay, out_path, assets_dir):
+def emit_mjcf(model, overlay, out_path, meshes_dir):
     """Write robot.xml. Returns the standing qpos of the model's `home` pose (None without one) and
     the mesh files it names.
 
@@ -393,7 +393,7 @@ def emit_mjcf(model, overlay, out_path, assets_dir):
     if overlay:
         meshes = overlay["meshes"]
     else:
-        disk_assets = os.listdir(assets_dir) if assets_dir and os.path.exists(assets_dir) else []
+        disk_assets = os.listdir(meshes_dir) if meshes_dir and os.path.exists(meshes_dir) else []
         meshes = {mesh: mesh_file(mesh, disk_assets) for l in model["links"]
                   for mesh in (l["visual_mesh"], l["collision"]["mesh"]) if mesh}
     for mname in sorted(k for k in meshes if k is not None):
@@ -502,7 +502,7 @@ def emit_mjcf(model, overlay, out_path, assets_dir):
     # Place the robot so qpos0 is physically valid for every consumer, not only SIL: a floating
     # robot stands on z = 0 at its reference pose, a fixed one is mounted clear of the floor.
     # Compiled with an absolute meshdir so this works from any directory.
-    comp.set("meshdir", os.path.abspath(assets_dir).replace("\\", "/"))
+    comp.set("meshdir", os.path.abspath(meshes_dir).replace("\\", "/"))
     xml = ET.tostring(mj, encoding="unicode")
     root_link = model["robot"]["root_link"]
     if floating:
@@ -697,7 +697,7 @@ def emit_stm32_wiring(model, out_path):
         f.write(banner)
         yaml.safe_dump(doc, f, sort_keys=False, width=1000)
 
-def generate(robot, src, overlay_path, motor_limits, description_dir, export_dir, assets_dir,
+def generate(robot, src, overlay_path, motor_limits, description_dir, export_dir, meshes_dir,
              urdf, mjcf, license_path=None, firmware_config=False, firmware_setup=None,
              stm32_wiring=False):
     """Write robot `robot`'s description to description_dir, laid out as humanoid_description
@@ -715,17 +715,17 @@ def generate(robot, src, overlay_path, motor_limits, description_dir, export_dir
 
     meshes = set()
     if urdf:
-        meshes |= emit_urdf(model, out("urdf", "robot.urdf"), assets_dir,
+        meshes |= emit_urdf(model, out("urdf", "robot.urdf"), meshes_dir,
                             f"package://{DESCRIPTION_PACKAGE}/robots/{robot}/meshes",
                             f"robots/{robot}/config/safety_manifest.yaml")
     if mjcf:
-        home_qpos, mjcf_meshes = emit_mjcf(model, overlay, out("mjcf", "robot.xml"), assets_dir)
+        home_qpos, mjcf_meshes = emit_mjcf(model, overlay, out("mjcf", "robot.xml"), meshes_dir)
         meshes |= mjcf_meshes
         emit_scene(model, out("mjcf", "scene.xml"), home_qpos)
     # Only the meshes the description names, copied byte for byte: the package must stand alone
     # once installed, and a symlink would dangle there.
     for f in sorted(meshes):
-        shutil.copyfile(os.path.join(assets_dir, f), out("meshes", f))
+        shutil.copyfile(os.path.join(meshes_dir, f), out("meshes", f))
     # The license the robot's sources came under travels with what is derived from them.
     if license_path:
         shutil.copyfile(license_path, out("LICENSE"))

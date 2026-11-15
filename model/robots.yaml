@@ -4,54 +4,49 @@
 #   python3 -m model.generators.cli check    --robot bench_2s_10m
 #   python3 -m model.generators.cli generate --robot bench_2s_10m
 #
-# `source` is each robot's hand-edited source of truth. unitree_g1's was first imported from
-# MuJoCo Menagerie with `python3 -m model.generators.ingest` (see its source/ingest.yaml); that
-# import is a one-off tool, not part of `check`.
+# Each robot's directory, model/robots/<robot>/, holds its sources of truth: robot_model.yaml, the
+# hand-edited model, and whatever an entry below names. source/ keeps the originals a robot was
+# imported from, unedited. unitree_g1 was first imported from MuJoCo Menagerie with
+# `python3 -m model.generators.ingest` (see its ingest.yaml); that import is a one-off tool, not part
+# of `check`. leg_prototype was imported from a Fusion 360 export with
+# `python3 -m model.generators.ingest_fusion` (see its ingest.yaml), which a CAD re-export re-runs;
+# it writes robot_model.yaml's CAD-owned fields and meshes/, and robot_model.yaml stays the source
+# of truth for everything the CAD does not own.
+#
+# Paths are relative to the robot's directory. overlay: the contact geometry the MJCF takes instead
+# of the model's. meshes: the directory of the mesh files the model names. license: the terms the
+# robot's sources came under.
 #
 # Each robot's description is generated into the humanoid_description package, as it installs
 # under share/humanoid_description/robots/<robot>/: config/safety_manifest.yaml always;
 # urdf: urdf/robot.urdf. mjcf: mjcf/robot.xml (the robot alone, standing on z = 0 at its reference
 # pose; needs the mujoco Python package) and mjcf/scene.xml (robot.xml in the simulated world:
-# physics settings and a floor). stm32_wiring: config/stm32_wiring.yaml. meshes/ holds the files
-# in assets_dir that the URDF or MJCF names, and LICENSE a copy of `license`, the terms the
-# robot's sources came under.
+# physics settings and a floor). stm32_wiring: config/stm32_wiring.yaml. meshes/ holds the mesh
+# files the URDF or MJCF names, and LICENSE a copy of `license`.
 # firmware_config: emit model/robots/<robot>/generated/firmware_config.yaml (+ .sha256), which
 # the firmware repo's import script reads from there.
-#
-# leg_prototype's source was imported from a Fusion 360 export with
-# `python3 -m model.generators.ingest_fusion` (see its source/ingest.yaml), which a CAD re-export
-# re-runs; robot_model.yaml stays the source of truth for everything the CAD does not own.
 robots:
   unitree_g1:
-    source: model/robots/unitree_g1/source/robot_model.yaml
-    overlay: model/robots/unitree_g1/source/menagerie_contact_overlay.yaml
-    assets_dir: model/robots/unitree_g1/source/menagerie/unitree_g1/assets
-    license: model/robots/unitree_g1/source/menagerie/unitree_g1/LICENSE
+    overlay: menagerie_contact_overlay.yaml
+    meshes: source/menagerie/unitree_g1/assets
+    license: source/menagerie/unitree_g1/LICENSE
     urdf: true
     mjcf: true
     firmware_config: false
   bench_2s_10m:
-    source: model/robots/bench_2s_10m/source/robot_model.yaml
-    overlay: null
-    assets_dir: null
     urdf: true
     mjcf: false
     firmware_config: true
     firmware_setup: 2s_10m
     stm32_wiring: true
   bench_1s_5m:
-    source: model/robots/bench_1s_5m/source/robot_model.yaml
-    overlay: null
-    assets_dir: null
     urdf: true
     mjcf: false
     firmware_config: true
     firmware_setup: 1s_5m
     stm32_wiring: true
   leg_prototype:
-    source: model/robots/leg_prototype/source/robot_model.yaml
-    overlay: null
-    assets_dir: model/robots/leg_prototype/source/meshes
+    meshes: meshes
     urdf: true
     mjcf: true
     firmware_config: true
