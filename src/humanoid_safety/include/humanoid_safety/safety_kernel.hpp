@@ -24,6 +24,8 @@ enum class Trigger : std::uint8_t
   kPositionEnvelope,
   kVelocityEnvelope,
   kTorqueEnvelope,
+  kStiffnessEnvelope,
+  kDampingEnvelope,
   kPowerEnvelope,
   kSlewLimit,
   kAvailabilityMaskChange,
@@ -57,8 +59,15 @@ public:
   [[nodiscard]] bool configure(
     const transport::JointManifest & joints, const transport::SafetyManifest & safety) noexcept;
 
-  /// Real-time. Projects the whole MIT tuple for every joint into the ADR-002 feasible set,
-  /// in place. Never allocates, never logs, never blocks. Fails closed when unconfigured.
+  /// Real-time. Accepts the batch unchanged, or refuses it whole: a batch not of the configured
+  /// joints, a non-finite field, or any joint's tuple outside its hard envelope (position,
+  /// velocity, feed-forward torque, stiffness, damping, torque slew) overwrites every joint with
+  /// the damping action and requires the protective state. Never allocates, never logs, never
+  /// blocks. Fails closed when unconfigured.
+  ///
+  /// ADR-002 also has the kernel bound the coupled MIT torque and power at the measured state,
+  /// projecting a tuple into that feasible set where it can. That is not implemented: this
+  /// kernel neither reads `measured` nor projects.
   [[nodiscard]] Verdict project(
     const transport::FeedbackBatch & measured, transport::CommandBatch & command,
     transport::MonotonicStamp now) noexcept;
@@ -81,7 +90,6 @@ private:
   transport::SafetyManifest safety_{};
   transport::CommandBatch previous_command_{};
   Trigger last_trigger_{Trigger::kNotConfigured};
-  std::uint8_t consecutive_bad_cycles_{0U};
   bool configured_{false};
   bool have_previous_{false};
 };

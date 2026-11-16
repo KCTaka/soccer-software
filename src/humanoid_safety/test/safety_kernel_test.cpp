@@ -195,8 +195,31 @@ INSTANTIATE_TEST_SUITE_P(
     Bound{"NegativeVelocity", &JointCommand::velocity_rad_s, -10.0, -10.001,
       Trigger::kVelocityEnvelope},
     Bound{"Torque", &JointCommand::effort_nm, 20.0, 20.001, Trigger::kTorqueEnvelope},
-    Bound{"NegativeTorque", &JointCommand::effort_nm, -20.0, -20.001, Trigger::kTorqueEnvelope}),
+    Bound{"NegativeTorque", &JointCommand::effort_nm, -20.0, -20.001, Trigger::kTorqueEnvelope},
+    // Gains are refused past their caps, never clipped, and are magnitudes: never negative.
+    Bound{"Stiffness", &JointCommand::stiffness_nm_rad, 100.0, 100.001,
+      Trigger::kStiffnessEnvelope},
+    Bound{"NegativeStiffness", &JointCommand::stiffness_nm_rad, 0.0, -0.001,
+      Trigger::kStiffnessEnvelope},
+    Bound{"Damping", &JointCommand::damping_nm_s_rad, 5.0, 5.001, Trigger::kDampingEnvelope},
+    Bound{"NegativeDamping", &JointCommand::damping_nm_s_rad, 0.0, -0.001,
+      Trigger::kDampingEnvelope}),
   [](const auto & row) {return std::string{row.param.name};});
+
+TEST_F(SafetyKernelTest, RefusesABatchThatIsNotTheConfiguredJoints)
+{
+  // Fewer joints would leave some uncommanded; more would be checked against envelopes the
+  // manifest never gave.
+  constexpr std::uint8_t kWrongCounts[] = {0, kJoints - 1, kJoints + 1};
+  for (const std::uint8_t count : kWrongCounts) {
+    SCOPED_TRACE("joint_count " + std::to_string(count));
+    auto command = batch(t0_);
+    command.joint_count = count;
+    const auto verdict = project(command);
+    EXPECT_EQ(verdict.trigger, Trigger::kManifestMismatch);
+    EXPECT_TRUE(verdict.protective_state_required);
+  }
+}
 
 TEST_F(SafetyKernelTest, RefusesANonFiniteFieldOfAnyJoint)
 {
