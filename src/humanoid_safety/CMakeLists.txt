@@ -22,7 +22,13 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(humanoid_test_support REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  ament_add_gmock(${PROJECT_NAME}_safety_kernel_test test/safety_kernel_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_safety_kernel_test
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
