@@ -82,8 +82,9 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
   integers (`50`) are a type error for a double parameter.
 - A node must be spun, or its parameter services never answer and `ros2 param get` hangs. A
   node created inside a plugin needs an executor of its own (`SimNode`).
-- Tests get paths as compile definitions (`HUMANOID_TEST_MJCF_PATH`) and parameters as
-  `--ros-args -p` overrides, never through the environment.
+- Tests get paths as compile definitions (`HUMANOID_TEST_ROBOTS_DIR`, set by
+  `humanoid_test_robots_dir()`) and parameters as `--ros-args -p` overrides, never through the
+  environment.
 
 ## 5. Model data and invariants: one source, derived or checked, never copied
 
@@ -160,6 +161,35 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
 - **SIL timing is never timing evidence** (ADR-007-05). A deadline miss seen in simulation is
   a diagnostic, not a measurement.
 - SIL launch tests need a Zenoh router: `ros2 run rmw_zenoh_cpp rmw_zenohd` (ADR-003).
+
+### How tests are organised
+
+- **Shared test code lives in `humanoid_test_support`**: the transport conformance suite, the
+  generated-robot list, manifest builders, MuJoCo model loading, the allocation counter, and
+  gmock matchers. Add a helper there instead of copying one into a second test file.
+- **Every `ActuatorTransport` instantiates `TransportConformance`** (ADR-001) with a harness that
+  configures it as its deployment does. Behaviour every transport owes goes in the suite; a
+  transport's own file keeps only what that transport alone can show. A transport that cannot
+  pass a suite check has a defect, not an exemption.
+- **A test of generated files runs for every generated robot**, never for one named robot:
+  `TEST_P` over `generated_robots()`, or one test binary per robot through CMake's
+  `humanoid_generated_robots()` when the robot must be fixed per process (a ROS parameter
+  override). A newly generated robot is then checked without editing a test. Name a robot only
+  for an independent reference about that robot (Menagerie's G1 height). Python tests
+  parametrise over the configured robots, and an empty parameter set fails collection.
+- **Derive the expected value from the model or from independent physics, not by copying it.**
+  Golden values that pin an external format (wire bytes, the CRC check value) and independent
+  references stay literal, and so do the expected values of a codec test: computing them with
+  the code under test proves nothing.
+- **Pick the loop by the shape of the cases.** A small table of named cases is a parameterised
+  test, which reports each case. A dense sweep (samples over a joint's range) stays one test
+  with `SCOPED_TRACE`, so a failure names its sample. A test with one setup and one comment
+  explaining why stays a plain `TEST_F`.
+- Check a value-or-error result with `HoldsValue()` / `HoldsError(HasSubstr(...))` and an
+  optional error with `Optional(HasSubstr(...))` or `std::nullopt`, so a failure prints the
+  error. Never dereference an optional before asserting it holds a value.
+- A test that initialises rclcpp does it once per process: under rmw_zenoh each `rclcpp::init`
+  waits up to `ZENOH_ROUTER_CHECK_ATTEMPTS` seconds when no router runs.
 
 ## 9. Simulation versus fault injection
 
