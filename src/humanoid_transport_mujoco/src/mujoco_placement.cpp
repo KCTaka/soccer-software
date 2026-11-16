@@ -4,8 +4,14 @@
 
 #include <mujoco/mujoco.h>
 
+#include <format>
+
 #include <algorithm>
 #include <cmath>
+#include <optional>
+#include <span>
+#include <string>
+#include <vector>
 
 namespace humanoid::transport_mujoco
 {
@@ -67,6 +73,92 @@ std::optional<double> lowest_collision_z(
     lowest = lowest ? std::min(*lowest, bottom) : bottom;
   }
   return lowest;
+}
+
+std::optional<std::string> close_equality_constraints(
+  const mjModel_ & model, mjData_ & data, std::span<const int> held_dofs)
+{
+  // A closure pin's residual is a CAD-exported model's float noise at the zero pose, ~1e-16 m;
+  // 1 nm is far below any physical meaning and far above what Gauss-Newton converges to.
+  constexpr double kClosedM = 1e-9;
+  constexpr int kMaxIterations = 50;
+  // Keeps J J^T positive definite when the constraint rows are dependent.
+  constexpr double kRegularisation = 1e-12;
+
+  std::vector<int> movable;  // DOF addresses Gauss-Newton may move
+  for (int j = 0; j < model.njnt; ++j) {
+    const int type = model.jnt_type[j];
+    const int dof = model.jnt_dofadr[j];
+    if ((type == mjtJoint::mjJNT_HINGE || type == mjtJoint::mjJNT_SLIDE) &&
+      std::find(held_dofs.begin(), held_dofs.end(), dof) == held_dofs.end())
+    {
+      movable.push_back(dof);
+    }
+  }
+  const int nv = model.nv;
+  const auto cols = static_cast<int>(movable.size());
+  std::vector<mjtNum> jac_full;
+  std::vector<mjtNum> jac;
+  std::vector<mjtNum> residual;
+  std::vector<mjtNum> normal;
+  std::vector<mjtNum> step(static_cast<std::size_t>(nv));
+  double worst = 0.0;
+  for (int iteration = 0; iteration <= kMaxIterations; ++iteration) {
+    mj_fwdPosition(&model, &data);
+    std::vector<int> rows;
+    worst = 0.0;
+    for (int i = 0; i < data.nefc; ++i) {
+      if (data.efc_type[i] == mjtConstraint::mjCNSTR_EQUALITY) {
+        rows.push_back(i);
+        worst = std::max(worst, std::abs(data.efc_pos[i]));
+      }
+    }
+    if (worst < kClosedM) {
+      return std::nullopt;
+    }
+    if (iteration == kMaxIterations || cols == 0) {
+      break;
+    }
+    // The equality rows of the constraint Jacobian, restricted to the movable DOFs.
+    jac_full.assign(static_cast<std::size_t>(data.nefc) * nv, 0.0);
+    if (mj_isSparse(&model)) {
+      mju_sparse2dense(
+        jac_full.data(), data.efc_J, data.nefc, nv, data.efc_J_rownnz, data.efc_J_rowadr,
+        data.efc_J_colind);
+    } else {
+      std::copy(data.efc_J, data.efc_J + jac_full.size(), jac_full.begin());
+    }
+    const auto n = static_cast<int>(rows.size());
+    jac.assign(static_cast<std::size_t>(n) * cols, 0.0);
+    residual.assign(static_cast<std::size_t>(n), 0.0);
+    for (int r = 0; r < n; ++r) {
+      residual[r] = data.efc_pos[rows[r]];
+      for (int c = 0; c < cols; ++c) {
+        jac[r * cols + c] = jac_full[static_cast<std::size_t>(rows[r]) * nv + movable[c]];
+      }
+    }
+    // Least-norm step: dq = -J^T (J J^T)^-1 r.
+    normal.assign(static_cast<std::size_t>(n) * n, 0.0);
+    mju_mulMatMatT(normal.data(), jac.data(), jac.data(), n, cols, n);
+    for (int r = 0; r < n; ++r) {
+      normal[r * n + r] += kRegularisation;
+    }
+    if (mju_cholFactor(normal.data(), n, 0.0) != n) {
+      break;
+    }
+    std::vector<mjtNum> y(static_cast<std::size_t>(n));
+    mju_cholSolve(y.data(), normal.data(), residual.data(), n);
+    std::fill(step.begin(), step.end(), 0.0);
+    for (int c = 0; c < cols; ++c) {
+      for (int r = 0; r < n; ++r) {
+        step[movable[c]] -= jac[r * cols + c] * y[r];
+      }
+    }
+    mj_integratePos(&model, data.qpos, step.data(), 1.0);
+  }
+  return std::format(
+    "the equality constraints cannot be closed at the initial pose: a residual of {:.3g} remains",
+    worst);
 }
 
 }  // namespace humanoid::transport_mujoco

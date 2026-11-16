@@ -116,6 +116,9 @@ private:
   [[nodiscard]] bool resolve_initial_placement();
   [[nodiscard]] bool map_imu();
   [[nodiscard]] bool map_initial_pose(const SimParameters & params);
+  /// Closes the model's linkages at the initial pose and keeps the angles that closes them in
+  /// initial_pose_, so activate() starts the robot with its closure pins together.
+  [[nodiscard]] bool close_initial_pose();
 
   /// Resets the state to the model's reference configuration, then applies initial_pose_.
   void reset_to_initial_pose() noexcept;
@@ -140,10 +143,13 @@ private:
   int root_qpos_adr_{-1};
   // The IMU sensors' offsets into sensordata; present() is false for a model without an IMU.
   ImuSensors imu_sensors_;
-  // qpos address and value of each joint of the initial pose. Applied by place_at_initial_pose().
+  // qpos and DOF address and value of each joint of the initial pose: the initial_pose.* joints,
+  // then any joint close_initial_pose() moved to close a linkage. Applied by
+  // reset_to_initial_pose().
   struct InitialJoint
   {
     int qpos_adr;
+    int dof_adr;
     double value;
   };
   std::vector<InitialJoint> initial_pose_;
