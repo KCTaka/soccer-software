@@ -22,7 +22,8 @@ was left, with every closed loop cut open. The import, in order:
  4. Gives every link a frame on its parent joint's axis with the robot's axes (REP-103: x forward,
     y left, z up), so every joint origin has rpy 0. The root's frame sits on `root_frame_at_joint`.
  5. Writes each mesh in metres in its link frame, and transforms inertials, collision primitives
-    and closure points into the link frames. With `density_kg_m3` set, each part's inertial is
+    and closure points into the link frames. The links `convex_decomposition` names also get their
+    mesh's convex pieces (CoACD) as collision meshes. With `density_kg_m3` set, each part's inertial is
     computed from its mesh at that density, a purchased part's placeholder shell takes the
     part's catalogue mass (see mass_properties), and the parts `cad_inertial_parts` names keep
     Fusion's; without it, the inertials are Fusion's.
@@ -161,6 +162,22 @@ def fitted_primitive(prim, verts):
         return centre, rpy, [radius, half[k] + pad]
     raise ValueError(f"cannot fit a {prim['shape']}: only box and cylinder")
 
+def convex_pieces(tri, cfg):
+    """A convex decomposition of the triangle soup `tri` (link frame, m) by CoACD, as triangle
+    arrays, ordered by centroid so a re-import names them alike. `cfg` is the import config's
+    convex_decomposition: threshold (CoACD's concavity bound, m), max_pieces, max_piece_vertices
+    and seed. CoACD first remeshes the soup into one manifold, so parts that touch merge and the
+    thin gaps between them close."""
+    import coacd  # only an import that decomposes needs it
+    coacd.set_log_level("error")
+    v, inv = np.unique(np.round(tri.reshape(-1, 3), 9), axis=0, return_inverse=True)
+    parts = coacd.run_coacd(
+        coacd.Mesh(v, inv.reshape(-1, 3)), threshold=cfg["threshold"],
+        max_convex_hull=cfg["max_pieces"], max_ch_vertex=cfg["max_piece_vertices"], decimate=True,
+        seed=cfg["seed"])
+    pieces = [np.asarray(pv, dtype=float)[np.asarray(pf)] for pv, pf in parts]
+    return sorted(pieces, key=lambda p: tuple(np.round(p.reshape(-1, 3).mean(0), 6)))
+
 def combine_inertials(parts):
     """Mass, COM and inertia about the COM of rigidly joined parts, each (mass, com, inertia about
     its own COM), all in one frame. One part is returned as it is, bit for bit."""
@@ -295,6 +312,7 @@ def ingest(config_path):
     geom_mesh = {m.geom_bodyid[g]: m.mesh(m.geom_dataid[g]).name for g in range(m.ngeom)
                  if m.geom_dataid[g] >= 0}
     density = cfg.get("density_kg_m3")
+    decomposition = cfg.get("convex_decomposition", {})
     purchased = {}
     for part in cfg.get("purchased_parts", []):
         purchased.setdefault(part["body"], []).append(part)
@@ -334,6 +352,15 @@ def ingest(config_path):
         mass, com, inertia = combine_inertials(parts)
         print(f"{lname}: {mass:.4f} kg")
         write_stl(os.path.join(cfg["meshes_out"], f"{lname}.stl"), np.concatenate(tris))
+        pieces = []
+        for stale in os.listdir(cfg["meshes_out"]):     # a re-import may make fewer pieces
+            if stale.startswith(f"{lname}_collision_"):
+                os.remove(os.path.join(cfg["meshes_out"], stale))
+        if m.body(b).name in decomposition.get("links", []):
+            for k, piece in enumerate(convex_pieces(np.concatenate(tris), decomposition)):
+                pieces.append(f"{lname}_collision_{k}")
+                write_stl(os.path.join(cfg["meshes_out"], f"{pieces[-1]}.stl"), piece)
+            print(f"{lname}: {len(pieces)} convex pieces")
 
         prims = []
         for prim in cfg["collision"].get(m.body(b).name, []):
@@ -360,7 +387,7 @@ def ingest(config_path):
                         "izz_kg_m2": float(inertia[2, 2]), "ixy_kg_m2": float(inertia[0, 1]),
                         "ixz_kg_m2": float(inertia[0, 2]), "iyz_kg_m2": float(inertia[1, 2])},
             "visual_mesh": lname,
-            "collision": {"primitives": prims, "mesh": None},
+            "collision": {"primitives": prims, "mesh": pieces or None},
         })
 
     # --- Joints. ---

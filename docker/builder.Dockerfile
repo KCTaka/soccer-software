@@ -6,6 +6,8 @@ ARG ROSDEP_VERSION=0.27.0
 ARG VCSTOOL_VERSION=0.3.0
 ARG MUJOCO_VERSION=3.4.0
 ARG ONNXRUNTIME_VERSION=1.30.0
+# Convex decomposition for model/generators/ingest_fusion (collision hulls), a CAD-import tool.
+ARG COACD_VERSION=1.0.14
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -79,7 +81,8 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
       "rosdep==${ROSDEP_VERSION}" \
       "vcstool==${VCSTOOL_VERSION}" \
       "mujoco==${MUJOCO_VERSION}" \
-      "onnxruntime==${ONNXRUNTIME_VERSION}"
+      "onnxruntime==${ONNXRUNTIME_VERSION}" \
+      "coacd==${COACD_VERSION}"
 
 RUN echo '/opt/mujoco-3.4.0/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig
 
