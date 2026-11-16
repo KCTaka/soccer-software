@@ -117,6 +117,12 @@
             "mesh": {
               "oneOf": [
                 { "type": "string", "minLength": 1 },
+                {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 },
+                  "minItems": 1,
+                  "description": "Convex pieces of the link's geometry (a convex decomposition), each its own collision geom. MuJoCo collides every mesh as its convex hull, so a concave part needs this to keep its shape."
+                },
                 { "type": "null" }
               ]
             }

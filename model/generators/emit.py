@@ -37,6 +37,10 @@ FOUR_BAR_PLUGIN = "humanoid_actuator_system/FourBarLinkage"
 LINKAGE_SOLREF = "0.002 1"
 LINKAGE_SOLIMP = "0.9999 0.9999 0.001 0.5 2"
 
+# Closer than this at the zero pose, two links' collision geometry counts as touching (see
+# touching_at_zero_pose). MuJoCo's contacts act only on penetration (margin 0), and a designed
+# clearance this small between links that are not parent and child is a joint's nested parts.
+ZERO_POSE_CLEARANCE_M = 0.001
 # Provisional envelope constants until G3 actuator characterisation.
 PROV_KP_MAX, PROV_KD_MAX = 500.0, 10.0
 PROV_SLEW_NM_S, PROV_POWER_W = 500.0, 400.0
@@ -93,6 +97,11 @@ def mesh_file(mesh, disk_assets):
         found = mesh if "." in mesh else f"{mesh}.STL"
     return found
 
+def collision_meshes(link):
+    """The link's collision meshes as a list: none, its one mesh, or its convex pieces."""
+    mesh = link["collision"]["mesh"]
+    return [] if mesh is None else [mesh] if isinstance(mesh, str) else list(mesh)
+
 def emit_urdf(model, out_path, meshes_dir, meshes_uri, safety_manifest_path):
     """Write robot.urdf, its meshes under `meshes_uri` and its manifest at `safety_manifest_path` in
     the description package. Returns the mesh files it names."""
@@ -127,7 +136,8 @@ def emit_urdf(model, out_path, meshes_dir, meshes_uri, safety_manifest_path):
             iyz=f"{inertia['iyz_kg_m2']:.10g}",
         )
 
-        for tag, mesh in (("visual", l.get("visual_mesh")), ("collision", l["collision"]["mesh"])):
+        for tag, mesh in ([("visual", l.get("visual_mesh"))] +
+                          [("collision", mesh) for mesh in collision_meshes(l)]):
             if mesh:
                 ve = ET.SubElement(le, tag)
                 ET.SubElement(ve, "origin", xyz="0 0 0", rpy="0 0 0")
@@ -312,6 +322,35 @@ def lowest_collision_z(m, d, root):
         lowest = bottom if lowest is None else min(lowest, bottom)
     return lowest
 
+def touching_at_zero_pose(mjcf_xml, model):
+    """Pairs of links whose collision geometry comes within ZERO_POSE_CLEARANCE_M of each other at
+    the zero pose (every joint at 0, each linkage closed), sorted; a parent and its child are left
+    out, since MuJoCo never collides them. The CAD is clear at the zero pose, so a pair that touches
+    there is an artefact of the collision geometry: a convex piece fills the clearance a joint's
+    parts nest in, and left in, the pair would push apart from the first step. Excluding it costs
+    that pair's contacts at every pose; the joint ranges, from the CAD meshes, keep it apart."""
+    mujoco = _mujoco()
+    m = mujoco.MjModel.from_xml_string(mjcf_xml)
+    d = mujoco.MjData(m)
+    mujoco.mj_kinematics(m, d)
+    links = {l["name"] for l in model["links"]}
+    geoms = [g for g in range(m.ngeom) if m.body(m.geom_bodyid[g]).name in links and
+             (m.geom_contype[g] or m.geom_conaffinity[g])]
+    pairs = set()
+    for i, g1 in enumerate(geoms):
+        for g2 in geoms[i + 1:]:
+            b1, b2 = m.geom_bodyid[g1], m.geom_bodyid[g2]
+            if b1 == b2 or m.body_parentid[b1] == b2 or m.body_parentid[b2] == b1:
+                continue
+            names = tuple(sorted((m.body(b1).name, m.body(b2).name)))
+            if names in pairs:
+                continue
+            fromto = np.zeros(6)
+            if mujoco.mj_geomDistance(m, d, g1, g2, ZERO_POSE_CLEARANCE_M, fromto) < \
+                    ZERO_POSE_CLEARANCE_M:
+                pairs.add(names)
+    return sorted(pairs)
+
 def standing_qpos(mjcf_xml, root_link, joint_angles):
     """qpos with the joints at `joint_angles` (joint name -> rad; the rest at 0) and the root, at the
     origin in `mjcf_xml`, raised until the robot's lowest collision geom sits on z = 0, so the
@@ -395,7 +434,7 @@ def emit_mjcf(model, overlay, out_path, meshes_dir):
     else:
         disk_assets = os.listdir(meshes_dir) if meshes_dir and os.path.exists(meshes_dir) else []
         meshes = {mesh: mesh_file(mesh, disk_assets) for l in model["links"]
-                  for mesh in (l["visual_mesh"], l["collision"]["mesh"]) if mesh}
+                  for mesh in [l["visual_mesh"]] + collision_meshes(l) if mesh}
     for mname in sorted(k for k in meshes if k is not None):
         if meshes[mname]:
             ET.SubElement(asset, "mesh", name=mname, file=meshes[mname])
@@ -424,9 +463,10 @@ def emit_mjcf(model, overlay, out_path, meshes_dir):
         if l["visual_mesh"]:
             ET.SubElement(be, "geom", name=f"{link_name}_visual", type="mesh",
                           mesh=l["visual_mesh"], contype="0", conaffinity="0", group="2")
-        if l["collision"]["mesh"]:
-            ET.SubElement(be, "geom", name=f"{link_name}_collision_mesh", type="mesh",
-                          mesh=l["collision"]["mesh"], group="3")
+        pieces = collision_meshes(l)
+        for i, mesh in enumerate(pieces):
+            name = f"{link_name}_collision_mesh" + (f"_{i}" if len(pieces) > 1 else "")
+            ET.SubElement(be, "geom", name=name, type="mesh", mesh=mesh, group="3")
         for i, prim in enumerate(l["collision"]["primitives"]):
             ET.SubElement(be, "geom", name=f"{link_name}_collision_{i}", type=prim["shape"],
                           size=fmt(prim["dimensions_m"]), pos=fmt(prim["frame"]["xyz_m"]),
@@ -504,6 +544,17 @@ def emit_mjcf(model, overlay, out_path, meshes_dir):
     # Compiled with an absolute meshdir so this works from any directory.
     comp.set("meshdir", os.path.abspath(meshes_dir).replace("\\", "/"))
     xml = ET.tostring(mj, encoding="unicode")
+    if not overlay:
+        excluded = {frozenset((e.get("body1"), e.get("body2"))) for e in mj.iter("exclude")}
+        touching = [p for p in touching_at_zero_pose(xml, model) if frozenset(p) not in excluded]
+        if touching:
+            contact = mj.find("contact")
+            if contact is None:
+                contact = ET.Element("contact")
+                mj.insert(list(mj).index(mj.find("worldbody")) + 1, contact)
+            for b1, b2 in touching:
+                ET.SubElement(contact, "exclude", body1=b1, body2=b2)
+            xml = ET.tostring(mj, encoding="unicode")
     root_link = model["robot"]["root_link"]
     if floating:
         root_z = standing_qpos(xml, root_link, {})[2]
