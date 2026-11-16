@@ -1,6 +1,6 @@
 // Copyright 2026 UTRA-RoboSoccer
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <limits>
 #include <string>
@@ -8,46 +8,46 @@
 #include <vector>
 
 #include "humanoid_mit_controller/gains.hpp"
+#include "humanoid_test_support/matchers.hpp"
 
 namespace
 {
 
 using humanoid::control::resolve_gains;
+using humanoid::test_support::HoldsError;
+using ::testing::_;
+using ::testing::HasSubstr;
+using Gains = std::vector<double>;
+using humanoid::control::GainsOrError;
 
 TEST(Gains, EmptyListGivesEveryJointTheFallback)
 {
-  const auto gains = resolve_gains("kp", {}, 20.0, 3);
-  ASSERT_TRUE(std::holds_alternative<std::vector<double>>(gains));
-  EXPECT_EQ(std::get<std::vector<double>>(gains), (std::vector<double>{20.0, 20.0, 20.0}));
+  EXPECT_EQ(resolve_gains("kp", {}, 20.0, 3), (GainsOrError{Gains(3, 20.0)}));
 }
 
 TEST(Gains, ListIsUsedAsGivenAndTheFallbackIgnored)
 {
-  const auto gains = resolve_gains("kd", {1.0, 2.0, 4.0}, 99.0, 3);
-  ASSERT_TRUE(std::holds_alternative<std::vector<double>>(gains));
-  EXPECT_EQ(std::get<std::vector<double>>(gains), (std::vector<double>{1.0, 2.0, 4.0}));
+  const Gains given{1.0, 2.0, 4.0};
+  EXPECT_EQ(resolve_gains("kd", given, 99.0, 3), (GainsOrError{given}));
 }
 
 TEST(Gains, ShortOrLongListIsRejected)
 {
-  EXPECT_TRUE(std::holds_alternative<std::string>(resolve_gains("kp", {1.0, 2.0}, 0.0, 3)));
-  EXPECT_TRUE(std::holds_alternative<std::string>(resolve_gains("kp", {1.0, 2.0, 3.0, 4.0}, 0.0,
-      3)));
+  EXPECT_THAT(resolve_gains("kp", {1.0, 2.0}, 0.0, 3), HoldsError(_));
+  EXPECT_THAT(resolve_gains("kp", {1.0, 2.0, 3.0, 4.0}, 0.0, 3), HoldsError(_));
 }
 
 TEST(Gains, NegativeOrNonFiniteIsRejected)
 {
   constexpr double kNan = std::numeric_limits<double>::quiet_NaN();
-  EXPECT_TRUE(std::holds_alternative<std::string>(resolve_gains("kp", {1.0, -1.0}, 0.0, 2)));
-  EXPECT_TRUE(std::holds_alternative<std::string>(resolve_gains("kp", {1.0, kNan}, 0.0, 2)));
-  EXPECT_TRUE(std::holds_alternative<std::string>(resolve_gains("kp", {}, -5.0, 2)));
+  EXPECT_THAT(resolve_gains("kp", {1.0, -1.0}, 0.0, 2), HoldsError(_));
+  EXPECT_THAT(resolve_gains("kp", {1.0, kNan}, 0.0, 2), HoldsError(_));
+  EXPECT_THAT(resolve_gains("kp", {}, -5.0, 2), HoldsError(_));
 }
 
 TEST(Gains, ErrorNamesTheOffendingEntry)
 {
-  const auto gains = resolve_gains("kd", {1.0, -1.0}, 0.0, 2);
-  ASSERT_TRUE(std::holds_alternative<std::string>(gains));
-  EXPECT_NE(std::get<std::string>(gains).find("'kd'[1]"), std::string::npos);
+  EXPECT_THAT(resolve_gains("kd", {1.0, -1.0}, 0.0, 2), HoldsError(HasSubstr("'kd'[1]")));
 }
 
 }  // namespace

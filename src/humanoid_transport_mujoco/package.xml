@@ -28,6 +28,7 @@
   <test_depend>ament_cmake_cpplint</test_depend>
   <test_depend>ament_cmake_uncrustify</test_depend>
   <test_depend>ament_cmake_gmock</test_depend>
+  <test_depend>humanoid_test_support</test_depend>
   <test_depend>humanoid_description</test_depend>
 
   <export>

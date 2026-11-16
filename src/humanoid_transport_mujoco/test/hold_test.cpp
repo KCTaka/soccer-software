@@ -5,11 +5,9 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <cstring>
 #include <memory>
-#include <string>
-#include <vector>
 
+#include "humanoid_test_support/manifests.hpp"
 #include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
 
 namespace
@@ -24,15 +22,9 @@ protected:
   void SetUp() override
   {
     // Only the joints the tests read need to exist; the transport finds them by name.
-    const std::vector<std::string> names = {
-      "left_hip_pitch_joint", "left_knee_joint", "left_ankle_pitch_joint"};
-    manifest.joint_count = static_cast<std::uint8_t>(names.size());
-    for (std::size_t i = 0; i < names.size(); ++i) {
-      std::strncpy(
-        manifest.joints[i].name.data(), names[i].c_str(),
-        humanoid::transport::kMaxNameLength - 1);
-    }
-    safety.joint_count = manifest.joint_count;
+    manifest = humanoid::test_support::joint_manifest(
+      {"left_hip_pitch_joint", "left_knee_joint", "left_ankle_pitch_joint"});
+    safety = humanoid::test_support::safety_manifest(manifest.joint_count);
     transport = std::make_unique<humanoid::transport_mujoco::MujocoActuatorTransport>();
     ASSERT_TRUE(transport->configure(manifest, safety));
     ASSERT_TRUE(transport->activate());

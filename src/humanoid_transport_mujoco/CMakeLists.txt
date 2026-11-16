@@ -52,7 +52,8 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(humanoid_test_support REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
   # The tests load the MJCF humanoid_description installs, the model SIL simulates. They get its
@@ -64,34 +65,32 @@ if(BUILD_TESTING)
   # Custom main: configure() creates an rclcpp::Node (mujoco_sim), which
   # requires rclcpp::init(). The main also hands the transport its mjcf_path
   # parameter, exactly as ros2_control_node does from its parameter file.
-  ament_add_gtest(${PROJECT_NAME}_conformance_test
+  ament_add_gmock(${PROJECT_NAME}_conformance_test
     test/conformance_test.cpp
     test/conformance_test_main.cpp
     SKIP_LINKING_MAIN_LIBRARIES)
-  target_link_libraries(${PROJECT_NAME}_conformance_test ${PROJECT_NAME} rclcpp::rclcpp)
+  target_link_libraries(${PROJECT_NAME}_conformance_test
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support rclcpp::rclcpp)
   target_compile_definitions(${PROJECT_NAME}_conformance_test PRIVATE
     HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
 
   # The same main, with the transport configured to hold the robot until it is commanded.
-  ament_add_gtest(${PROJECT_NAME}_hold_test
+  ament_add_gmock(${PROJECT_NAME}_hold_test
     test/hold_test.cpp
     test/conformance_test_main.cpp
     SKIP_LINKING_MAIN_LIBRARIES)
-  target_link_libraries(${PROJECT_NAME}_hold_test ${PROJECT_NAME} rclcpp::rclcpp)
+  target_link_libraries(${PROJECT_NAME}_hold_test
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support rclcpp::rclcpp)
   target_compile_definitions(${PROJECT_NAME}_hold_test PRIVATE
     HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}"
     HUMANOID_TEST_HOLD_UNTIL_COMMANDED)
 
-  ament_add_gtest(${PROJECT_NAME}_disturbance_test test/disturbance_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_disturbance_test ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_disturbance_test PRIVATE
-    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
-
-  ament_add_gtest(${PROJECT_NAME}_imu_test test/imu_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_imu_test ${PROJECT_NAME})
-
-  ament_add_gtest(${PROJECT_NAME}_placement_test test/placement_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_placement_test ${PROJECT_NAME})
+  # The simulator's pure parts, on synthetic in-memory models.
+  foreach(name IN ITEMS disturbance imu placement)
+    ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_${name}_test
+      ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
+  endforeach()
   target_compile_definitions(${PROJECT_NAME}_placement_test PRIVATE
     HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
 endif()

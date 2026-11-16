@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>humanoid_test_support</name>
+  <version>0.1.0</version>
+  <description>
+    What the workspace's tests share, so no test package keeps its own copy: the ADR-001
+    transport conformance suite every ActuatorTransport runs unchanged, the generated robots a
+    test iterates instead of naming one, manifest builders, gmock matchers for the
+    value-or-error results, and MuJoCo model loading. Header-only and ROS-free, and a test
+    dependency only: nothing a robot runs links it.
+  </description>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>humanoid_cmake</buildtool_depend>
+
+  <depend>humanoid_transport</depend>
+  <!-- humanoid_test_robots_dir() points a test at the robots humanoid_description installs. -->
+  <build_export_depend>humanoid_description</build_export_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_cmake_cppcheck</test_depend>
+  <test_depend>ament_cmake_cpplint</test_depend>
+  <test_depend>ament_cmake_uncrustify</test_depend>
+  <test_depend>ament_cmake_gmock</test_depend>
+  <test_depend>humanoid_description</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

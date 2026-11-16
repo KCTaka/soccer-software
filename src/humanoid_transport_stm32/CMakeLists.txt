@@ -60,7 +60,8 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(humanoid_test_support REQUIRED)
   # generated/ is vendored verbatim from a pinned soccer-firmware tag (firmware
   # house style, style-checked there) — exclude it from our linters: the C++ wire
   # header and the firmware_sm/ C headers the fake master's shim compiles against.
@@ -70,9 +71,12 @@ if(BUILD_TESTING)
   set(AMENT_LINT_AUTO_FILE_EXCLUDE ${_vendored_sources})
   ament_lint_auto_find_test_dependencies()
 
-  ament_add_gtest(${PROJECT_NAME}_wire_protocol_test test/wire_protocol_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_wire_protocol_test ${PROJECT_NAME})
-  target_include_directories(${PROJECT_NAME}_wire_protocol_test PRIVATE test)
+  # The host logic alone: the wire codec, the joint wiring and the per-phase request policy.
+  foreach(name IN ITEMS wire_protocol joint_wiring joint_policy)
+    ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_${name}_test
+      ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
+  endforeach()
 
   # The vendored wire code must match the pinned firmware release: FIRMWARE_PIN's
   # SCHEMA_HASH drives the test, so re-vendoring without bumping the pin (or the
@@ -83,17 +87,11 @@ if(BUILD_TESTING)
   if(NOT _pinned_hash)
     message(FATAL_ERROR "generated/FIRMWARE_PIN has no SCHEMA_HASH=0x... line")
   endif()
-  ament_add_gtest(${PROJECT_NAME}_wire_pin_test test/wire_pin_test.cpp)
+  ament_add_gmock(${PROJECT_NAME}_wire_pin_test test/wire_pin_test.cpp)
   target_link_libraries(${PROJECT_NAME}_wire_pin_test ${PROJECT_NAME})
   target_compile_definitions(${PROJECT_NAME}_wire_pin_test PRIVATE
     "WIRE_PINNED_SCHEMA_HASH=${_pinned_hash}"
     "WIRE_FIXTURE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/generated/fixtures\"")
-
-  ament_add_gtest(${PROJECT_NAME}_joint_wiring_test test/joint_wiring_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_joint_wiring_test ${PROJECT_NAME})
-
-  ament_add_gtest(${PROJECT_NAME}_joint_policy_test test/joint_policy_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_joint_policy_test ${PROJECT_NAME})
 
   # The fake master is a pseudo-terminal stand-in for the STM32; see test/fake_master.hpp for what
   # it does and does not prove.
@@ -104,35 +102,28 @@ if(BUILD_TESTING)
   target_include_directories(${PROJECT_NAME}_fake_master PUBLIC test)
   target_include_directories(${PROJECT_NAME}_fake_master PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/firmware_sm")
-  target_link_libraries(${PROJECT_NAME}_fake_master PUBLIC ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}_fake_master PUBLIC
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
   # fw_drive_sm.cpp is the one TU that compiles the vendored firmware C headers (drive_sm.h,
   # motor_config.h). Those are firmware house style -- motor_config.h uses C99 designated array
   # initializers, which C++ allows only as an extension -- so this file alone drops -Wpedantic.
   set_source_files_properties(test/fw_drive_sm.cpp PROPERTIES COMPILE_OPTIONS "-Wno-pedantic")
 
-  # The shim boundary: the firmware drive-SM enum values (through fw_drive_sm) must equal wire::'s.
-  ament_add_gtest(${PROJECT_NAME}_fw_boundary_test test/fw_boundary_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_fw_boundary_test ${PROJECT_NAME}_fake_master)
-
-  # The master logic the fake master emulates by hand: the version-gate enable refusal and the
-  # robot_state reporting priority.
-  ament_add_gtest(${PROJECT_NAME}_fake_master_test test/fake_master_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_fake_master_test ${PROJECT_NAME}_fake_master)
-
-  ament_add_gtest(${PROJECT_NAME}_master_link_test test/master_link_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_master_link_test ${PROJECT_NAME}_fake_master)
-
-  ament_add_gtest(${PROJECT_NAME}_link_probe_test test/link_probe_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_link_probe_test ${PROJECT_NAME}_fake_master)
-
-  ament_add_gtest(${PROJECT_NAME}_transport_test test/stm32_transport_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_transport_test ${PROJECT_NAME}_fake_master)
+  # Against the fake master:
+  #   fw_boundary  the firmware drive-SM enum values (through fw_drive_sm) equal wire::'s
+  #   fake_master  the master logic it emulates by hand: the version-gate enable refusal and the
+  #                robot_state reporting priority
+  #   master_link, link_probe, transport  the host side over the pseudo-terminal
+  foreach(name IN ITEMS fw_boundary fake_master master_link link_probe transport)
+    ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_${name}_test ${PROJECT_NAME}_fake_master)
+  endforeach()
 
   # Custom main: configure() declares ROS parameters on the transport's own node, which needs
   # rclcpp::init(), and the overrides are passed as --ros-args like ros2_control_node passes them.
-  ament_add_gtest(${PROJECT_NAME}_parameters_test
-    test/stm32_parameters_test.cpp
-    test/stm32_parameters_test_main.cpp
+  ament_add_gmock(${PROJECT_NAME}_parameters_test
+    test/parameters_test.cpp
+    test/parameters_test_main.cpp
     SKIP_LINKING_MAIN_LIBRARIES)
   target_link_libraries(${PROJECT_NAME}_parameters_test
     ${PROJECT_NAME}_fake_master rclcpp::rclcpp)

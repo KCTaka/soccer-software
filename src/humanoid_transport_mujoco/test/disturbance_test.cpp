@@ -3,35 +3,42 @@
 #include <mujoco/mujoco.h>
 #include <gtest/gtest.h>
 
-#include <memory>
+#include <string_view>
 
+#include "humanoid_test_support/mujoco_model.hpp"
 #include "humanoid_transport_mujoco/mujoco_disturbance.hpp"
 
 namespace
 {
 
+using humanoid::test_support::DataPtr;
+using humanoid::test_support::load_model_xml;
+using humanoid::test_support::make_data;
+using humanoid::test_support::ModelPtr;
 using humanoid::transport_mujoco::MujocoDisturbance;
 using humanoid::transport_mujoco::PushConfig;
+
+// One free body, named as PushConfig's default body, so the push logic is tested without a robot.
+constexpr std::string_view kModel =
+  "<mujoco><worldbody><body name='torso_link'><freejoint/>"
+  "<geom type='box' size='0.1 0.1 0.1'/></body></worldbody></mujoco>";
 
 class DisturbanceTest : public ::testing::Test
 {
 protected:
   void SetUp() override
   {
-    char error[1024] = {};
-    model_.reset(mj_loadXML(HUMANOID_TEST_MJCF_PATH, nullptr, error, sizeof(error)));
-    ASSERT_NE(model_, nullptr) << error;
-    data_.reset(mj_makeData(model_.get()));
-    body_ = mj_name2id(model_.get(), mjtObj::mjOBJ_BODY, "torso_link");
+    model_ = load_model_xml(kModel);
+    ASSERT_NE(model_, nullptr);
+    data_ = make_data(*model_);
+    body_ = mj_name2id(model_.get(), mjtObj::mjOBJ_BODY, PushConfig{}.body.c_str());
     ASSERT_GE(body_, 0);
   }
 
   double force_y() const {return data_->xfrc_applied[6 * body_ + 1];}
 
-  struct ModelDeleter {void operator()(mjModel * m) const {mj_deleteModel(m);}};
-  struct DataDeleter {void operator()(mjData * d) const {mj_deleteData(d);}};
-  std::unique_ptr<mjModel, ModelDeleter> model_;
-  std::unique_ptr<mjData, DataDeleter> data_;
+  ModelPtr model_;
+  DataPtr data_;
   int body_{-1};
 };
 

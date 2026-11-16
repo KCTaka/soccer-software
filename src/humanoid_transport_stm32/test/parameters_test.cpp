@@ -5,56 +5,33 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <cstring>
 #include <memory>
 
 #include <pluginlib/class_loader.hpp>
 
+#include "humanoid_test_support/manifests.hpp"
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport_stm32/stm32_serial_transport.hpp"
-#include "stm32_parameters_fixture.hpp"
+#include "parameters_fixture.hpp"
 
 namespace
 {
 
-using humanoid::transport::JointManifest;
+using humanoid::test_support::joint_manifest;
 using humanoid::transport::SafetyManifest;
 namespace wire = humanoid::transport_stm32::wire;
 
-JointManifest manifest_of(std::initializer_list<const char *> names)
-{
-  JointManifest manifest{};
-  std::uint8_t i = 0;
-  for (const char * name : names) {
-    std::strncpy(
-      manifest.joints[i++].name.data(), name, humanoid::transport::kMaxNameLength - 1);
-  }
-  manifest.joint_count = i;
-  return manifest;
-}
-
 SafetyManifest safety_for(std::uint8_t joints)
 {
-  SafetyManifest safety{};
-  safety.joint_count = joints;
-  safety.feedback_max_age_us = 15000;
-  for (std::uint8_t i = 0; i < joints; ++i) {
-    auto & e = safety.envelopes[i];
-    e.position_min_rad = -1.5;
-    e.position_max_rad = 1.5;
-    e.velocity_max_rad_s = 20.0;
-    e.torque_peak_nm = 30.0;
-    e.stiffness_max_nm_rad = 100.0;
-    e.damping_max_nm_s_rad = 5.0;
-  }
-  return safety;
+  return humanoid::test_support::safety_manifest(
+    joints, humanoid::transport_stm32::testing::wire_safe_envelope());
 }
 
 TEST(Stm32Parameters, ConfigureReadsTheDeviceAndTheWiringFromRosParameters)
 {
   ASSERT_NE(g_fake_master, nullptr);
   humanoid::transport_stm32::Stm32SerialTransport transport;
-  ASSERT_TRUE(transport.configure(manifest_of({"hip", "knee", "ankle"}), safety_for(3)));
+  ASSERT_TRUE(transport.configure(joint_manifest({"hip", "knee", "ankle"}), safety_for(3)));
   ASSERT_TRUE(transport.activate());
 
   // The parameters took effect: knee is on chain 0 motor 1, mirrored, with a 0.5 rad offset.
@@ -80,7 +57,7 @@ TEST(Stm32Parameters, ConfigureFailsForAJointWithNoWiringParameters)
   // "elbow" has no joints.elbow.* overrides: chain and motor have no default, because a value that
   // merely looked plausible would go unnoticed until the joint ran the wrong way.
   humanoid::transport_stm32::Stm32SerialTransport transport;
-  EXPECT_FALSE(transport.configure(manifest_of({"hip", "elbow"}), safety_for(2)));
+  EXPECT_FALSE(transport.configure(joint_manifest({"hip", "elbow"}), safety_for(2)));
 }
 
 TEST(Stm32Parameters, ThePluginLoadsThroughPluginlibAsHumanoidActuatorSystemLoadsIt)
@@ -92,7 +69,7 @@ TEST(Stm32Parameters, ThePluginLoadsThroughPluginlibAsHumanoidActuatorSystemLoad
     transport = loader.createSharedInstance("humanoid_transport_stm32/Stm32SerialTransport"));
   ASSERT_TRUE(transport);
 
-  ASSERT_TRUE(transport->configure(manifest_of({"hip", "knee", "ankle"}), safety_for(3)));
+  ASSERT_TRUE(transport->configure(joint_manifest({"hip", "knee", "ankle"}), safety_for(3)));
   EXPECT_STREQ(transport->capabilities().implementation_name.data(), "Stm32SerialTransport");
   EXPECT_EQ(transport->capabilities().nominal_cycle_period_us, 5000U);
 }
