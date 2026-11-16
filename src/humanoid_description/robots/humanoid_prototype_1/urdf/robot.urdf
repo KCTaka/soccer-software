@@ -1,0 +1,766 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="humanoid_prototype_1">
+  <link name="pelvis">
+    <inertial xyz="-0.0008645515 1.3526e-06 0.075304998" rpy="0 0 0">
+      <mass value="3.273468799" />
+      <inertia ixx="0.04338195316" iyy="0.03802566445" izz="0.01000455513" ixy="-2.618703089e-09" ixz="0.0002054669276" iyz="-2.382210402e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-3.45437e-05 4.152e-07 0.164" rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.17 0.218" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-3.31e-08 0.0285004147 -0.0025000015" rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.0569999984 0.115" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="-3.31e-08 -0.0284995844 -0.0025000015" rpy="0 0 0" />
+      <geometry>
+        <box size="0.12 0.0569999984 0.115" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_pitch_link">
+    <inertial xyz="0.0009953971 0.0476978491 2.49736e-05" rpy="0 0 0">
+      <mass value="0.7289021012" />
+      <inertia ixx="0.0006200882349" iyy="0.0004985832681" izz="0.0005063034644" ixy="7.193994539e-08" ixz="1.091435632e-07" iyz="2.172334865e-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0022499669 0.0480004155 -1.5e-09" rpy="0 1.570796327 0" />
+      <geometry>
+        <cylinder radius="0.0409796616" length="0.0505" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_pitch_link">
+    <inertial xyz="0.0009888815 -0.0476970188 2.49736e-05" rpy="0 0 0">
+      <mass value="0.7289021012" />
+      <inertia ixx="0.0006200882349" iyy="0.0004996722372" izz="0.0005073924336" ixy="-7.33769013e-08" ixz="1.090249509e-07" iyz="-2.172334865e-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0022499669 -0.0479995851 -1.5e-09" rpy="0 1.570796327 0" />
+      <geometry>
+        <cylinder radius="0.0409796616" length="0.0505" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_pitch_link">
+    <inertial xyz="-0.0002581374 0.0392450607 1.7e-09" rpy="0 0 0">
+      <mass value="0.332921442" />
+      <inertia ixx="0.0001451031498" iyy="0.0001523583772" izz="0.0001604757447" ixy="6.70005086e-08" ixz="1.02424233e-15" iyz="1.670099336e-15" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0050003933 0.037000416 1.7e-09" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0710000036 0.074 0.0679729538" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_pitch_link">
+    <inertial xyz="-0.0002581374 -0.0392442304 1.7e-09" rpy="0 0 0">
+      <mass value="0.332921442" />
+      <inertia ixx="0.0001451031498" iyy="0.0001523583772" izz="0.0001604757447" ixy="-6.70005086e-08" ixz="1.024237701e-15" iyz="-1.669735622e-15" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0050003933 -0.0369995857 1.7e-09" rpy="0 0 0" />
+      <geometry>
+        <box size="0.0710000036 0.074 0.0679729538" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_roll_link">
+    <inertial xyz="-0.0421662737 -2.22534e-05 -0.0769323834" rpy="0 0 0">
+      <mass value="0.5690370909" />
+      <inertia ixx="0.0005681343126" iyy="0.0006554236478" izz="0.0004924974762" ixy="-4.730728634e-08" ixz="-1.765242595e-05" iyz="2.943158454e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0430000331 9.9084e-06 -0.0782500015" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0392452545" length="0.0455" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_roll_link">
+    <inertial xyz="-0.0421662737 2.30838e-05 -0.0769323834" rpy="0 0 0">
+      <mass value="0.5690370909" />
+      <inertia ixx="0.0005681343126" iyy="0.0006554236478" izz="0.0004924974762" ixy="4.730728634e-08" ixz="-1.765242595e-05" iyz="-2.943158454e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-0.0430000331 -9.078e-06 -0.0782500015" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.0392452545" length="0.0455" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_shoulder_roll_link">
+    <inertial xyz="0.029496499 0.1126040819 0.0016278586" rpy="0 0 0">
+      <mass value="0.3931040224" />
+      <inertia ixx="0.0006096693731" iyy="0.0002120144693" izz="0.0006297013478" ixy="1.09286606e-05" ixz="1.57977474e-07" iyz="-7.932547746e-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0292496085 0.102500376 -0.0044999983" rpy="0 0 0" />
+      <geometry>
+        <box size="0.068 0.1129999198 0.067" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_shoulder_roll_link">
+    <inertial xyz="0.0294965002 -0.1126033863 0.0016277302" rpy="0 0 0">
+      <mass value="0.3931019395" />
+      <inertia ixx="0.000609666894" iyy="0.0002120125838" izz="0.000629699037" ixy="-1.092867427e-05" ixz="1.579742723e-07" iyz="7.933832662e-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0292496085 -0.1024995456 -0.0044999983" rpy="0 0 0" />
+      <geometry>
+        <box size="0.068 0.1129999198 0.067" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_hip_yaw_link">
+    <inertial xyz="-9.677e-07 -0.0052334212 -0.0581411178" rpy="0 0 0">
+      <mass value="1.008357141" />
+      <inertia ixx="0.0008817615287" iyy="0.001168234902" izz="0.0008689277202" ixy="1.658240161e-08" ixz="7.094638308e-09" iyz="-7.833283948e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-9.26e-07 -0.001549584 -0.05555169" rpy="0 0 0" />
+      <geometry>
+        <box size="0.111313076 0.061099998 0.1111033744" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_hip_yaw_link">
+    <inertial xyz="-9.654e-07 0.0052444345 -0.0581411381" rpy="0 0 0">
+      <mass value="1.00835671" />
+      <inertia ixx="0.0008809639437" iyy="0.001168233913" izz="0.0008681310899" ixy="-1.658730693e-08" ixz="6.98709741e-09" iyz="7.86154322e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-9.26e-07 0.0015504143 -0.05555169" rpy="0 0 0" />
+      <geometry>
+        <box size="0.111313076 0.061099998 0.1111033744" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_elbow_link">
+    <inertial xyz="-1.7338e-06 0.1149129169 0.0317500017" rpy="0 0 0">
+      <mass value="0.174600703" />
+      <inertia ixx="0.0009050246495" iyy="7.847090217e-05" izz="0.0008795708793" ixy="-1.673735347e-08" ixz="-4.654985976e-20" iyz="-3.081623531e-19" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-3.915e-07 0.103500416 0.0317500017" rpy="0 0 0" />
+      <geometry>
+        <box size="0.068 0.275 0.081" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_elbow_link">
+    <inertial xyz="-1.7338e-06 -0.1149120866 0.0317500017" rpy="0 0 0">
+      <mass value="0.174600703" />
+      <inertia ixx="0.0009050246495" iyy="7.847090217e-05" izz="0.0008795708793" ixy="1.673735347e-08" ixz="3.273406461e-20" iyz="-1.090977154e-17" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-3.915e-07 -0.1034995857 0.0317500017" rpy="0 0 0" />
+      <geometry>
+        <box size="0.068 0.275 0.081" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_knee_link">
+    <inertial xyz="0.0003364452 -0.030735649 -0.0963407754" rpy="0 0 0">
+      <mass value="0.4484185629" />
+      <inertia ixx="0.0008826298369" iyy="0.0007335210249" izz="0.0003246456224" ixy="5.223736566e-06" ixz="-1.628201374e-06" iyz="-4.664183438e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-3.31e-08 -0.0399995845 -0.0775000707" rpy="0 0 0" />
+      <geometry>
+        <box size="0.057 0.09 0.212" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_knee_link">
+    <inertial xyz="0.0003364452 0.0307364829 -0.0963407754" rpy="0 0 0">
+      <mass value="0.4484185629" />
+      <inertia ixx="0.0008826298662" iyy="0.0007335210249" izz="0.0003246456517" ixy="-5.223736034e-06" ixz="-1.628201374e-06" iyz="4.664193888e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-3.31e-08 0.0400004149 -0.0775000707" rpy="0 0 0" />
+      <geometry>
+        <box size="0.057 0.09 0.212" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="left_ankle_horn_link">
+    <inertial xyz="-0.0275236545 0.0001712954 -6.38067e-05" rpy="0 0 0">
+      <mass value="0.007026344503" />
+      <inertia ixx="4.529676135e-07" iyy="3.327850945e-06" izz="3.071659486e-06" ixy="3.034097403e-07" ixz="-6.064092151e-09" iyz="7.026007061e-10" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_ankle_horn_link.stl" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="left_foot_link">
+    <inertial xyz="0.0080358481 -0.0005136644 -0.0164054925" rpy="0 0 0">
+      <mass value="0.04348669183" />
+      <inertia ixx="1.465527995e-05" iyy="8.340668622e-05" izz="8.892386385e-05" ixy="-1.109570634e-06" ixz="6.531871328e-06" iyz="3.996726886e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_foot_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0199999669 4.155e-07 -0.009013733" rpy="0 0 0" />
+      <geometry>
+        <box size="0.16 0.06 0.0339726754" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_foot_link">
+    <inertial xyz="0.008035848 0.0005144948 -0.0164054925" rpy="0 0 0">
+      <mass value="0.04348669152" />
+      <inertia ixx="1.465527992e-05" iyy="8.340668615e-05" izz="8.89238638e-05" ixy="1.109570632e-06" ixz="6.531871292e-06" iyz="-3.99672687e-07" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_foot_link.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0.0199999669 4.149e-07 -0.009013733" rpy="0 0 0" />
+      <geometry>
+        <box size="0.16 0.06 0.0339726754" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="right_ankle_horn_link">
+    <inertial xyz="-0.0275236545 -0.000138333 -6.38067e-05" rpy="0 0 0">
+      <mass value="0.007026344503" />
+      <inertia ixx="4.491463031e-07" iyy="3.327850945e-06" izz="3.067838176e-06" ixy="-2.994641165e-07" ixz="-6.064092152e-09" iyz="-6.93463893e-10" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_ankle_horn_link.stl" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="left_ankle_rod_link">
+    <inertial xyz="-0.0084287082 0 0.0597006559" rpy="0 0 0">
+      <mass value="0.003867244987" />
+      <inertia ixx="5.66755324e-06" iyy="5.797152255e-06" izz="1.457125349e-07" ixy="2.086008673e-22" ixz="2.306721213e-07" iyz="-5.615957948e-21" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_ankle_rod_link.stl" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="right_ankle_rod_link">
+    <inertial xyz="-0.0084287082 0 0.0597006559" rpy="0 0 0">
+      <mass value="0.003867244987" />
+      <inertia ixx="5.66755324e-06" iyy="5.797152255e-06" izz="1.457125349e-07" ixy="3.573336157e-22" ixz="2.306721213e-07" iyz="-1.402255894e-20" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_ankle_rod_link.stl" />
+      </geometry>
+    </visual>
+  </link>
+  <joint name="left_hip_pitch_joint" type="revolute">
+    <origin xyz="0 0.065 0" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="left_hip_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.78" upper="0.78" effort="60" velocity="20" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_hip_pitch_joint" type="revolute">
+    <origin xyz="0 -0.065 0" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="right_hip_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.78" upper="0.78" effort="60" velocity="20" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0026 0.089 0.22" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="left_shoulder_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.98" upper="1.18" effort="17" velocity="44" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_shoulder_pitch_joint" type="revolute">
+    <origin xyz="0.0026 -0.089 0.22" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="right_shoulder_pitch_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.98" upper="1.18" effort="17" velocity="44" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_hip_roll_joint" type="revolute">
+    <origin xyz="0.043 0.048 0" rpy="0 0 0" />
+    <parent link="left_hip_pitch_link" />
+    <child link="left_hip_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.08" upper="0.78" effort="36" velocity="50" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_hip_roll_joint" type="revolute">
+    <origin xyz="0.0449 -0.048 0" rpy="0 0 0" />
+    <parent link="right_hip_pitch_link" />
+    <child link="right_hip_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.78" upper="0.08" effort="36" velocity="50" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_shoulder_roll_joint" type="revolute">
+    <origin xyz="-0.0305 0.04 0" rpy="0 0 0" />
+    <parent link="left_shoulder_pitch_link" />
+    <child link="left_shoulder_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.28" upper="1.48" effort="14" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_shoulder_roll_joint" type="revolute">
+    <origin xyz="-0.0305 -0.04 0" rpy="0 0 0" />
+    <parent link="right_shoulder_pitch_link" />
+    <child link="right_shoulder_roll_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-1.48" upper="1.28" effort="14" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_hip_yaw_joint" type="revolute">
+    <origin xyz="-0.043 0 -0.124" rpy="0 0 0" />
+    <parent link="left_hip_roll_link" />
+    <child link="left_hip_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.78" upper="0.78" effort="17" velocity="44" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_hip_yaw_joint" type="revolute">
+    <origin xyz="-0.043 0 -0.124" rpy="0 0 0" />
+    <parent link="right_hip_roll_link" />
+    <child link="right_hip_yaw_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.78" upper="0.78" effort="17" velocity="44" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_elbow_joint" type="revolute">
+    <origin xyz="0.02925 0.125 -0.0325" rpy="0 0 0" />
+    <parent link="left_shoulder_roll_link" />
+    <child link="left_elbow_link" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-0.08" upper="1.98" effort="14" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_elbow_joint" type="revolute">
+    <origin xyz="0.02925 -0.125 -0.0325" rpy="0 0 0" />
+    <parent link="right_shoulder_roll_link" />
+    <child link="right_elbow_link" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.08" upper="1.98" effort="14" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_knee_joint" type="revolute">
+    <origin xyz="0 0.0381 -0.058421" rpy="0 0 0" />
+    <parent link="left_hip_yaw_link" />
+    <child link="left_knee_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.03" upper="2.03" effort="60" velocity="20" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_knee_joint" type="revolute">
+    <origin xyz="0 -0.0381 -0.058421" rpy="0 0 0" />
+    <parent link="right_hip_yaw_link" />
+    <child link="right_knee_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.03" upper="2.03" effort="60" velocity="20" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_ankle_motor_joint" type="revolute">
+    <origin xyz="0 -0.052 -0.085" rpy="0 0 0" />
+    <parent link="left_knee_link" />
+    <child link="left_ankle_horn_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.6101439451" upper="0.6058323338" effort="13.41176626" velocity="29.33373246" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 -0.04 -0.205" rpy="0 0 0" />
+    <parent link="left_knee_link" />
+    <child link="left_foot_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.6981" upper="0.6981" effort="11" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_ankle_pitch_joint" type="revolute">
+    <origin xyz="0 0.04 -0.205" rpy="0 0 0" />
+    <parent link="right_knee_link" />
+    <child link="right_foot_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.6981" upper="0.6981" effort="11" velocity="33" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_ankle_motor_joint" type="revolute">
+    <origin xyz="0 0.052 -0.085" rpy="0 0 0" />
+    <parent link="right_knee_link" />
+    <child link="right_ankle_horn_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.6101439451" upper="0.6058323338" effort="13.41176626" velocity="29.33373246" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="left_ankle_rod_joint" type="revolute">
+    <origin xyz="-0.0400000331 -0.0090995845 -7.07e-08" rpy="0 0 0" />
+    <parent link="left_foot_link" />
+    <child link="left_ankle_rod_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.7098467468" upper="0.6882707698" effort="0" velocity="34.31190068" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <joint name="right_ankle_rod_joint" type="revolute">
+    <origin xyz="-0.0400000331 0.0091004149 -7.07e-08" rpy="0 0 0" />
+    <parent link="right_foot_link" />
+    <child link="right_ankle_rod_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.7098467468" upper="0.6882707698" effort="0" velocity="34.31190068" />
+    <dynamics damping="0" friction="0" />
+  </joint>
+  <link name="imu_link" />
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="pelvis" />
+    <child link="imu_link" />
+  </joint>
+  <ros2_control name="HumanoidActuatorSystem" type="system">
+    <hardware>
+      <plugin>humanoid_actuator_system/HumanoidActuatorSystem</plugin>
+      <param name="safety_manifest_path">robots/humanoid_prototype_1/config/safety_manifest.yaml</param>
+      <param name="safety_manifest_package">humanoid_description</param>
+    </hardware>
+    <joint name="left_hip_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_shoulder_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_shoulder_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_hip_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_shoulder_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_shoulder_roll_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_hip_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_hip_yaw_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_elbow_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_elbow_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_knee_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_knee_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_ankle_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_ankle_pitch_joint">
+      <command_interface name="position" />
+      <command_interface name="velocity" />
+      <command_interface name="effort" />
+      <command_interface name="stiffness" />
+      <command_interface name="damping" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_ankle_motor_joint">
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_ankle_motor_joint">
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="left_ankle_rod_joint">
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <joint name="right_ankle_rod_joint">
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+      <state_interface name="effort" />
+    </joint>
+    <transmission name="left_ankle_pitch_linkage">
+      <plugin>humanoid_actuator_system/FourBarLinkage</plugin>
+      <actuator name="left_ankle_motor_joint" role="input" />
+      <joint name="left_ankle_pitch_joint" role="output" />
+      <joint name="left_ankle_rod_joint" role="coupler" />
+      <param name="ground_length_m">0.12</param>
+      <param name="input_crank_length_m">0.04500000005</param>
+      <param name="coupler_length_m">0.1200000706</param>
+      <param name="output_crank_length_m">0.0400000331</param>
+      <param name="input_zero_angle_rad">-1.573112007</param>
+      <param name="output_zero_angle_rad">-1.570798094</param>
+      <param name="coupler_zero_angle_rad">1.529120668</param>
+      <param name="input_axis_sign">1</param>
+      <param name="output_axis_sign">1</param>
+      <param name="coupler_axis_sign">1</param>
+    </transmission>
+    <transmission name="right_ankle_pitch_linkage">
+      <plugin>humanoid_actuator_system/FourBarLinkage</plugin>
+      <actuator name="right_ankle_motor_joint" role="input" />
+      <joint name="right_ankle_pitch_joint" role="output" />
+      <joint name="right_ankle_rod_joint" role="coupler" />
+      <param name="ground_length_m">0.12</param>
+      <param name="input_crank_length_m">0.04500000005</param>
+      <param name="coupler_length_m">0.1200000706</param>
+      <param name="output_crank_length_m">0.0400000331</param>
+      <param name="input_zero_angle_rad">-1.573112007</param>
+      <param name="output_zero_angle_rad">-1.570798094</param>
+      <param name="coupler_zero_angle_rad">1.529120668</param>
+      <param name="input_axis_sign">1</param>
+      <param name="output_axis_sign">1</param>
+      <param name="coupler_axis_sign">1</param>
+    </transmission>
+    <sensor name="imu">
+      <state_interface name="orientation.x" />
+      <state_interface name="orientation.y" />
+      <state_interface name="orientation.z" />
+      <state_interface name="orientation.w" />
+      <state_interface name="angular_velocity.x" />
+      <state_interface name="angular_velocity.y" />
+      <state_interface name="angular_velocity.z" />
+      <state_interface name="linear_acceleration.x" />
+      <state_interface name="linear_acceleration.y" />
+      <state_interface name="linear_acceleration.z" />
+    </sensor>
+  </ros2_control>
+</robot>
