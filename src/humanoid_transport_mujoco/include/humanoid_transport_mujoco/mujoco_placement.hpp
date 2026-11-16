@@ -13,8 +13,9 @@
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_PLACEMENT_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_PLACEMENT_HPP_
 
-#include <optional>
 #include <span>
+
+#include <optional>
 #include <string>
 
 struct mjModel_;
