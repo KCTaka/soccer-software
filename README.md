@@ -89,6 +89,8 @@ ros2 launch humanoid_bringup leg.launch.py         # leg prototype on its stand,
 - [docs/bench.md](docs/bench.md): the dial benches, simulated and real
 - [docs/leg-prototype.md](docs/leg-prototype.md): the leg prototype, its four-bar ankle, SIL, and
   the first hardware session
+- [docs/humanoid-prototype-1.md](docs/humanoid-prototype-1.md): the first whole-robot prototype,
+  imported from CAD and standing in SIL
 - [docs/transport-stm32.md](docs/transport-stm32.md): the STM32 transport and first contact with hardware
 - [docs/dev-container.md](docs/dev-container.md): the container's display handling and SIL viewers
 - [docs/model-second-robot.md](docs/model-second-robot.md): adding a robot to `model/`
