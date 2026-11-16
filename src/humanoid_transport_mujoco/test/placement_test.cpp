@@ -197,21 +197,29 @@ TEST(Placement, PlacesTheG1WhereMenagerieDoesByHand)
 // hangs on a's tip and is pinned to b's by a connect equality. With a at q, the loop closes with b
 // at q and the coupler at -q. A tree cut open the same way is what the generator emits for a
 // linkage.
-constexpr const char * kParallelogram =
-  "<mujoco><worldbody>"
-  "<body name='a'><joint name='a' axis='0 1 0'/><geom type='capsule' fromto='0 0 0 0 0 0.5'"
-  " size='0.01'/>"
-  "<body name='coupler' pos='0 0 0.5'><joint name='coupler' axis='0 1 0'/>"
-  "<geom type='capsule' fromto='0 0 0 1 0 0' size='0.01'/><site name='tip' pos='1 0 0'/></body>"
-  "</body>"
-  "<body name='b' pos='1 0 0'><joint name='b' axis='0 1 0'/><geom type='capsule'"
-  " fromto='0 0 0 0 0 0.5' size='0.01'/><site name='pin' pos='0 0 0.5'/></body>"
-  "</worldbody><equality><connect site1='tip' site2='pin'/></equality></mujoco>";
-
-TEST(CloseEqualityConstraints, MovesTheLinkageAroundAHeldJoint)
+// `jacobian` is MuJoCo's constraint Jacobian storage, "dense" or "sparse": MuJoCo picks sparse
+// itself only from 60 DOFs, so the solver's sparse path needs a model that asks for it.
+std::string parallelogram(const std::string & jacobian)
 {
-  const auto model = load_model_xml(kParallelogram);
+  return "<mujoco><option jacobian='" + jacobian + "'/><worldbody>"
+         "<body name='a'><joint name='a' axis='0 1 0'/><geom type='capsule' fromto='0 0 0 0 0 0.5'"
+         " size='0.01'/>"
+         "<body name='coupler' pos='0 0 0.5'><joint name='coupler' axis='0 1 0'/>"
+         "<geom type='capsule' fromto='0 0 0 1 0 0' size='0.01'/>"
+         "<site name='tip' pos='1 0 0'/></body>"
+         "</body>"
+         "<body name='b' pos='1 0 0'><joint name='b' axis='0 1 0'/><geom type='capsule'"
+         " fromto='0 0 0 0 0 0.5' size='0.01'/><site name='pin' pos='0 0 0.5'/></body>"
+         "</worldbody><equality><connect site1='tip' site2='pin'/></equality></mujoco>";
+}
+
+class CloseEqualityConstraints : public ::testing::TestWithParam<std::string> {};
+
+TEST_P(CloseEqualityConstraints, MovesTheLinkageAroundAHeldJoint)
+{
+  const auto model = load_model_xml(parallelogram(GetParam()));
   ASSERT_NE(model, nullptr);
+  ASSERT_EQ(mj_isSparse(model.get()), GetParam() == "sparse");
   const auto data = make_data(*model);
   const auto qpos = [&](const char * joint) {
       return data->qpos[model->jnt_qposadr[mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, joint)]];
@@ -225,10 +233,10 @@ TEST(CloseEqualityConstraints, MovesTheLinkageAroundAHeldJoint)
   EXPECT_NEAR(qpos("coupler"), -0.3, 1e-9);
 }
 
-TEST(CloseEqualityConstraints, ReportsALoopThatCannotClose)
+TEST_P(CloseEqualityConstraints, ReportsALoopThatCannotClose)
 {
   // Holding both cranks at different angles leaves the coupler alone to close a gap it cannot.
-  const auto model = load_model_xml(kParallelogram);
+  const auto model = load_model_xml(parallelogram(GetParam()));
   ASSERT_NE(model, nullptr);
   const auto data = make_data(*model);
   const int a = mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, "a");
@@ -240,5 +248,8 @@ TEST(CloseEqualityConstraints, ReportsALoopThatCannotClose)
   ASSERT_TRUE(error);
   EXPECT_THAT(*error, ::testing::HasSubstr("cannot be closed"));
 }
+
+INSTANTIATE_TEST_SUITE_P(
+  BothJacobianStorages, CloseEqualityConstraints, ::testing::Values("dense", "sparse"));
 
 }  // namespace
