@@ -5,6 +5,7 @@
 #include <mujoco/mujoco.h>
 
 #include <format>
+#include <span>
 
 #include <algorithm>
 #include <cmath>
@@ -156,6 +157,18 @@ transport::ExchangeResult MujocoActuatorTransport::exchange(
 
   if (!active_ || !model_ || !data_) {
     result.error = transport::TransportError::kNotActive;
+    return result;
+  }
+
+  // A batch that is not the configured manifest's, or carries a non-finite field, fails the cycle
+  // and never reaches the model, as on hardware: NaN in an actuator's control would propagate
+  // through the whole simulation state.
+  const auto commanded = std::span{command.joints}.first(joint_count_);
+  if (command.joint_count != joint_count_ ||
+    !std::ranges::all_of(
+      commanded, [](const transport::JointCommand & joint) {return transport::is_finite(joint);}))
+  {
+    result.error = transport::TransportError::kManifestMismatch;
     return result;
   }
 
