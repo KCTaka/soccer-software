@@ -12,7 +12,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "fake_master.hpp"
-#include "stm32_parameters_fixture.hpp"
+#include "parameters_fixture.hpp"
 
 humanoid::transport_stm32::testing::FakeMaster * g_fake_master = nullptr;
 

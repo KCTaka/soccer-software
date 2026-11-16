@@ -4,35 +4,20 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <memory>
 #include <string>
 #include <variant>
 
+#include "humanoid_test_support/mujoco_model.hpp"
 #include "humanoid_transport_mujoco/mujoco_imu.hpp"
 
 namespace
 {
 
+using humanoid::test_support::make_data;
+using humanoid::test_support::load_model_xml;
 using humanoid::transport_mujoco::find_imu_sensors;
 using humanoid::transport_mujoco::ImuSensors;
 using humanoid::transport_mujoco::read_imu;
-
-struct ModelDeleter {void operator()(mjModel * m) const {mj_deleteModel(m);}};
-struct DataDeleter {void operator()(mjData * d) const {mj_deleteData(d);}};
-using ModelPtr = std::unique_ptr<mjModel, ModelDeleter>;
-using DataPtr = std::unique_ptr<mjData, DataDeleter>;
-
-ModelPtr load_string(const std::string & xml)
-{
-  mjVFS vfs;
-  mj_defaultVFS(&vfs);
-  mj_addBufferVFS(&vfs, "model.xml", xml.data(), static_cast<int>(xml.size()));
-  char error[1024] = {};
-  ModelPtr model(mj_loadXML("model.xml", &vfs, error, sizeof(error)));
-  mj_deleteVFS(&vfs);
-  EXPECT_NE(model, nullptr) << error;
-  return model;
-}
 
 // A free body carrying one IMU site, with `sensors` as the model's sensor block.
 std::string model_with(const std::string & sensors)
@@ -48,7 +33,7 @@ const char kFullImu[] =
 
 TEST(Imu, FindsOneOfEachType)
 {
-  const auto model = load_string(model_with(kFullImu));
+  const auto model = load_model_xml(model_with(kFullImu));
   const auto found = find_imu_sensors(*model);
   ASSERT_TRUE(std::holds_alternative<ImuSensors>(found));
   EXPECT_TRUE(std::get<ImuSensors>(found).present());
@@ -56,7 +41,7 @@ TEST(Imu, FindsOneOfEachType)
 
 TEST(Imu, ModelWithoutSensorsHasNoImu)
 {
-  const auto model = load_string(model_with(""));
+  const auto model = load_model_xml(model_with(""));
   const auto found = find_imu_sensors(*model);
   ASSERT_TRUE(std::holds_alternative<ImuSensors>(found));
   EXPECT_FALSE(std::get<ImuSensors>(found).present());
@@ -64,13 +49,13 @@ TEST(Imu, ModelWithoutSensorsHasNoImu)
 
 TEST(Imu, PartialSetIsRejected)
 {
-  const auto model = load_string(model_with("<gyro site='imu'/>"));
+  const auto model = load_model_xml(model_with("<gyro site='imu'/>"));
   EXPECT_TRUE(std::holds_alternative<std::string>(find_imu_sensors(*model)));
 }
 
 TEST(Imu, TwoOfOneTypeIsRejected)
 {
-  const auto model = load_string(model_with(std::string{kFullImu} + "<gyro site='imu'/>"));
+  const auto model = load_model_xml(model_with(std::string{kFullImu} + "<gyro site='imu'/>"));
   EXPECT_TRUE(std::holds_alternative<std::string>(find_imu_sensors(*model)));
 }
 
@@ -79,13 +64,13 @@ TEST(Imu, TwoOfOneTypeIsRejected)
 // in the rotated site frame lies on the site's y axis. Its attitude is the rotation we imposed.
 TEST(Imu, ReadsAttitudeAndGravityOfAStaticBody)
 {
-  const auto model = load_string(
+  const auto model = load_model_xml(
     "<mujoco><worldbody><geom type='plane' size='1 1 0.1'/>"
     "<body name='base' pos='0 0 0.1'><freejoint/>"
     "<geom type='box' size='0.1 0.1 0.1' mass='1'/>"
     "<site name='imu' quat='0.70710678 0.70710678 0 0'/></body></worldbody><sensor>" +
     std::string{kFullImu} + "</sensor></mujoco>");
-  DataPtr data(mj_makeData(model.get()));
+  const auto data = make_data(*model);
   for (int i = 0; i < 2000; ++i) {  // let the contact settle
     mj_step(model.get(), data.get());
   }

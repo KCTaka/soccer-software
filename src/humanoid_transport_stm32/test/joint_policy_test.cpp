@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <string>
 #include <vector>
 
 #include "humanoid_transport_stm32/joint_policy.hpp"
@@ -17,17 +18,6 @@ using std::chrono::milliseconds;
 using wire::DriveFault;
 using wire::DriveReq;
 using wire::DriveState;
-
-JointWiring wiring(
-  std::uint8_t chain, std::uint8_t motor, std::int8_t sign = 1, double offset = 0.0)
-{
-  JointWiring w;
-  w.chain = chain;
-  w.motor = motor;
-  w.direction_sign = sign;
-  w.zero_offset_rad = offset;
-  return w;
-}
 
 wire::TeleMotor motor_in(DriveState state, DriveFault fault = DriveFault::DRVF_NONE)
 {
@@ -60,75 +50,50 @@ WiringLayout layout_of(const std::vector<JointWiring> & joints)
 }
 
 // ---------------------------------------------------------------------------
-// plan_request (v10: a DriveReq plus, independently, whether a VALID tuple rides along)
+// plan_request: the drive request and, independently, whether a VALID tuple rides along (v10)
 // ---------------------------------------------------------------------------
 
-TEST(PlanRequest, ClearingRequestsResetWithNoTuple)
+/// One row of plan_request's table, as joint_policy.hpp documents it. Isolation is a running-phase
+/// concept: every other phase is planned for a motor that is not isolated.
+struct PlanCase
 {
-  const auto r = plan_request(Phase::kClearing, false, true);
-  EXPECT_EQ(r.request, DriveReq::DRV_REQ_RESET);
-  EXPECT_FALSE(r.send_tuple);
-}
+  const char * name;
+  Phase phase;
+  bool isolated;
+  DriveReq request;
+  bool send_tuple;
+  bool use_config_gains;
+};
 
-TEST(PlanRequest, ArmingRequestsEnableStreamingTheCapturedHoldWithConfigGains)
-{
-  // ENABLE and stream the captured hold tuple so the motor holds instead of coming up limp;
-  // USE_CONFIG_GAINS defers the gains to the slave's config.
-  const auto r = plan_request(Phase::kArming, false, true);
-  EXPECT_EQ(r.request, DriveReq::DRV_REQ_ENABLE);
-  EXPECT_TRUE(r.send_tuple);
-  EXPECT_TRUE(r.use_config_gains);
-}
+class PlanRequest : public ::testing::TestWithParam<PlanCase> {};
 
-TEST(PlanRequest, StoppingRequestsStopWithNoTuple)
+TEST_P(PlanRequest, FollowsThePhaseTable)
 {
-  const auto r = plan_request(Phase::kStopping, false, true);
-  EXPECT_EQ(r.request, DriveReq::DRV_REQ_STOP);
-  EXPECT_FALSE(r.send_tuple);
-}
-
-TEST(PlanRequest, RunningRequestsEnableAndSendsTheTuple)
-{
-  const auto r = plan_request(Phase::kRunning, false, true);
-  EXPECT_EQ(r.request, DriveReq::DRV_REQ_ENABLE);
-  EXPECT_TRUE(r.send_tuple);
-}
-
-TEST(PlanRequest, RunningNeverRequestsResetSoAFaultedMotorIsNeverRearmed)
-{
-  for (const bool isolated : {false, true}) {
-    for (const bool representable : {false, true}) {
-      EXPECT_NE(plan_request(Phase::kRunning, isolated, representable).request,
-        DriveReq::DRV_REQ_RESET);
-    }
+  const auto & c = GetParam();
+  // Representability never changes the request: the caller fails a cycle whose tuple the wire
+  // cannot carry, and there is no DAMPED request any more.
+  for (const bool representable : {true, false}) {
+    SCOPED_TRACE(representable ? "representable tuple" : "unrepresentable tuple");
+    const auto r = plan_request(c.phase, c.isolated, representable);
+    EXPECT_EQ(r.request, c.request);
+    EXPECT_EQ(r.send_tuple, c.send_tuple);
+    EXPECT_EQ(r.use_config_gains, c.use_config_gains);
   }
 }
 
-TEST(PlanRequest, AnIsolatedMotorIsAskedToDisableWhateverTheTuple)
-{
-  EXPECT_EQ(plan_request(Phase::kRunning, true, true).request, DriveReq::DRV_REQ_DISABLE);
-  EXPECT_EQ(plan_request(Phase::kRunning, true, false).request, DriveReq::DRV_REQ_DISABLE);
-  EXPECT_FALSE(plan_request(Phase::kRunning, true, true).send_tuple);
-}
-
-TEST(PlanRequest, RepresentabilityDoesNotChangeTheRequestClampingIsTheCallers)
-{
-  // v10 clamps an unrepresentable tuple to the manifest in the caller (counting a bad cycle); the
-  // request itself is unchanged, and there is no DAMPED request any more.
-  const auto ok = plan_request(Phase::kRunning, false, true);
-  const auto bad = plan_request(Phase::kRunning, false, false);
-  EXPECT_EQ(ok.request, bad.request);
-  EXPECT_EQ(ok.send_tuple, bad.send_tuple);
-}
-
-TEST(PlanRequest, ReleasingDisablesEveryMotor)
-{
-  for (const bool isolated : {false, true}) {
-    const auto r = plan_request(Phase::kReleasing, isolated, true);
-    EXPECT_EQ(r.request, DriveReq::DRV_REQ_DISABLE);
-    EXPECT_FALSE(r.send_tuple);
-  }
-}
+INSTANTIATE_TEST_SUITE_P(
+  EveryPhase, PlanRequest, ::testing::Values(
+    // RESET clears what the previous session left latched.
+    PlanCase{"Clearing", Phase::kClearing, false, DriveReq::DRV_REQ_RESET, false, false},
+    // ENABLE streaming the captured hold tuple, so the motor holds instead of coming up limp, with
+    // the slave's own gains.
+    PlanCase{"Arming", Phase::kArming, false, DriveReq::DRV_REQ_ENABLE, true, true},
+    // ENABLE and the live tuple every cycle, never RESET, so a faulted motor is never rearmed.
+    PlanCase{"Running", Phase::kRunning, false, DriveReq::DRV_REQ_ENABLE, true, false},
+    PlanCase{"RunningIsolated", Phase::kRunning, true, DriveReq::DRV_REQ_DISABLE, false, false},
+    PlanCase{"Stopping", Phase::kStopping, false, DriveReq::DRV_REQ_STOP, false, false},
+    PlanCase{"Releasing", Phase::kReleasing, false, DriveReq::DRV_REQ_DISABLE, false, false}),
+  [](const auto & row) {return std::string{row.param.name};});
 
 TEST(IsCommandable, OnlyEnabled)
 {
@@ -153,7 +118,8 @@ TEST(ReadJoint, ConvertsToJointUnitsWithSignAndOffset)
   m.tau = -250;   // -2.5 N*m
   m.temp_c = 37;
 
-  const auto reading = read_joint(wiring(0, 0, -1, 0.5), m, milliseconds{15});
+  const JointWiring mirrored{.direction_sign = -1, .zero_offset_rad = 0.5};
+  const auto reading = read_joint(mirrored, m, milliseconds{15});
   EXPECT_NEAR(reading.feedback.position_rad, 0.3, 1e-9);  // -1 * (0.2 - 0.5)
   EXPECT_NEAR(reading.feedback.velocity_rad_s, -1.5, 1e-9);
   EXPECT_NEAR(reading.feedback.effort_nm, 2.5, 1e-9);
@@ -166,16 +132,16 @@ TEST(ReadJoint, FreshnessFollowsTheDrivesReportAgeAgainstTheManifestLimit)
 {
   wire::TeleMotor m = motor_in(DriveState::DRV_ENABLED);
   m.fb_age_ms = 15;
-  EXPECT_TRUE(read_joint(wiring(0, 0), m, milliseconds{15}).feedback.fresh);
+  EXPECT_TRUE(read_joint(JointWiring{}, m, milliseconds{15}).feedback.fresh);
   m.fb_age_ms = 16;
-  EXPECT_FALSE(read_joint(wiring(0, 0), m, milliseconds{15}).feedback.fresh);
+  EXPECT_FALSE(read_joint(JointWiring{}, m, milliseconds{15}).feedback.fresh);
   m.fb_age_ms = 255;  // "never heard from this drive"
-  EXPECT_FALSE(read_joint(wiring(0, 0), m, milliseconds{15}).feedback.fresh);
+  EXPECT_FALSE(read_joint(JointWiring{}, m, milliseconds{15}).feedback.fresh);
 }
 
 TEST(ReadJoint, AnAbsentMotorIsNeitherFreshNorCommandable)
 {
-  const auto reading = read_joint(wiring(0, 0), std::nullopt, milliseconds{15});
+  const auto reading = read_joint(JointWiring{}, std::nullopt, milliseconds{15});
   EXPECT_FALSE(reading.feedback.fresh);
   EXPECT_FALSE(reading.commandable);
   EXPECT_EQ(reading.feedback.fault_bits, 0);
@@ -185,7 +151,7 @@ TEST(ReadJoint, PacksDriveBitsTheFirmwareFaultFlagAndTheLatchedFaultIntoFaultBit
 {
   wire::TeleMotor m = motor_in(DriveState::DRV_FAULT, DriveFault::DRVF_OVERTORQUE);
   m.rs_fault_bits = 0x04;  // the drive's own bits
-  const auto bits = read_joint(wiring(0, 0), m, milliseconds{15}).feedback.fault_bits;
+  const auto bits = read_joint(JointWiring{}, m, milliseconds{15}).feedback.fault_bits;
 
   EXPECT_EQ(bits & kFaultBitsDriveMask, 0x04);
   EXPECT_NE(bits & kFaultBitFirmwareFault, 0);
@@ -194,14 +160,14 @@ TEST(ReadJoint, PacksDriveBitsTheFirmwareFaultFlagAndTheLatchedFaultIntoFaultBit
 
 TEST(ReadJoint, AHealthyMotorHasNoFaultBits)
 {
-  EXPECT_EQ(read_joint(wiring(0, 0), motor_in(DriveState::DRV_ENABLED), milliseconds{15})
+  EXPECT_EQ(read_joint(JointWiring{}, motor_in(DriveState::DRV_ENABLED), milliseconds{15})
     .feedback.fault_bits, 0);
 }
 
 TEST(ReadJoint, AFaultedMotorIsFreshButNotCommandable)
 {
   const auto reading = read_joint(
-    wiring(0, 0), motor_in(DriveState::DRV_FAULT, DriveFault::DRVF_CAN_TIMEOUT), milliseconds{15});
+    JointWiring{}, motor_in(DriveState::DRV_FAULT, DriveFault::DRVF_CAN_TIMEOUT), milliseconds{15});
   EXPECT_TRUE(reading.feedback.fresh);
   EXPECT_FALSE(reading.commandable);
 }
@@ -251,7 +217,8 @@ wire::TeleMotor aged(wire::TeleMotor motor, std::uint8_t age_ms)
 
 TEST(JudgeClearing, ReachedOnceEveryJointIsDisabledAndFresh)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1), wiring(1, 0)});
+  const auto layout = layout_of(
+    {{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}, {.chain = 1, .motor = 0}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_DISABLED), motor_in(DriveState::DRV_DISABLED)}},
       {1, {motor_in(DriveState::DRV_DISABLED)}}});
@@ -262,7 +229,7 @@ TEST(JudgeClearing, ReachedOnceEveryJointIsDisabledAndFresh)
 TEST(JudgeClearing, ADisabledMotorWithStaleFeedbackIsNotYetCleared)
 {
   // Its reported position is not current yet.
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_DISABLED), aged(motor_in(DriveState::DRV_DISABLED), 40)}}});
   const auto verdict = judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace);
@@ -272,7 +239,7 @@ TEST(JudgeClearing, ADisabledMotorWithStaleFeedbackIsNotYetCleared)
 
 TEST(JudgeClearing, AMotorThatNeverAnsweredIsNotCleared)
 {
-  const auto layout = layout_of({wiring(0, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}});
   const auto t = telemetry_of({{0, {aged(motor_in(DriveState::DRV_DISABLED), 255)}}});
   EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
     ArmingVerdict::Status::kWaiting);
@@ -280,7 +247,7 @@ TEST(JudgeClearing, AMotorThatNeverAnsweredIsNotCleared)
 
 TEST(JudgeClearing, AnArmedMotorIsNotYetCleared)
 {
-  const auto layout = layout_of({wiring(0, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}});
   const auto t = telemetry_of({{0, {motor_in(DriveState::DRV_ENABLED)}}});
   EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
     ArmingVerdict::Status::kWaiting);
@@ -288,7 +255,7 @@ TEST(JudgeClearing, AnArmedMotorIsNotYetCleared)
 
 TEST(JudgeClearing, WaitsForAChainThatIsNotReportingYet)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(1, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 1, .motor = 0}});
   const auto t = telemetry_of({{0, {motor_in(DriveState::DRV_DISABLED)}}});
   const auto verdict = judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace);
   EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
@@ -297,7 +264,7 @@ TEST(JudgeClearing, WaitsForAChainThatIsNotReportingYet)
 
 TEST(JudgeClearing, AFaultGetsAGraceForTheResetToLand)
 {
-  const auto layout = layout_of({wiring(0, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}});
   const auto t = telemetry_of({{0,
         {motor_in(DriveState::DRV_FAULT, DriveFault::DRVF_OVERTORQUE)}}});
   EXPECT_EQ(judge_clearing(t, layout, kMaxAge, milliseconds{100}, kGrace).status,
@@ -306,7 +273,7 @@ TEST(JudgeClearing, AFaultGetsAGraceForTheResetToLand)
 
 TEST(JudgeClearing, AFaultThatSurvivesTheGraceFails)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_DISABLED),
           motor_in(DriveState::DRV_FAULT, DriveFault::DRVF_MOTOR_REPORTED)}}});
@@ -321,7 +288,8 @@ TEST(JudgeClearing, AFaultThatSurvivesTheGraceFails)
 
 TEST(JudgeArming, ReachedOnceEveryJointIsEnabledWithFreshFeedback)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1), wiring(1, 0)});
+  const auto layout = layout_of(
+    {{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}, {.chain = 1, .motor = 0}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_ENABLED), motor_in(DriveState::DRV_ENABLED)}},
       {1, {motor_in(DriveState::DRV_ENABLED)}}});
@@ -331,7 +299,7 @@ TEST(JudgeArming, ReachedOnceEveryJointIsEnabledWithFreshFeedback)
 TEST(JudgeArming, EnabledWithoutFreshFeedbackIsNotArmed)
 {
   // A motor with no drive behind it can report ENABLED briefly before the CAN timeout faults it.
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_ENABLED), aged(motor_in(DriveState::DRV_ENABLED), 255)}}});
   const auto verdict = judge_arming(t, layout, kMaxAge);
@@ -341,7 +309,7 @@ TEST(JudgeArming, EnabledWithoutFreshFeedbackIsNotArmed)
 
 TEST(JudgeArming, WaitsAndNamesTheJointThatIsStillDisabled)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}});
   const auto t = telemetry_of({
       {0, {motor_in(DriveState::DRV_ENABLED), motor_in(DriveState::DRV_DISABLED)}}});
   const auto verdict = judge_arming(t, layout, kMaxAge);
@@ -351,14 +319,14 @@ TEST(JudgeArming, WaitsAndNamesTheJointThatIsStillDisabled)
 
 TEST(JudgeArming, AMotorStillEnablingIsNotYetArmed)
 {
-  const auto layout = layout_of({wiring(0, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}});
   const auto t = telemetry_of({{0, {motor_in(DriveState::DRV_ENABLING)}}});
   EXPECT_EQ(judge_arming(t, layout, kMaxAge).status, ArmingVerdict::Status::kWaiting);
 }
 
 TEST(JudgeArming, WaitsForAChainThatIsNotReportingYet)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(1, 0)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 1, .motor = 0}});
   const auto t = telemetry_of({{0, {motor_in(DriveState::DRV_ENABLED)}}});
   const auto verdict = judge_arming(t, layout, kMaxAge);
   EXPECT_EQ(verdict.status, ArmingVerdict::Status::kWaiting);
@@ -367,7 +335,7 @@ TEST(JudgeArming, WaitsForAChainThatIsNotReportingYet)
 
 TEST(JudgeArming, AnyFaultFailsAtOnceBecauseFromDisabledItIsThisArmingsOwn)
 {
-  const auto layout = layout_of({wiring(0, 0), wiring(0, 1)});
+  const auto layout = layout_of({{.chain = 0, .motor = 0}, {.chain = 0, .motor = 1}});
   for (const DriveFault fault : {DriveFault::DRVF_WOUND, DriveFault::DRVF_CAN_TIMEOUT}) {
     const auto t = telemetry_of({
         {0, {motor_in(DriveState::DRV_ENABLED), motor_in(DriveState::DRV_FAULT, fault)}}});

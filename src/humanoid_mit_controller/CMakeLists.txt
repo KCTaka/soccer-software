@@ -51,9 +51,11 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(${PROJECT_NAME}_gains_test test/gains_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_gains_test ${PROJECT_NAME})
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(humanoid_test_support REQUIRED)
+  ament_add_gmock(${PROJECT_NAME}_gains_test test/gains_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_gains_test
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

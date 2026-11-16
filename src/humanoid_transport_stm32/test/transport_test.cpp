@@ -5,15 +5,15 @@
 // A fake master on a pseudo-terminal tests the lifecycle and the parser. It is not timing
 // evidence and not the H1 emulator of ADR-007: see test/fake_master.hpp.
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <cstdlib>
 #include <new>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <limits>
 #include <memory>
 #include <string>
@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "fake_master.hpp"
+#include "humanoid_test_support/manifests.hpp"
 #include "humanoid_transport_stm32/stm32_serial_transport.hpp"
 
 // --- Allocation counting, for the real-time claim -----------------------------------------------
@@ -53,24 +54,14 @@ using humanoid::transport::FeedbackBatch;
 using humanoid::transport::JointManifest;
 using humanoid::transport::SafetyManifest;
 using humanoid::transport::TransportError;
-using humanoid::transport_stm32::JointWiring;
 using humanoid::transport_stm32::Stm32SerialTransport;
 using humanoid::transport_stm32::testing::FakeMaster;
 namespace wire = humanoid::transport_stm32::wire;
 
+using ::testing::Each;
+
 // Three joints on two slaves. Joint 1 is mirrored and offset, so any missed sign or offset shows.
 constexpr std::uint8_t kJoints = 3;
-
-JointWiring wiring(
-  std::uint8_t chain, std::uint8_t motor, std::int8_t sign = 1, double offset = 0.0)
-{
-  JointWiring w;
-  w.chain = chain;
-  w.motor = motor;
-  w.direction_sign = sign;
-  w.zero_offset_rad = offset;
-  return w;
-}
 
 class TransportTest : public ::testing::Test
 {
@@ -79,29 +70,16 @@ protected:
   {
     start_fake(default_fake_config());
 
-    const char * names[kJoints] = {"hip", "knee", "ankle"};
-    manifest.joint_count = kJoints;
-    safety.joint_count = kJoints;
-    for (std::uint8_t i = 0; i < kJoints; ++i) {
-      std::strncpy(
-        manifest.joints[i].name.data(), names[i], humanoid::transport::kMaxNameLength - 1);
-      auto & e = safety.envelopes[i];
-      e.position_min_rad = -1.5;
-      e.position_max_rad = 1.5;
-      e.velocity_max_rad_s = 20.0;
-      e.torque_peak_nm = 30.0;
-      e.stiffness_max_nm_rad = 100.0;
-      e.damping_max_nm_s_rad = 5.0;
-    }
-    safety.feedback_max_age_us = 15000;
-
     params.serial_device = fake->device();
     params.handshake_timeout = 500ms;
     params.discovery_timeout = 500ms;
     params.arming_timeout = 1500ms;
     params.release_timeout = 500ms;
     params.fault_grace = 150ms;
-    params.wiring = {wiring(0, 0), wiring(0, 1, -1, 0.5), wiring(1, 0)};
+    params.wiring = {
+      {.chain = 0, .motor = 0},
+      {.chain = 0, .motor = 1, .direction_sign = -1, .zero_offset_rad = 0.5},
+      {.chain = 1, .motor = 0}};
   }
 
   void TearDown() override
@@ -154,6 +132,21 @@ protected:
     return result;
   }
 
+  // What the master reports for each wired motor, in joint order.
+  std::vector<wire::DriveState> motor_states() const
+  {
+    std::vector<wire::DriveState> states;
+    for (const auto & w : params.wiring) {
+      states.push_back(fake->state(w.chain, w.motor));
+    }
+    return states;
+  }
+
+  bool every_motor_is(wire::DriveState state) const
+  {
+    return std::ranges::all_of(motor_states(), [state](auto s) {return s == state;});
+  }
+
   // One exchange, then whether the master reports that motor idle.
   bool exchange_and_check_disabled(std::uint8_t chain, std::uint8_t motor)
   {
@@ -176,8 +169,9 @@ protected:
   std::unique_ptr<FakeMaster> fake;
   std::unique_ptr<Stm32SerialTransport> transport;
   Stm32SerialTransport::Parameters params;
-  JointManifest manifest{};
-  SafetyManifest safety{};
+  JointManifest manifest = humanoid::test_support::joint_manifest({"hip", "knee", "ankle"});
+  SafetyManifest safety = humanoid::test_support::safety_manifest(
+    kJoints, humanoid::transport_stm32::testing::wire_safe_envelope());
   CommandBatch command{};
   FeedbackBatch feedback{};
   humanoid::transport::CycleSequence sequence{0};
@@ -289,6 +283,7 @@ TEST_F(TransportTest, TheFullTupleReachesTheMasterInJointAndWireUnits)
   ASSERT_TRUE(wire_command.has_value());
   EXPECT_EQ(wire_command->n_chains, 2);
   const auto & motor = wire_command->chains[0].motors[1];  // joint 1: chain 0, motor 1
+  // Running asks ENABLE every cycle and never RESET, so a mid-run fault stays latched (v10).
   EXPECT_EQ(motor.drive_req, static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE));
   EXPECT_EQ(motor.pos, 2000);   // -1 * 0.3 + 0.5 = 0.2 rad
   EXPECT_EQ(motor.vel, -200);   // sign flips motion
@@ -296,8 +291,6 @@ TEST_F(TransportTest, TheFullTupleReachesTheMasterInJointAndWireUnits)
   EXPECT_EQ(motor.kp, 400);     // gains keep their sign
   EXPECT_EQ(motor.kd, 200);
   EXPECT_NE(motor.flags & wire::kCmdFlagValid, 0);
-  // Running asks ENABLE every cycle and never RESET, so a mid-run fault stays latched (v10).
-  EXPECT_EQ(motor.drive_req, static_cast<std::uint8_t>(wire::DriveReq::DRV_REQ_ENABLE));
 }
 
 TEST_F(TransportTest, FeedbackComesBackInJointUnits)
@@ -443,7 +436,7 @@ TEST_F(TransportTest, ConfigureWaitsForBootDiscoveryThenSucceeds)
 
 TEST_F(TransportTest, ConfigureFailsWhenAChainReportsFewerMotorsThanTheWiringNeeds)
 {
-  params.wiring[2] = wiring(1, 1);  // chain 1 has one motor
+  params.wiring[2] = {.chain = 1, .motor = 1};  // chain 1 has one motor
   EXPECT_FALSE(configure());
 }
 
@@ -455,7 +448,7 @@ TEST_F(TransportTest, ConfigureFailsOnAWiringThatCountsDifferentlyFromTheManifes
 
 TEST_F(TransportTest, ConfigureFailsWhenTwoJointsShareAMotor)
 {
-  params.wiring[2] = wiring(0, 0);
+  params.wiring[2] = {.chain = 0, .motor = 0};
   EXPECT_FALSE(configure());
 }
 
@@ -506,9 +499,7 @@ TEST_F(TransportTest, ActivateRefusesAnUnconfiguredTransport)
 TEST_F(TransportTest, ActivationArmsEveryMotorIntoEnabled)
 {
   bring_up();
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
-  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_ENABLED);
+  EXPECT_THAT(motor_states(), Each(wire::DriveState::DRV_ENABLED));
 }
 
 TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyDisable)
@@ -518,9 +509,7 @@ TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyDisable)
   ASSERT_TRUE(transport->activate());  // connects and streams; never runs the arming sequence
 
   // Activation armed nothing: every motor is still DISABLED at the master.
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_THAT(motor_states(), Each(wire::DriveState::DRV_DISABLED));
 
   // Many running cycles keep streaming telemetry and still never arm.
   for (int i = 0; i < 50; ++i) {
@@ -528,9 +517,7 @@ TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyDisable)
   }
 
   // Had any cycle sent ENABLE, the master's state machine would have armed that motor.
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_THAT(motor_states(), Each(wire::DriveState::DRV_DISABLED));
 
   // And the wire itself carried DISABLE for every wired slot, never ENABLE.
   const auto last = fake->last_command();
@@ -580,11 +567,7 @@ TEST_F(TransportTest, ActivationFailsWhenAChainStopsAnsweringAndLeavesNothingArm
 
   // Nothing is left armed, including the motor on the chain that stopped answering: the release
   // keeps asking for IDLE even though it can never see the answer.
-  EXPECT_TRUE(eventually([&] {
-      return fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
-             fake->state(0, 1) == wire::DriveState::DRV_DISABLED && fake->state(1,
-        0) == wire::DriveState::DRV_DISABLED;
-    }));
+  EXPECT_TRUE(eventually([&] {return every_motor_is(wire::DriveState::DRV_DISABLED);}));
 }
 
 TEST_F(TransportTest, ActivationClearsAFaultLatchedByAPreviousSession)
@@ -660,7 +643,6 @@ TEST_F(TransportTest, ActivationFailsWhenADriveStopsAnsweringBeforeItArms)
 
   EXPECT_FALSE(transport->activate());
   EXPECT_NE(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
-  EXPECT_NE(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
 TEST_F(TransportTest, ActivationIsIdempotent)
@@ -677,9 +659,7 @@ TEST_F(TransportTest, DeactivationIdlesEveryMotorAndWaitsForTheMasterToSayIt)
   EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_ENABLED);
 
   transport->deactivate();  // STOP ramp (300 ms) lands within the 500 ms release timeout
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_THAT(motor_states(), Each(wire::DriveState::DRV_DISABLED));
   EXPECT_EQ(exchange().error, TransportError::kNotActive);
 }
 
@@ -693,9 +673,7 @@ TEST_F(TransportTest, DeactivationFallsBackToDisableWhenTheStopRampDoesNotLandIn
   transport->deactivate();
   // Even though the ramp could not finish in 50 ms, the immediate-DISABLE fallback leaves every
   // motor off.
-  EXPECT_EQ(fake->state(0, 0), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_DISABLED);
-  EXPECT_EQ(fake->state(1, 0), wire::DriveState::DRV_DISABLED);
+  EXPECT_THAT(motor_states(), Each(wire::DriveState::DRV_DISABLED));
 }
 
 TEST_F(TransportTest, ADeactivatedTransportCanBeActivatedAgain)
@@ -901,11 +879,8 @@ TEST_F(TransportTest, DisableAllIdlesEveryMotor)
   bring_up();
   ASSERT_TRUE(exchange_many(3).ok());
   EXPECT_TRUE(transport->request_all_disable());
-  ASSERT_TRUE(eventually([&] {
-      return exchange().ok() && fake->state(0, 0) == wire::DriveState::DRV_DISABLED &&
-             fake->state(0, 1) == wire::DriveState::DRV_DISABLED && fake->state(1,
-        0) == wire::DriveState::DRV_DISABLED;
-    }));
+  ASSERT_TRUE(
+    eventually([&] {return exchange().ok() && every_motor_is(wire::DriveState::DRV_DISABLED);}));
 }
 
 TEST_F(TransportTest, DisableRequestsFailForAJointThatDoesNotExistOrWhenInactive)
