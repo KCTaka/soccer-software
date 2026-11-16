@@ -1,0 +1,57 @@
+# unitree_g1's part of the SIL stand: the controller's joints and gains, and the body the push
+# hits. sil_stand.launch.py passes it after hardware_sil.yaml, whose mujoco_sim.disturbance.push
+# keys it completes.
+humanoid_mit_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - left_ankle_roll_joint
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_pitch_joint
+      - right_ankle_roll_joint
+      - waist_yaw_joint
+      - waist_roll_joint
+      - waist_pitch_joint
+      - left_shoulder_pitch_joint
+      - left_shoulder_roll_joint
+      - left_shoulder_yaw_joint
+      - left_elbow_joint
+      - left_wrist_roll_joint
+      - left_wrist_pitch_joint
+      - left_wrist_yaw_joint
+      - right_shoulder_pitch_joint
+      - right_shoulder_roll_joint
+      - right_shoulder_yaw_joint
+      - right_elbow_joint
+      - right_wrist_roll_joint
+      - right_wrist_pitch_joint
+      - right_wrist_yaw_joint
+    # The stand's gains, one per joint in `joints` order [N*m/rad], [N*m*s/rad]; sil_walk replaces
+    # them with its policy's. Held by PD alone, the robot is an inverted pendulum about its ankles,
+    # so legs and waist must be stiffer than gravity tips it over (m*g*h, about 210 N*m/rad over
+    # both ankles of the G1): at a uniform 20 it lies down within two seconds. MuJoCo evaluates
+    # the law at every physics step and integrates the damping implicitly, so the 5 ms control
+    # period puts no stability bound on kd.
+    kp: [200.0, 200.0, 200.0, 300.0, 200.0, 200.0,
+         200.0, 200.0, 200.0, 300.0, 200.0, 200.0,
+         300.0, 300.0, 300.0,
+         100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0,
+         100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0]
+    kd: [4.0, 4.0, 4.0, 4.0, 2.0, 2.0,
+         4.0, 4.0, 4.0, 4.0, 2.0, 2.0,
+         4.0, 4.0, 4.0,
+         2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0,
+         2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0]
+
+mujoco_sim:
+  ros__parameters:
+    disturbance:
+      push:
+        body: torso_link

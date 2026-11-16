@@ -77,7 +77,8 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
 - Read all parameters **once, into a plain struct**, in one place, and pass values to the
   ROS-free steps that follow (`SimParameters`).
 - Put stable settings in the node's section of the ros2_control parameter file
-  ([hardware_sil.yaml](../../src/humanoid_bringup/config/hardware_sil.yaml)). Expose per-run
+  ([hardware_sil.yaml](../../src/humanoid_bringup/config/hardware_sil.yaml); a robot's own
+  part is in `config/<robot>/sil_stand.yaml`). Expose per-run
   knobs as launch arguments passed through `ParameterValue(value_type=float)`: YAML and CLI
   integers (`50`) are a type error for a double parameter.
 - A node must be spun, or its parameter services never answer and `ros2 param get` hangs. A

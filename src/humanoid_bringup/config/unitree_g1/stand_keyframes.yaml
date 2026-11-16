@@ -1,6 +1,6 @@
 # Stand-up trajectory for unitree_g1.
 # Times in seconds. Positions in radians.
-# 29 actuated joints, ordered to match hardware_sil.yaml: the controller reads references by
+# 29 actuated joints, ordered to match sil_stand.yaml: the controller reads references by
 # index, not by name.
 dt: 0.005
 joint_names:

@@ -14,7 +14,8 @@ colcon test && colcon test-result --verbose   # must report 0 failures; skips ar
 python3 -m model.generators.cli check         # after any change under model/
 ```
 
-SIL launch (`ros2 launch humanoid_bringup sil_stand.launch.py`) needs a Zenoh router first:
+SIL launch (`ros2 launch humanoid_bringup sil_stand.launch.py`, `robot:=<robot>` to choose one
+with a `config/<robot>/sil_stand.yaml`; default `unitree_g1`) needs a Zenoh router first:
 `ros2 run rmw_zenoh_cpp rmw_zenohd`. It starts RViz2 by default; on a host without a usable X
 display (the Jetson over Remote-SSH) use `rviz:=false foxglove:=true` and open Foxglove at
 `ws://localhost:8765`. See [docs/dev-container.md](docs/dev-container.md).

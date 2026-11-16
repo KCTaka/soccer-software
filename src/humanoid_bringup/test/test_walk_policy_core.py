@@ -112,7 +112,7 @@ def test_policy_file_is_consistent():
 
 
 def test_controlled_joints_are_the_controllers_joints_in_order():
-    controller = load_yaml(CONFIG, 'hardware_sil.yaml')['humanoid_mit_controller'][
+    controller = load_yaml(CONFIG, 'unitree_g1', 'sil_stand.yaml')['humanoid_mit_controller'][
         'ros__parameters']
     assert _policy_yaml()['walk_policy']['ros__parameters']['controlled_joints'] == \
         controller['joints']
