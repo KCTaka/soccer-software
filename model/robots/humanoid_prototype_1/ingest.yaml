@@ -136,45 +136,42 @@ linkages:
       output_body: Left-FootMirror_1__FootMirror_1
       output_point_m: [0.0091, -0.06, -0.026]
 
-# Collision primitives, each fitted to named parts' meshes in the link frame (fit: box = their
-# bounding box; cylinder = along `axis`). One per part that can meet another link, as Menagerie's
-# humanoids have. Around the spherical hip and the shoulder only the motors carry one: boxes over
-# the brackets there meet the torso's at angles where the CAD meshes are still clear. The horns and
-# rods have none (the linkage's bodies never collide with each other). Keyed by link.
+# Collision geometry. Getting up puts the torso, hips, thighs, shins and arms on the floor, so those
+# links collide as their own shape: CoACD's convex pieces of the link's mesh (MuJoCo collides any
+# one mesh as its convex hull, which fills a bracket's or clevis's concavity). CoACD scales each
+# mesh to a unit cube, so threshold 0.03 allows a concavity of 3% of the link's size; on the torso
+# 16 pieces leave the exposed surface within 8.9 mm of the CAD's at the 95th percentile (0.05 and 8
+# pieces: 18.5 mm). Fewer than 128 vertices per piece shaves the forearm's tube (64: 8 mm under the
+# CAD surface). Pieces that touch at the zero pose, where a joint's parts nest, are excluded from
+# colliding by the generator.
+convex_decomposition:
+  threshold: 0.03
+  max_pieces: 16
+  max_piece_vertices: 128
+  seed: 0
+  links:
+    - Torso_1__Torso-Design-3_1
+    - Left-Hip-Roll_1__Hip-Roll-Block_1
+    - Left-Hip-Yaw_1__Hip-Yaw-Block_Old_1
+    - Left-Knee_1__Body-RS03-Design-V3_1
+    - Left-Shin_1__Outer-Shin-Plate_1
+    - Left-Hip-RollMirror_1__Hip-Roll-BlockMirror_1
+    - Left-Hip-YawMirror_1__Hip-Yaw-Block_OldMirror_1
+    - Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1
+    - Left-ShinMirror_1__Outer-Shin-PlateMirror_1
+    - Left-Shoulder-Roll_1__Shoulder_1
+    - Left-Forearm-Pitch_1__Arm-Attach_1
+    - Left-Forearm_1__Wrist-Attach_1
+    - Left-Shoulder-RollMirror_1__ShoulderMirror_1
+    - Left-Forearm-PitchMirror_1__Arm-AttachMirror_1
+    - Left-ForearmMirror_1__Wrist-AttachMirror_1
+
+# Collision primitives, fitted to named parts' meshes in the link frame (fit: box = their bounding
+# box). Each foot keeps one box: its sole is flat, so the box's face is exact, and MuJoCo's
+# box-plane contact gives the support polygon's corners. The horns and rods have none (the
+# linkage's bodies never collide with each other). Keyed by link.
 collision:
-  Torso_1__Torso-Design-3_1:
-    - {shape: box, fit: Torso_1__Torso-Design-3_1}
-    - {shape: box, fit: [Left-Hip-Pitch_1__Hip-Pitch-Block_1, Left-Hip-Pitch_1__RS03---Sim_1]}
-    - {shape: box, fit: [Left-Hip-PitchMirror_1__Hip-Pitch-BlockMirror_1, Left-Hip-PitchMirror_1__RS03---SimMirror_1]}
-  Left-Hip-Roll_1__Hip-Roll-Block_1:
-    - {shape: cylinder, axis: x, fit: Left-Hip-Roll_1__RS06---Sim_1}
-  Left-Hip-Yaw_1__Hip-Yaw-Block_Old_1:
-    - {shape: cylinder, axis: z, fit: Left-Hip-Yaw_1__RS02---Sim_1}
-  Left-Knee_1__Body-RS03-Design-V3_1:
-    - {shape: box, fit: [Left-Knee_1__Body-RS03-Design-V3_1, Left-Knee_1__RS03---Sim_1]}
-  Left-Shin_1__Outer-Shin-Plate_1:
-    - {shape: box, fit: [Left-Shin_1__Outer-Shin-Plate_1, Left-Shin_1__Inner-Shin-Plate_1, Left-Shin_1__RS00---Sim_1]}
   Left-Foot_1__Foot_1:
     - {shape: box, fit: Left-Foot_1__Foot_1}
-  Left-Hip-RollMirror_1__Hip-Roll-BlockMirror_1:
-    - {shape: cylinder, axis: x, fit: Left-Hip-RollMirror_1__RS06---SimMirror_1}
-  Left-Hip-YawMirror_1__Hip-Yaw-Block_OldMirror_1:
-    - {shape: cylinder, axis: z, fit: Left-Hip-YawMirror_1__RS02---SimMirror_1}
-  Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1:
-    - {shape: box, fit: [Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1, Left-KneeMirror_1__RS03---SimMirror_2]}
-  Left-ShinMirror_1__Outer-Shin-PlateMirror_1:
-    - {shape: box, fit: [Left-ShinMirror_1__Outer-Shin-PlateMirror_1, Left-ShinMirror_1__Inner-Shin-PlateMirror_1, Left-ShinMirror_1__RS00---SimMirror_1]}
   Left-FootMirror_1__FootMirror_1:
     - {shape: box, fit: Left-FootMirror_1__FootMirror_1}
-  Left-Shoulder-Roll_1__Shoulder_1:
-    - {shape: box, fit: [Left-Shoulder-Roll_1__Shoulder_1, Left-Shoulder-Roll_1__RS00---Sim_1]}
-  Left-Forearm-Pitch_1__Arm-Attach_1:
-    - {shape: box, fit: [Left-Forearm-Pitch_1__Forearm_1, Left-Forearm-Pitch_1__RS00---Sim_1]}
-  Left-Forearm_1__Wrist-Attach_1:
-    - {shape: box, fit: [Left-Forearm_1__Wrist-Attach_1, Left-Forearm_1__Arm_1]}
-  Left-Shoulder-RollMirror_1__ShoulderMirror_1:
-    - {shape: box, fit: [Left-Shoulder-RollMirror_1__ShoulderMirror_1, Left-Shoulder-RollMirror_1__RS00---SimMirror-1_2]}
-  Left-Forearm-PitchMirror_1__Arm-AttachMirror_1:
-    - {shape: box, fit: [Left-Forearm-PitchMirror_1__ForearmMirror_1, Left-Forearm-PitchMirror_1__RS00---SimMirror-1_1]}
-  Left-ForearmMirror_1__Wrist-AttachMirror_1:
-    - {shape: box, fit: [Left-ForearmMirror_1__Wrist-AttachMirror_1, Left-ForearmMirror_1__ArmMirror_1]}

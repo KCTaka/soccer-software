@@ -43,50 +43,24 @@ links:
     iyz_kg_m2: -6.564719071283122e-07
   visual_mesh: pelvis
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.45437e-05
-        - 4.152e-07
-        - 0.164
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.06
-      - 0.085
-      - 0.109
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.31e-08
-        - 0.0285004147
-        - -0.0025000015
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.06
-      - 0.0284999992
-      - 0.0575
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.31e-08
-        - -0.0284995844
-        - -0.0025000015
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.06
-      - 0.0284999992
-      - 0.0575
-    mesh: null
+    primitives: []
+    mesh:
+    - pelvis_collision_0
+    - pelvis_collision_1
+    - pelvis_collision_2
+    - pelvis_collision_3
+    - pelvis_collision_4
+    - pelvis_collision_5
+    - pelvis_collision_6
+    - pelvis_collision_7
+    - pelvis_collision_8
+    - pelvis_collision_9
+    - pelvis_collision_10
+    - pelvis_collision_11
+    - pelvis_collision_12
+    - pelvis_collision_13
+    - pelvis_collision_14
+    - pelvis_collision_15
 - name: left_hip_pitch_link
   parent_joint: left_hip_pitch_joint
   mass_kg: 0.8490266289700453
@@ -103,21 +77,24 @@ links:
     iyz_kg_m2: 5.367850355097224e-06
   visual_mesh: left_hip_pitch_link
   collision:
-    primitives:
-    - shape: cylinder
-      frame:
-        xyz_m:
-        - 0.0022499669
-        - 0.0480004155
-        - -1.5e-09
-        rpy_rad:
-        - 0.0
-        - 1.570796326795
-        - 0.0
-      dimensions_m:
-      - 0.0409796616
-      - 0.02525
-    mesh: null
+    primitives: []
+    mesh:
+    - left_hip_pitch_link_collision_0
+    - left_hip_pitch_link_collision_1
+    - left_hip_pitch_link_collision_2
+    - left_hip_pitch_link_collision_3
+    - left_hip_pitch_link_collision_4
+    - left_hip_pitch_link_collision_5
+    - left_hip_pitch_link_collision_6
+    - left_hip_pitch_link_collision_7
+    - left_hip_pitch_link_collision_8
+    - left_hip_pitch_link_collision_9
+    - left_hip_pitch_link_collision_10
+    - left_hip_pitch_link_collision_11
+    - left_hip_pitch_link_collision_12
+    - left_hip_pitch_link_collision_13
+    - left_hip_pitch_link_collision_14
+    - left_hip_pitch_link_collision_15
 - name: right_hip_pitch_link
   parent_joint: right_hip_pitch_joint
   mass_kg: 0.8490266365700485
@@ -134,21 +111,24 @@ links:
     iyz_kg_m2: -5.367957067675162e-06
   visual_mesh: right_hip_pitch_link
   collision:
-    primitives:
-    - shape: cylinder
-      frame:
-        xyz_m:
-        - 0.0022499669
-        - -0.0479995851
-        - -1.5e-09
-        rpy_rad:
-        - 0.0
-        - 1.570796326795
-        - 0.0
-      dimensions_m:
-      - 0.0409796616
-      - 0.02525
-    mesh: null
+    primitives: []
+    mesh:
+    - right_hip_pitch_link_collision_0
+    - right_hip_pitch_link_collision_1
+    - right_hip_pitch_link_collision_2
+    - right_hip_pitch_link_collision_3
+    - right_hip_pitch_link_collision_4
+    - right_hip_pitch_link_collision_5
+    - right_hip_pitch_link_collision_6
+    - right_hip_pitch_link_collision_7
+    - right_hip_pitch_link_collision_8
+    - right_hip_pitch_link_collision_9
+    - right_hip_pitch_link_collision_10
+    - right_hip_pitch_link_collision_11
+    - right_hip_pitch_link_collision_12
+    - right_hip_pitch_link_collision_13
+    - right_hip_pitch_link_collision_14
+    - right_hip_pitch_link_collision_15
 - name: left_shoulder_pitch_link
   parent_joint: left_shoulder_pitch_joint
   mass_kg: 0.36668326017240155
@@ -165,22 +145,24 @@ links:
     iyz_kg_m2: 1.82158280013447e-12
   visual_mesh: left_shoulder_pitch_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -0.0050003933
-        - 0.037000416
-        - 1.7e-09
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0355000018
-      - 0.037
-      - 0.0339864769
-    mesh: null
+    primitives: []
+    mesh:
+    - left_shoulder_pitch_link_collision_0
+    - left_shoulder_pitch_link_collision_1
+    - left_shoulder_pitch_link_collision_2
+    - left_shoulder_pitch_link_collision_3
+    - left_shoulder_pitch_link_collision_4
+    - left_shoulder_pitch_link_collision_5
+    - left_shoulder_pitch_link_collision_6
+    - left_shoulder_pitch_link_collision_7
+    - left_shoulder_pitch_link_collision_8
+    - left_shoulder_pitch_link_collision_9
+    - left_shoulder_pitch_link_collision_10
+    - left_shoulder_pitch_link_collision_11
+    - left_shoulder_pitch_link_collision_12
+    - left_shoulder_pitch_link_collision_13
+    - left_shoulder_pitch_link_collision_14
+    - left_shoulder_pitch_link_collision_15
 - name: right_shoulder_pitch_link
   parent_joint: right_shoulder_pitch_joint
   mass_kg: 0.3666832791481007
@@ -197,22 +179,24 @@ links:
     iyz_kg_m2: -1.5564566714106724e-12
   visual_mesh: right_shoulder_pitch_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -0.0050003933
-        - -0.0369995857
-        - 1.7e-09
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0355000018
-      - 0.037
-      - 0.0339864769
-    mesh: null
+    primitives: []
+    mesh:
+    - right_shoulder_pitch_link_collision_0
+    - right_shoulder_pitch_link_collision_1
+    - right_shoulder_pitch_link_collision_2
+    - right_shoulder_pitch_link_collision_3
+    - right_shoulder_pitch_link_collision_4
+    - right_shoulder_pitch_link_collision_5
+    - right_shoulder_pitch_link_collision_6
+    - right_shoulder_pitch_link_collision_7
+    - right_shoulder_pitch_link_collision_8
+    - right_shoulder_pitch_link_collision_9
+    - right_shoulder_pitch_link_collision_10
+    - right_shoulder_pitch_link_collision_11
+    - right_shoulder_pitch_link_collision_12
+    - right_shoulder_pitch_link_collision_13
+    - right_shoulder_pitch_link_collision_14
+    - right_shoulder_pitch_link_collision_15
 - name: left_hip_roll_link
   parent_joint: left_hip_roll_joint
   mass_kg: 0.7528411454334613
@@ -229,21 +213,24 @@ links:
     iyz_kg_m2: 5.936635207138376e-07
   visual_mesh: left_hip_roll_link
   collision:
-    primitives:
-    - shape: cylinder
-      frame:
-        xyz_m:
-        - -0.0430000331
-        - 9.9084e-06
-        - -0.0782500015
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0392452545
-      - 0.02275
-    mesh: null
+    primitives: []
+    mesh:
+    - left_hip_roll_link_collision_0
+    - left_hip_roll_link_collision_1
+    - left_hip_roll_link_collision_2
+    - left_hip_roll_link_collision_3
+    - left_hip_roll_link_collision_4
+    - left_hip_roll_link_collision_5
+    - left_hip_roll_link_collision_6
+    - left_hip_roll_link_collision_7
+    - left_hip_roll_link_collision_8
+    - left_hip_roll_link_collision_9
+    - left_hip_roll_link_collision_10
+    - left_hip_roll_link_collision_11
+    - left_hip_roll_link_collision_12
+    - left_hip_roll_link_collision_13
+    - left_hip_roll_link_collision_14
+    - left_hip_roll_link_collision_15
 - name: right_hip_roll_link
   parent_joint: right_hip_roll_joint
   mass_kg: 0.7528417738629833
@@ -260,21 +247,24 @@ links:
     iyz_kg_m2: -5.938924460164857e-07
   visual_mesh: right_hip_roll_link
   collision:
-    primitives:
-    - shape: cylinder
-      frame:
-        xyz_m:
-        - -0.0430000331
-        - -9.078e-06
-        - -0.0782500015
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0392452545
-      - 0.02275
-    mesh: null
+    primitives: []
+    mesh:
+    - right_hip_roll_link_collision_0
+    - right_hip_roll_link_collision_1
+    - right_hip_roll_link_collision_2
+    - right_hip_roll_link_collision_3
+    - right_hip_roll_link_collision_4
+    - right_hip_roll_link_collision_5
+    - right_hip_roll_link_collision_6
+    - right_hip_roll_link_collision_7
+    - right_hip_roll_link_collision_8
+    - right_hip_roll_link_collision_9
+    - right_hip_roll_link_collision_10
+    - right_hip_roll_link_collision_11
+    - right_hip_roll_link_collision_12
+    - right_hip_roll_link_collision_13
+    - right_hip_roll_link_collision_14
+    - right_hip_roll_link_collision_15
 - name: left_shoulder_roll_link
   parent_joint: left_shoulder_roll_joint
   mass_kg: 0.5158558438282327
@@ -291,22 +281,24 @@ links:
     iyz_kg_m2: -8.097705298351414e-06
   visual_mesh: left_shoulder_roll_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - 0.0292496085
-        - 0.102500376
-        - -0.0044999983
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.034
-      - 0.0564999599
-      - 0.0335
-    mesh: null
+    primitives: []
+    mesh:
+    - left_shoulder_roll_link_collision_0
+    - left_shoulder_roll_link_collision_1
+    - left_shoulder_roll_link_collision_2
+    - left_shoulder_roll_link_collision_3
+    - left_shoulder_roll_link_collision_4
+    - left_shoulder_roll_link_collision_5
+    - left_shoulder_roll_link_collision_6
+    - left_shoulder_roll_link_collision_7
+    - left_shoulder_roll_link_collision_8
+    - left_shoulder_roll_link_collision_9
+    - left_shoulder_roll_link_collision_10
+    - left_shoulder_roll_link_collision_11
+    - left_shoulder_roll_link_collision_12
+    - left_shoulder_roll_link_collision_13
+    - left_shoulder_roll_link_collision_14
+    - left_shoulder_roll_link_collision_15
 - name: right_shoulder_roll_link
   parent_joint: right_shoulder_roll_joint
   mass_kg: 0.5158557669943938
@@ -323,22 +315,24 @@ links:
     iyz_kg_m2: 8.097684720267062e-06
   visual_mesh: right_shoulder_roll_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - 0.0292496085
-        - -0.1024995456
-        - -0.0044999983
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.034
-      - 0.0564999599
-      - 0.0335
-    mesh: null
+    primitives: []
+    mesh:
+    - right_shoulder_roll_link_collision_0
+    - right_shoulder_roll_link_collision_1
+    - right_shoulder_roll_link_collision_2
+    - right_shoulder_roll_link_collision_3
+    - right_shoulder_roll_link_collision_4
+    - right_shoulder_roll_link_collision_5
+    - right_shoulder_roll_link_collision_6
+    - right_shoulder_roll_link_collision_7
+    - right_shoulder_roll_link_collision_8
+    - right_shoulder_roll_link_collision_9
+    - right_shoulder_roll_link_collision_10
+    - right_shoulder_roll_link_collision_11
+    - right_shoulder_roll_link_collision_12
+    - right_shoulder_roll_link_collision_13
+    - right_shoulder_roll_link_collision_14
+    - right_shoulder_roll_link_collision_15
 - name: left_hip_yaw_link
   parent_joint: left_hip_yaw_joint
   mass_kg: 1.1573575241113383
@@ -355,22 +349,24 @@ links:
     iyz_kg_m2: -1.6056473016316533e-06
   visual_mesh: left_hip_yaw_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -9.26e-07
-        - -0.001549584
-        - -0.05555169
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.055656538
-      - 0.030549999
-      - 0.0555516872
-    mesh: null
+    primitives: []
+    mesh:
+    - left_hip_yaw_link_collision_0
+    - left_hip_yaw_link_collision_1
+    - left_hip_yaw_link_collision_2
+    - left_hip_yaw_link_collision_3
+    - left_hip_yaw_link_collision_4
+    - left_hip_yaw_link_collision_5
+    - left_hip_yaw_link_collision_6
+    - left_hip_yaw_link_collision_7
+    - left_hip_yaw_link_collision_8
+    - left_hip_yaw_link_collision_9
+    - left_hip_yaw_link_collision_10
+    - left_hip_yaw_link_collision_11
+    - left_hip_yaw_link_collision_12
+    - left_hip_yaw_link_collision_13
+    - left_hip_yaw_link_collision_14
+    - left_hip_yaw_link_collision_15
 - name: right_hip_yaw_link
   parent_joint: right_hip_yaw_joint
   mass_kg: 1.1573577330150184
@@ -387,22 +383,24 @@ links:
     iyz_kg_m2: 1.6052453632951006e-06
   visual_mesh: right_hip_yaw_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -9.26e-07
-        - 0.0015504143
-        - -0.05555169
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.055656538
-      - 0.030549999
-      - 0.0555516872
-    mesh: null
+    primitives: []
+    mesh:
+    - right_hip_yaw_link_collision_0
+    - right_hip_yaw_link_collision_1
+    - right_hip_yaw_link_collision_2
+    - right_hip_yaw_link_collision_3
+    - right_hip_yaw_link_collision_4
+    - right_hip_yaw_link_collision_5
+    - right_hip_yaw_link_collision_6
+    - right_hip_yaw_link_collision_7
+    - right_hip_yaw_link_collision_8
+    - right_hip_yaw_link_collision_9
+    - right_hip_yaw_link_collision_10
+    - right_hip_yaw_link_collision_11
+    - right_hip_yaw_link_collision_12
+    - right_hip_yaw_link_collision_13
+    - right_hip_yaw_link_collision_14
+    - right_hip_yaw_link_collision_15
 - name: left_elbow_link
   parent_joint: left_elbow_joint
   mass_kg: 0.43216864869841426
@@ -419,22 +417,24 @@ links:
     iyz_kg_m2: -1.0872186934184521e-10
   visual_mesh: left_elbow_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.915e-07
-        - 0.103500416
-        - 0.0317500017
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.034
-      - 0.1375
-      - 0.0405
-    mesh: null
+    primitives: []
+    mesh:
+    - left_elbow_link_collision_0
+    - left_elbow_link_collision_1
+    - left_elbow_link_collision_2
+    - left_elbow_link_collision_3
+    - left_elbow_link_collision_4
+    - left_elbow_link_collision_5
+    - left_elbow_link_collision_6
+    - left_elbow_link_collision_7
+    - left_elbow_link_collision_8
+    - left_elbow_link_collision_9
+    - left_elbow_link_collision_10
+    - left_elbow_link_collision_11
+    - left_elbow_link_collision_12
+    - left_elbow_link_collision_13
+    - left_elbow_link_collision_14
+    - left_elbow_link_collision_15
 - name: right_elbow_link
   parent_joint: right_elbow_joint
   mass_kg: 0.4321686486871919
@@ -451,22 +451,24 @@ links:
     iyz_kg_m2: -1.1333070375549347e-10
   visual_mesh: right_elbow_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.915e-07
-        - -0.1034995857
-        - 0.0317500017
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.034
-      - 0.1375
-      - 0.0405
-    mesh: null
+    primitives: []
+    mesh:
+    - right_elbow_link_collision_0
+    - right_elbow_link_collision_1
+    - right_elbow_link_collision_2
+    - right_elbow_link_collision_3
+    - right_elbow_link_collision_4
+    - right_elbow_link_collision_5
+    - right_elbow_link_collision_6
+    - right_elbow_link_collision_7
+    - right_elbow_link_collision_8
+    - right_elbow_link_collision_9
+    - right_elbow_link_collision_10
+    - right_elbow_link_collision_11
+    - right_elbow_link_collision_12
+    - right_elbow_link_collision_13
+    - right_elbow_link_collision_14
+    - right_elbow_link_collision_15
 - name: left_knee_link
   parent_joint: left_knee_joint
   mass_kg: 0.6531720518253721
@@ -483,22 +485,24 @@ links:
     iyz_kg_m2: -7.109406884155645e-05
   visual_mesh: left_knee_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.31e-08
-        - -0.0399995845
-        - -0.0775000707
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0285
-      - 0.045
-      - 0.106
-    mesh: null
+    primitives: []
+    mesh:
+    - left_knee_link_collision_0
+    - left_knee_link_collision_1
+    - left_knee_link_collision_2
+    - left_knee_link_collision_3
+    - left_knee_link_collision_4
+    - left_knee_link_collision_5
+    - left_knee_link_collision_6
+    - left_knee_link_collision_7
+    - left_knee_link_collision_8
+    - left_knee_link_collision_9
+    - left_knee_link_collision_10
+    - left_knee_link_collision_11
+    - left_knee_link_collision_12
+    - left_knee_link_collision_13
+    - left_knee_link_collision_14
+    - left_knee_link_collision_15
 - name: right_knee_link
   parent_joint: right_knee_joint
   mass_kg: 0.6531720518228422
@@ -515,22 +519,24 @@ links:
     iyz_kg_m2: 7.109400736718456e-05
   visual_mesh: right_knee_link
   collision:
-    primitives:
-    - shape: box
-      frame:
-        xyz_m:
-        - -3.31e-08
-        - 0.0400004149
-        - -0.0775000707
-        rpy_rad:
-        - 0.0
-        - 0.0
-        - 0.0
-      dimensions_m:
-      - 0.0285
-      - 0.045
-      - 0.106
-    mesh: null
+    primitives: []
+    mesh:
+    - right_knee_link_collision_0
+    - right_knee_link_collision_1
+    - right_knee_link_collision_2
+    - right_knee_link_collision_3
+    - right_knee_link_collision_4
+    - right_knee_link_collision_5
+    - right_knee_link_collision_6
+    - right_knee_link_collision_7
+    - right_knee_link_collision_8
+    - right_knee_link_collision_9
+    - right_knee_link_collision_10
+    - right_knee_link_collision_11
+    - right_knee_link_collision_12
+    - right_knee_link_collision_13
+    - right_knee_link_collision_14
+    - right_knee_link_collision_15
 - name: left_ankle_horn_link
   parent_joint: left_ankle_motor_joint
   mass_kg: 0.013307918982757355

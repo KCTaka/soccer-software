@@ -12,21 +12,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-3.45437e-05 4.152e-07 0.164" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.12 0.17 0.218" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_0.stl" />
       </geometry>
     </collision>
     <collision>
-      <origin xyz="-3.31e-08 0.0285004147 -0.0025000015" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.12 0.0569999984 0.115" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_1.stl" />
       </geometry>
     </collision>
     <collision>
-      <origin xyz="-3.31e-08 -0.0284995844 -0.0025000015" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.12 0.0569999984 0.115" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/pelvis_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -42,9 +120,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="0.0022499669 0.0480004155 -1.5e-09" rpy="0 1.570796327 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <cylinder radius="0.0409796616" length="0.0505" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_pitch_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -60,9 +228,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="0.0022499669 -0.0479995851 -1.5e-09" rpy="0 1.570796327 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <cylinder radius="0.0409796616" length="0.0505" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_pitch_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -78,9 +336,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-0.0050003933 0.037000416 1.7e-09" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.0710000036 0.074 0.0679729538" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_pitch_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -96,9 +444,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-0.0050003933 -0.0369995857 1.7e-09" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.0710000036 0.074 0.0679729538" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_pitch_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -114,9 +552,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-0.0430000331 9.9084e-06 -0.0782500015" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <cylinder radius="0.0392452545" length="0.0455" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_roll_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -132,9 +660,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-0.0430000331 -9.078e-06 -0.0782500015" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <cylinder radius="0.0392452545" length="0.0455" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_roll_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -150,9 +768,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="0.0292496085 0.102500376 -0.0044999983" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.068 0.1129999198 0.067" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_shoulder_roll_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -168,9 +876,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="0.0292496085 -0.1024995456 -0.0044999983" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.068 0.1129999198 0.067" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_shoulder_roll_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -186,9 +984,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-9.26e-07 -0.001549584 -0.05555169" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.111313076 0.061099998 0.1111033744" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_hip_yaw_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -204,9 +1092,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-9.26e-07 0.0015504143 -0.05555169" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.111313076 0.061099998 0.1111033744" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_hip_yaw_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -222,9 +1200,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-3.915e-07 0.103500416 0.0317500017" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.068 0.275 0.081" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_elbow_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -240,9 +1308,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-3.915e-07 -0.1034995857 0.0317500017" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.068 0.275 0.081" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_elbow_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -258,9 +1416,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-3.31e-08 -0.0399995845 -0.0775000707" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.057 0.09 0.212" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/left_knee_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
@@ -276,9 +1524,99 @@
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-3.31e-08 0.0400004149 -0.0775000707" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.057 0.09 0.212" />
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://humanoid_description/robots/humanoid_prototype_1/meshes/right_knee_link_collision_15.stl" />
       </geometry>
     </collision>
   </link>
