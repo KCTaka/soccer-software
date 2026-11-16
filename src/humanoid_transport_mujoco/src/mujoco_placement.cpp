@@ -5,11 +5,11 @@
 #include <mujoco/mujoco.h>
 
 #include <format>
+#include <span>
 
 #include <algorithm>
 #include <cmath>
 #include <optional>
-#include <span>
 #include <string>
 #include <vector>
 

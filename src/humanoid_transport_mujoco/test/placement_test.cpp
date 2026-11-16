@@ -194,8 +194,9 @@ TEST(Placement, PlacesTheG1WhereMenagerieDoesByHand)
 }
 
 // A parallelogram four-bar: cranks a and b, 0.5 long, pivot 1 apart on the ground; the coupler
-// hangs on a's tip and is pinned to b's by a connect equality. With a at q, the loop closes with b at
-// q and the coupler at -q. A tree cut open the same way is what the generator emits for a linkage.
+// hangs on a's tip and is pinned to b's by a connect equality. With a at q, the loop closes with b
+// at q and the coupler at -q. A tree cut open the same way is what the generator emits for a
+// linkage.
 constexpr const char * kParallelogram =
   "<mujoco><worldbody>"
   "<body name='a'><joint name='a' axis='0 1 0'/><geom type='capsule' fromto='0 0 0 0 0 0.5'"
