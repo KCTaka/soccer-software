@@ -1,6 +1,7 @@
 // Copyright 2026 UTRA-RoboSoccer
 
 #include <mujoco/mujoco.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -20,6 +21,7 @@ using humanoid::test_support::load_model;
 using humanoid::test_support::load_model_xml;
 using humanoid::test_support::make_data;
 using humanoid::test_support::RobotName;
+using humanoid::transport_mujoco::close_equality_constraints;
 using humanoid::transport_mujoco::free_joint_qpos_adr;
 using humanoid::transport_mujoco::ground_plane_z;
 using humanoid::transport_mujoco::lowest_collision_z;
@@ -189,6 +191,53 @@ TEST(Placement, PlacesTheG1WhereMenagerieDoesByHand)
   const auto p = place(*model, "pelvis");
   ASSERT_TRUE(p);
   EXPECT_NEAR(model->qpos0[*root_adr + 2] + (p->ground - p->lowest), 0.793, 0.01);
+}
+
+// A parallelogram four-bar: cranks a and b, 0.5 long, pivot 1 apart on the ground; the coupler
+// hangs on a's tip and is pinned to b's by a connect equality. With a at q, the loop closes with b at
+// q and the coupler at -q. A tree cut open the same way is what the generator emits for a linkage.
+constexpr const char * kParallelogram =
+  "<mujoco><worldbody>"
+  "<body name='a'><joint name='a' axis='0 1 0'/><geom type='capsule' fromto='0 0 0 0 0 0.5'"
+  " size='0.01'/>"
+  "<body name='coupler' pos='0 0 0.5'><joint name='coupler' axis='0 1 0'/>"
+  "<geom type='capsule' fromto='0 0 0 1 0 0' size='0.01'/><site name='tip' pos='1 0 0'/></body>"
+  "</body>"
+  "<body name='b' pos='1 0 0'><joint name='b' axis='0 1 0'/><geom type='capsule'"
+  " fromto='0 0 0 0 0 0.5' size='0.01'/><site name='pin' pos='0 0 0.5'/></body>"
+  "</worldbody><equality><connect site1='tip' site2='pin'/></equality></mujoco>";
+
+TEST(CloseEqualityConstraints, MovesTheLinkageAroundAHeldJoint)
+{
+  const auto model = load_model_xml(kParallelogram);
+  ASSERT_NE(model, nullptr);
+  const auto data = make_data(*model);
+  const auto qpos = [&](const char * joint) {
+      return data->qpos[model->jnt_qposadr[mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, joint)]];
+    };
+  const int a = mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, "a");
+  data->qpos[model->jnt_qposadr[a]] = 0.3;
+  const int held[] = {model->jnt_dofadr[a]};
+  EXPECT_EQ(close_equality_constraints(*model, *data, held), std::nullopt);
+  EXPECT_DOUBLE_EQ(qpos("a"), 0.3);
+  EXPECT_NEAR(qpos("b"), 0.3, 1e-9);
+  EXPECT_NEAR(qpos("coupler"), -0.3, 1e-9);
+}
+
+TEST(CloseEqualityConstraints, ReportsALoopThatCannotClose)
+{
+  // Holding both cranks at different angles leaves the coupler alone to close a gap it cannot.
+  const auto model = load_model_xml(kParallelogram);
+  ASSERT_NE(model, nullptr);
+  const auto data = make_data(*model);
+  const int a = mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, "a");
+  const int b = mj_name2id(model.get(), mjtObj::mjOBJ_JOINT, "b");
+  data->qpos[model->jnt_qposadr[a]] = 0.3;
+  data->qpos[model->jnt_qposadr[b]] = -0.3;
+  const int held[] = {model->jnt_dofadr[a], model->jnt_dofadr[b]};
+  const auto error = close_equality_constraints(*model, *data, held);
+  ASSERT_TRUE(error);
+  EXPECT_THAT(*error, ::testing::HasSubstr("cannot be closed"));
 }
 
 }  // namespace

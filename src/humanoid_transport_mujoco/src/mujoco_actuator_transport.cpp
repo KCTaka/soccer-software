@@ -76,6 +76,7 @@ bool MujocoActuatorTransport::configure(
          map_joints(joints) &&
          map_imu() &&
          map_initial_pose(*params) &&
+         close_initial_pose() &&
          resolve_initial_placement() &&
          configure_disturbance(params->push);
 }
@@ -494,7 +495,36 @@ bool MujocoActuatorTransport::map_initial_pose(const SimParameters & params)
     {
       return fail(std::format("initial_pose angle {} for '{}' is outside its range", value, name));
     }
-    initial_pose_.push_back({model_->jnt_qposadr[jnt_id], value});
+    initial_pose_.push_back({model_->jnt_qposadr[jnt_id], model_->jnt_dofadr[jnt_id], value});
+  }
+  return true;
+}
+
+bool MujocoActuatorTransport::close_initial_pose()
+{
+  // initial_pose.* names commanded joints. A linkage's output is one, but its input and coupler
+  // are not, so the pose leaves them at the closed zero pose and opens the loop; the closure
+  // constraint would then snap it shut on the first step and knock the robot over.
+  reset_to_initial_pose();
+  std::vector<int> held;
+  for (const auto & joint : initial_pose_) {
+    held.push_back(joint.dof_adr);
+  }
+  if (const auto error = close_equality_constraints(*model_, *data_, held)) {
+    return fail(*error);
+  }
+  const auto listed = initial_pose_.size();
+  for (int j = 0; j < model_->njnt; ++j) {
+    const int type = model_->jnt_type[j];
+    const int adr = model_->jnt_qposadr[j];
+    const bool is_listed = std::any_of(
+      initial_pose_.begin(), initial_pose_.begin() + static_cast<std::ptrdiff_t>(listed),
+      [adr](const InitialJoint & joint) {return joint.qpos_adr == adr;});
+    if ((type == mjtJoint::mjJNT_HINGE || type == mjtJoint::mjJNT_SLIDE) && !is_listed &&
+      data_->qpos[adr] != model_->qpos0[adr])
+    {
+      initial_pose_.push_back({adr, model_->jnt_dofadr[j], data_->qpos[adr]});
+    }
   }
   return true;
 }

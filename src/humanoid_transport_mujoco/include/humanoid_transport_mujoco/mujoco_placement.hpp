@@ -14,6 +14,8 @@
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_PLACEMENT_HPP_
 
 #include <optional>
+#include <span>
+#include <string>
 
 struct mjModel_;
 struct mjData_;
@@ -38,6 +40,16 @@ namespace humanoid::transport_mujoco
 /// tree has no collidable geom.
 [[nodiscard]] std::optional<double> lowest_collision_z(
   const mjModel_ & model, const mjData_ & data, int root_body) noexcept;
+
+/// Closes the model's equality constraints (a linkage's closure pin) at the pose in `data.qpos`
+/// by moving every hinge and slide joint except those whose DOF address is in `held_dofs`: the
+/// pose's commanded joints keep their angles, and a linkage's other members follow them. Free and
+/// ball joints never move, so the root keeps its placement. Gauss-Newton on the constraints'
+/// positions, each step the least-norm one. On success the closed pose is in `data.qpos`
+/// (unchanged if it was already closed); on failure, the last iterate, and the error says how far
+/// from closed it is.
+[[nodiscard]] std::optional<std::string> close_equality_constraints(
+  const mjModel_ & model, mjData_ & data, std::span<const int> held_dofs);
 
 }  // namespace humanoid::transport_mujoco
 
