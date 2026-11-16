@@ -20,7 +20,6 @@ bool SafetyKernel::configure(
   safety_ = safety;
   previous_command_ = transport::CommandBatch{};
   have_previous_ = false;
-  consecutive_bad_cycles_ = 0U;
   configured_ = true;
   last_trigger_ = Trigger::kNone;
   return true;
@@ -35,7 +34,13 @@ Verdict SafetyKernel::project(
     return Verdict{Trigger::kNotConfigured, 0U, command.joint_count, true, true};
   }
 
-  // --- Check 1: finiteness ---
+  // --- Check 1: the batch is the configured joints' ---
+  if (command.joint_count != joints_.joint_count) {
+    enter_protective(Trigger::kManifestMismatch, command);
+    return Verdict{Trigger::kManifestMismatch, 0U, command.joint_count, true, true};
+  }
+
+  // --- Check 2: finiteness ---
   for (std::uint8_t i = 0; i < command.joint_count; ++i) {
     if (!transport::is_finite(command.joints[i])) {
       enter_protective(Trigger::kNonFiniteCommand, command);
@@ -43,7 +48,7 @@ Verdict SafetyKernel::project(
     }
   }
 
-  // --- Checks 2-5: per-joint envelope ---
+  // --- Checks 3-8: per-joint envelope ---
   for (std::uint8_t i = 0; i < command.joint_count; ++i) {
     const auto & cmd = command.joints[i];
     const auto & env = safety_.envelopes[i];
@@ -68,6 +73,19 @@ Verdict SafetyKernel::project(
       return Verdict{Trigger::kTorqueEnvelope, i, command.joint_count, true, true};
     }
 
+    // Gain bounds. Gains are magnitudes (a negative one is a defect upstream), so the bound is on
+    // the signed value. A gain over its cap is refused, never clipped: ADR-002 prohibits
+    // field-by-field clipping as the safety method, and a clipped gain silently changes the
+    // controller's stiffness.
+    if (cmd.stiffness_nm_rad < 0.0 || cmd.stiffness_nm_rad > env.stiffness_max_nm_rad) {
+      enter_protective(Trigger::kStiffnessEnvelope, command);
+      return Verdict{Trigger::kStiffnessEnvelope, i, command.joint_count, true, true};
+    }
+    if (cmd.damping_nm_s_rad < 0.0 || cmd.damping_nm_s_rad > env.damping_max_nm_s_rad) {
+      enter_protective(Trigger::kDampingEnvelope, command);
+      return Verdict{Trigger::kDampingEnvelope, i, command.joint_count, true, true};
+    }
+
     // Slew limit: |τ - τ_prev| / dt ≤ slew_max
     if (have_previous_) {
       const double dt_s =
@@ -85,7 +103,6 @@ Verdict SafetyKernel::project(
   // --- Accepted: update previous command for next slew check ---
   previous_command_ = command;
   have_previous_ = true;
-  consecutive_bad_cycles_ = 0U;
 
   return Verdict{Trigger::kNone, 0U, 0U, false, false};
 }

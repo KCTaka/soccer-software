@@ -581,6 +581,8 @@ std::string_view trigger_name(safety::Trigger trigger)
     case Trigger::kPositionEnvelope: return "position envelope";
     case Trigger::kVelocityEnvelope: return "velocity envelope";
     case Trigger::kTorqueEnvelope: return "torque envelope";
+    case Trigger::kStiffnessEnvelope: return "stiffness envelope";
+    case Trigger::kDampingEnvelope: return "damping envelope";
     case Trigger::kPowerEnvelope: return "power envelope";
     case Trigger::kSlewLimit: return "torque slew limit";
     case Trigger::kAvailabilityMaskChange: return "availability mask change";
