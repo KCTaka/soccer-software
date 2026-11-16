@@ -1,0 +1,48 @@
+# Stand-up trajectory for humanoid_prototype_1.
+# Times in seconds. Positions in radians.
+# 16 actuated joints, ordered to match sil_stand.yaml: the controller reads references by
+# index, not by name. Each ankle is the four-bar's output, the joint controllers command.
+dt: 0.005
+joint_names:
+  - left_hip_pitch_joint
+  - left_hip_roll_joint
+  - left_hip_yaw_joint
+  - left_knee_joint
+  - left_ankle_pitch_joint
+  - right_hip_pitch_joint
+  - right_hip_roll_joint
+  - right_hip_yaw_joint
+  - right_knee_joint
+  - right_ankle_pitch_joint
+  - left_shoulder_pitch_joint
+  - left_shoulder_roll_joint
+  - left_elbow_joint
+  - right_shoulder_pitch_joint
+  - right_shoulder_roll_joint
+  - right_elbow_joint
+keyframes:
+  # t=0: crouch. sil_stand.launch.py starts the simulation in this pose and holds it until the
+  # controller takes over, so the first reference matches the robot. Feet flat: ankle = -(hip +
+  # knee). Arms lowered 1.2 rad from the CAD's T-pose (at 1.29 they reach the hip-roll motors).
+  - time: 0.0
+    positions: [
+      -0.4, 0.0, 0.0, 0.8, -0.4,   # left leg bent
+      -0.4, 0.0, 0.0, 0.8, -0.4,   # right leg bent
+       0.0, -1.2, 0.0,             # left arm lowered
+       0.0, 1.2, 0.0]              # right arm lowered
+
+  # t=2.5: standing at the model's home pose (robot_model.yaml `home`).
+  - time: 2.5
+    positions: [
+      -0.2, 0.0, 0.0, 0.4, -0.2,
+      -0.2, 0.0, 0.0, 0.4, -0.2,
+       0.0, -1.2, 0.0,
+       0.0, 1.2, 0.0]
+
+  # t=4.0: settled standing — same as t=2.5, hold
+  - time: 4.0
+    positions: [
+      -0.2, 0.0, 0.0, 0.4, -0.2,
+      -0.2, 0.0, 0.0, 0.4, -0.2,
+       0.0, -1.2, 0.0,
+       0.0, 1.2, 0.0]

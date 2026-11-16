@@ -1,0 +1,41 @@
+# humanoid_prototype_1's part of the SIL stand: the controller's joints and gains, and the body the
+# push hits. sil_stand.launch.py passes it after hardware_sil.yaml, whose mujoco_sim.disturbance.push
+# keys it completes.
+humanoid_mit_controller:
+  ros__parameters:
+    joints:
+      - left_hip_pitch_joint
+      - left_hip_roll_joint
+      - left_hip_yaw_joint
+      - left_knee_joint
+      - left_ankle_pitch_joint
+      - right_hip_pitch_joint
+      - right_hip_roll_joint
+      - right_hip_yaw_joint
+      - right_knee_joint
+      - right_ankle_pitch_joint
+      - left_shoulder_pitch_joint
+      - left_shoulder_roll_joint
+      - left_elbow_joint
+      - right_shoulder_pitch_joint
+      - right_shoulder_roll_joint
+      - right_elbow_joint
+    # The stand's gains, one per joint in `joints` order [N*m/rad], [N*m*s/rad]. Held by PD alone,
+    # the robot is an inverted pendulum about its ankles: m*g*h is about 10.7 kg * 9.81 * 0.35 m =
+    # 37 N*m/rad, so the two ankles' 80 N*m/rad hold it with a factor of two. Ankle gains are the
+    # ankle's: HumanoidActuatorSystem scales them by the four-bar's ratio squared (1.27-1.49) for
+    # the RS00. In a MuJoCo-only test (no ROS) these hold the home pose within 1 deg of upright.
+    kp: [100.0, 100.0, 50.0, 100.0, 40.0,
+         100.0, 100.0, 50.0, 100.0, 40.0,
+         20.0, 20.0, 10.0,
+         20.0, 20.0, 10.0]
+    kd: [2.5, 2.5, 1.2, 2.5, 1.0,
+         2.5, 2.5, 1.2, 2.5, 1.0,
+         0.5, 0.5, 0.3,
+         0.5, 0.5, 0.3]
+
+mujoco_sim:
+  ros__parameters:
+    disturbance:
+      push:
+        body: pelvis
