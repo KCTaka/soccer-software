@@ -14,7 +14,7 @@ why it exists.
 |---|---|---|
 | Formatting (2 spaces, 100 cols) | `ament_uncrustify` (`ament_code_style_0_78.cfg`) | `colcon test`; fix with `ament_uncrustify --reformat <files>` |
 | Lint, include order | `ament_cpplint`, `ament_cppcheck` | `colcon test` |
-| `override` on every override | `-Wsuggest-override -Werror` in every package | `colcon build` |
+| C++20, warnings as errors, `override` on every override | `humanoid_set_compiler_options()` from `humanoid_cmake`, called by every C++ package | `colcon build` |
 | Generated model artifacts | regenerate-and-diff | `python3 -m model.generators.cli check` |
 | Commit messages | [.github/git-commit-instructions.md](../../.github/git-commit-instructions.md) | review |
 
@@ -25,6 +25,10 @@ why it exists.
   other standard headers, or `build/include_order` fails.
 - A change is not done until `colcon build` and `colcon test` pass with zero failures. A test
   that silently skips counts as a failure (§8).
+- Shared CMake lives in `humanoid_cmake`: the compiler policy above and `Findmujoco.cmake`. A
+  new C++ package calls `find_package(humanoid_cmake REQUIRED)` and
+  `humanoid_set_compiler_options()` after `project()`, and lists `humanoid_cmake` as a
+  `<buildtool_depend>`. Do not copy flags into a package.
 
 ## 2. Real-time path
 
@@ -165,3 +169,6 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
   has bodies to push (`MujocoDisturbance`). Transport fault injection, such as corrupt,
   dropped, delayed, or replayed batches, is a `FaultInjectingTransport` decorator selected by
   configuration (ADR-007-08). Test flags inside production components are prohibited.
+- Test doubles belong at the `ActuatorTransport` seam, never in place of the hardware component.
+  `mock_components::GenericSystem` is prohibited wherever release evidence is produced: adopting
+  it deletes `HumanoidActuatorSystem` from the configuration under test (ADR-007).

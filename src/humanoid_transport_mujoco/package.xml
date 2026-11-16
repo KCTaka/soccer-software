@@ -14,6 +14,8 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>humanoid_cmake</buildtool_depend>
+  <buildtool_export_depend>humanoid_cmake</buildtool_export_depend>
 
   <depend>humanoid_transport</depend>
   <depend>pluginlib</depend>

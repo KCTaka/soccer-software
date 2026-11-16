@@ -13,10 +13,12 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>humanoid_cmake</buildtool_depend>
 
   <depend>controller_interface</depend>
   <depend>hardware_interface</depend>
   <depend>humanoid_transport</depend>
+  <depend>pluginlib</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>realtime_tools</depend>

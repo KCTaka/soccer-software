@@ -14,6 +14,7 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>humanoid_cmake</buildtool_depend>
 
   <depend>ament_index_cpp</depend>
   <depend>hardware_interface</depend>

@@ -1,41 +1,23 @@
 cmake_minimum_required(VERSION 3.22)
 project(humanoid_transport_mujoco VERSION 0.1.0 LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wsuggest-override -Werror)
-endif()
+# ADR-001: the real-time exchange() path stays ROS-free. rclcpp, geometry_msgs and tf2_ros serve
+# only the parameter node and the non-real-time GroundTruthPublisher thread.
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+  geometry_msgs
+  humanoid_transport
+  pluginlib
+  rclcpp
+  tf2_ros
+)
 
 find_package(ament_cmake REQUIRED)
-find_package(humanoid_transport REQUIRED)
-find_package(pluginlib REQUIRED)
-find_package(rclcpp REQUIRED)
-
-# ADR-001: the real-time exchange() path stays ROS-free. rclcpp, geometry_msgs,
-# and tf2_ros are used only by the non-real-time GroundTruthPublisher thread.
-find_package(geometry_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
-
-# MuJoCo: try CMake config first (MuJoCo 3.x ships one), fall back to find_library.
-find_package(mujoco QUIET)
-if(NOT mujoco_FOUND)
-  find_library(MUJOCO_LIBRARY NAMES mujoco REQUIRED)
-  find_path(MUJOCO_INCLUDE_DIR mujoco/mujoco.h REQUIRED)
-  if(NOT MUJOCO_LIBRARY OR NOT MUJOCO_INCLUDE_DIR)
-  message(FATAL_ERROR
-      "MuJoCo not found. Install to /opt/mujoco-3.4.0 and run: "
-      "echo '/opt/mujoco-3.4.0/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig")
-  endif()
-  add_library(mujoco::mujoco UNKNOWN IMPORTED)
-  set_target_properties(mujoco::mujoco PROPERTIES
-    IMPORTED_LOCATION "${MUJOCO_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${MUJOCO_INCLUDE_DIR}")
-endif()
+find_package(humanoid_cmake REQUIRED)
+humanoid_set_compiler_options()
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
+find_package(mujoco REQUIRED)  # humanoid_cmake's Findmujoco.cmake
 
 add_library(${PROJECT_NAME} SHARED
   src/mujoco_actuator_transport.cpp
@@ -115,5 +97,6 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(humanoid_transport pluginlib rclcpp geometry_msgs tf2_ros)
-ament_package()
+ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
+# The exported library links mujoco::mujoco, which MuJoCo does not export: the extras define it.
+ament_package(CONFIG_EXTRAS cmake/humanoid_transport_mujoco-extras.cmake)

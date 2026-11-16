@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>humanoid_cmake</name>
+  <version>0.1.0</version>
+  <description>
+    The CMake every package of this workspace shares: the C++ compiler policy
+    (humanoid_set_compiler_options) and a find module for MuJoCo, which ships no CMake package
+    config. A buildtool dependency only; it installs nothing a robot runs.
+  </description>
+  <maintainer email="kc.takahashi04@gmail.com">Casey Takahashi</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
