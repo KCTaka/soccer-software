@@ -6,16 +6,20 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <vector>
 
+#include "humanoid_test_support/generated_robots.hpp"
 #include "humanoid_test_support/mujoco_model.hpp"
 #include "humanoid_transport_mujoco/mujoco_placement.hpp"
 
 namespace
 {
 
+using humanoid::test_support::GeneratedRobot;
 using humanoid::test_support::load_model;
-using humanoid::test_support::make_data;
 using humanoid::test_support::load_model_xml;
+using humanoid::test_support::make_data;
+using humanoid::test_support::RobotName;
 using humanoid::transport_mujoco::free_joint_qpos_adr;
 using humanoid::transport_mujoco::ground_plane_z;
 using humanoid::transport_mujoco::lowest_collision_z;
@@ -128,21 +132,62 @@ TEST(Placement, FixedBaseHasNoFreeJoint)
   EXPECT_FALSE(free_joint_qpos_adr(*model, mj_name2id(model.get(), mjtObj::mjOBJ_BODY, "arm")));
 }
 
-TEST(Placement, G1StandsOnTheGroundAtQpos0)
+// --- The generated MJCFs -----------------------------------------------------------------------
+
+/// The body a model's free joint carries: the root a floating robot is placed by.
+std::optional<std::string> floating_root(const mjModel & model)
 {
-  const auto model = load_model(HUMANOID_TEST_MJCF_PATH);
+  for (int j = 0; j < model.njnt; ++j) {
+    if (model.jnt_type[j] == mjJNT_FREE) {
+      return mj_id2name(&model, mjOBJ_BODY, model.jnt_bodyid[j]);
+    }
+  }
+  return std::nullopt;
+}
+
+/// The generated robots whose MJCF has a floating root: the ones placed on the ground.
+std::vector<GeneratedRobot> floating_robots()
+{
+  return humanoid::test_support::generated_robots_where(
+    [](const GeneratedRobot & robot) {
+      const auto mjcf = robot.mjcf_scene();
+      const auto model = mjcf ? load_model(*mjcf) : nullptr;
+      return model && floating_root(*model);
+    });
+}
+
+class GeneratedPlacement : public ::testing::TestWithParam<GeneratedRobot> {};
+
+TEST_P(GeneratedPlacement, StandsOnTheGroundAtQpos0)
+{
+  const auto model = load_model(*GetParam().mjcf_scene());
+  ASSERT_NE(model, nullptr);
+  const auto root = floating_root(*model);
+  ASSERT_TRUE(root);
+  const auto p = place(*model, root->c_str());
+  ASSERT_TRUE(p);
+  // The model generator stands robot.xml by this same rule, rounded up to the micrometre: qpos0 is
+  // on the ground, never in it.
+  EXPECT_GE(p->lowest - p->ground, -1e-9);
+  EXPECT_LE(p->lowest - p->ground, 1e-6);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+  EveryFloatingRobot, GeneratedPlacement, ::testing::ValuesIn(floating_robots()), RobotName{});
+
+TEST(Placement, PlacesTheG1WhereMenagerieDoesByHand)
+{
+  // An independent reference, so it names its robot: Menagerie's g1.xml places the pelvis at
+  // z = 0.793 by hand. The height derived from geometry alone must agree to within a centimetre.
+  const auto g1 = humanoid::test_support::generated_robot("unitree_g1");
+  ASSERT_TRUE(g1 && g1->mjcf_scene());
+  const auto model = load_model(*g1->mjcf_scene());
   ASSERT_NE(model, nullptr);
   const int pelvis = mj_name2id(model.get(), mjtObj::mjOBJ_BODY, "pelvis");
   const auto root_adr = free_joint_qpos_adr(*model, pelvis);
   ASSERT_TRUE(root_adr);
   const auto p = place(*model, "pelvis");
   ASSERT_TRUE(p);
-  // The model generator stands robot.xml by this same rule, rounded up to the
-  // micrometre: qpos0 is on the ground, never in it.
-  EXPECT_GE(p->lowest - p->ground, -1e-9);
-  EXPECT_LE(p->lowest - p->ground, 1e-6);
-  // Menagerie's g1.xml places the pelvis at z = 0.793 by hand. The derived
-  // value must agree to within a centimetre, from geometry alone.
   EXPECT_NEAR(model->qpos0[*root_adr + 2] + (p->ground - p->lowest), 0.793, 0.01);
 }
 

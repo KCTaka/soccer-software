@@ -53,57 +53,29 @@ install(TARGETS ${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gmock REQUIRED)
+  find_package(humanoid_test_support REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  find_package(ament_cmake_gmock REQUIRED)
-  find_package(ament_cmake_gtest REQUIRED)
+  # The component's pure rules, on hand-built inputs.
+  foreach(name IN ITEMS feedback_validation tuple_ownership hardware_contract safety_manifest_parser)
+    ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_${name}_test
+      ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
+  endforeach()
 
-  ament_add_gtest(${PROJECT_NAME}_feedback_validation_test test/feedback_validation_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_feedback_validation_test ${PROJECT_NAME})
-
-  ament_add_gtest(${PROJECT_NAME}_tuple_ownership_test test/tuple_ownership_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_tuple_ownership_test ${PROJECT_NAME})
-
-  # These read the description humanoid_description installs, the files the component loads at
-  # launch, so an emitter change that this package does not accept fails here rather than there.
-  # humanoid_description_DIR is <prefix>/share/humanoid_description/cmake.
-  find_package(humanoid_description REQUIRED)
-  set(ROBOTS_DIR "${humanoid_description_DIR}/../robots")
-  set(G1_DIR "${ROBOTS_DIR}/unitree_g1")
-  set(LEG_DIR "${ROBOTS_DIR}/leg_prototype")
-
-  ament_add_gtest(${PROJECT_NAME}_safety_manifest_parser_test
-    test/safety_manifest_parser_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_safety_manifest_parser_test ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_safety_manifest_parser_test PRIVATE
-    HUMANOID_TEST_SAFETY_MANIFEST_PATH="${G1_DIR}/config/safety_manifest.yaml")
-
-  ament_add_gtest(${PROJECT_NAME}_hardware_contract_test test/hardware_contract_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_hardware_contract_test ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_hardware_contract_test PRIVATE
-    HUMANOID_TEST_ROBOT_URDF_PATH="${G1_DIR}/urdf/robot.urdf"
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf")
-
-  # The leg prototype is the robot with a linkage: its generated description, manifest and MJCF.
-  ament_add_gtest(${PROJECT_NAME}_four_bar_linkage_test test/four_bar_linkage_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_four_bar_linkage_test ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_four_bar_linkage_test PRIVATE
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf")
-
-  ament_add_gtest(${PROJECT_NAME}_drive_layout_test test/drive_layout_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_drive_layout_test ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_drive_layout_test PRIVATE
-    HUMANOID_TEST_ROBOT_URDF_PATH="${G1_DIR}/urdf/robot.urdf"
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf"
-    HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH="${LEG_DIR}/config/safety_manifest.yaml")
-
-  # The component's linkage against the plant SIL simulates.
+  # Against every robot humanoid_description installs, the files the component loads at launch,
+  # so an emitter change this package does not accept fails here rather than there. The robots
+  # directory is a compile definition (humanoid_test_robots_dir), never the environment.
+  #   four_bar_mujoco  each linkage against the generated MJCF SIL simulates
   find_package(mujoco REQUIRED)  # humanoid_cmake's Findmujoco.cmake
-  ament_add_gtest(${PROJECT_NAME}_four_bar_mujoco_test test/four_bar_mujoco_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_four_bar_mujoco_test ${PROJECT_NAME} mujoco::mujoco)
-  target_compile_definitions(${PROJECT_NAME}_four_bar_mujoco_test PRIVATE
-    HUMANOID_TEST_LEG_URDF_PATH="${LEG_DIR}/urdf/robot.urdf"
-    HUMANOID_TEST_LEG_MJCF_PATH="${LEG_DIR}/mjcf/scene.xml")
+  foreach(name IN ITEMS generated_description drive_layout four_bar_linkage four_bar_mujoco)
+    ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_${name}_test
+      ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
+    humanoid_test_robots_dir(${PROJECT_NAME}_${name}_test)
+  endforeach()
+  target_link_libraries(${PROJECT_NAME}_four_bar_mujoco_test mujoco::mujoco)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

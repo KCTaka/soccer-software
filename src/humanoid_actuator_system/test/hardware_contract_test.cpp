@@ -1,13 +1,12 @@
 // Copyright 2026 UTRA-RoboSoccer
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
-#include <fstream>
-#include <sstream>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "hardware_interface/component_parser.hpp"
+#include "hardware_interface/hardware_info.hpp"
 #include "humanoid_actuator_system/hardware_contract.hpp"
 #include "humanoid_transport/batch_types.hpp"
 #include "humanoid_transport/joint_manifest.hpp"
@@ -18,6 +17,8 @@ namespace
 using humanoid::actuator_system::hardware_contract_violation;
 using humanoid::actuator_system::kSafetyManifestPackageParam;
 using humanoid::actuator_system::kSafetyManifestPathParam;
+using ::testing::HasSubstr;
+using ::testing::Optional;
 
 hardware_interface::HardwareInfo valid_info()
 {
@@ -41,21 +42,9 @@ hardware_interface::HardwareInfo valid_info()
   return info;
 }
 
-TEST(HardwareContract, HoldsForTheGeneratedDescription)
-{
-  // The contract with model/generators/emit.py: the description it writes must load.
-  std::ifstream file(HUMANOID_TEST_ROBOT_URDF_PATH);
-  ASSERT_TRUE(file) << HUMANOID_TEST_ROBOT_URDF_PATH;
-  std::stringstream urdf;
-  urdf << file.rdbuf();
-  const auto components = hardware_interface::parse_control_resources_from_urdf(urdf.str());
-  ASSERT_EQ(components.size(), 1U);
-  EXPECT_EQ(hardware_contract_violation(components.front()).value_or(""), "");
-}
-
 TEST(HardwareContract, HoldsForAValidDescription)
 {
-  EXPECT_EQ(hardware_contract_violation(valid_info()).value_or(""), "");
+  EXPECT_EQ(hardware_contract_violation(valid_info()), std::nullopt);
 }
 
 TEST(HardwareContract, RejectsAnUnknownParameter)
@@ -64,19 +53,18 @@ TEST(HardwareContract, RejectsAnUnknownParameter)
   auto info = valid_info();
   info.hardware_parameters["transport_plugin"] =
     "humanoid_transport_mujoco/MujocoActuatorTransport";
-  EXPECT_NE(
-    hardware_contract_violation(info).value_or("").find("'transport_plugin'"), std::string::npos);
+  EXPECT_THAT(hardware_contract_violation(info), Optional(HasSubstr("'transport_plugin'")));
 }
 
 TEST(HardwareContract, RequiresEveryParameter)
 {
   auto missing = valid_info();
   missing.hardware_parameters.erase(std::string{kSafetyManifestPackageParam});
-  EXPECT_TRUE(hardware_contract_violation(missing));
+  EXPECT_NE(hardware_contract_violation(missing), std::nullopt);
 
   auto empty = valid_info();
   empty.hardware_parameters[std::string{kSafetyManifestPathParam}] = "";
-  EXPECT_TRUE(hardware_contract_violation(empty));
+  EXPECT_NE(hardware_contract_violation(empty), std::nullopt);
 }
 
 TEST(HardwareContract, RejectsAJointNameThatWouldBeTruncated)
@@ -84,18 +72,18 @@ TEST(HardwareContract, RejectsAJointNameThatWouldBeTruncated)
   constexpr auto kLongest = humanoid::transport::kMaxNameLength - 1U;
   auto fits = valid_info();
   fits.joints.front().name = std::string(kLongest, 'j');
-  EXPECT_EQ(hardware_contract_violation(fits).value_or(""), "");
+  EXPECT_EQ(hardware_contract_violation(fits), std::nullopt);
 
   auto too_long = valid_info();
   too_long.joints.front().name = std::string(kLongest + 1U, 'j');
-  EXPECT_TRUE(hardware_contract_violation(too_long));
+  EXPECT_NE(hardware_contract_violation(too_long), std::nullopt);
 }
 
 TEST(HardwareContract, RequiresBetweenOneAndMaxJoints)
 {
   auto none = valid_info();
   none.joints.clear();
-  EXPECT_TRUE(hardware_contract_violation(none));
+  EXPECT_NE(hardware_contract_violation(none), std::nullopt);
 
   auto too_many = valid_info();
   for (std::size_t i = 1U; i <= humanoid::transport::kMaxJoints; ++i) {
@@ -103,25 +91,25 @@ TEST(HardwareContract, RequiresBetweenOneAndMaxJoints)
     joint.name += std::to_string(i);
     too_many.joints.push_back(joint);
   }
-  EXPECT_TRUE(hardware_contract_violation(too_many));
+  EXPECT_NE(hardware_contract_violation(too_many), std::nullopt);
 }
 
 TEST(HardwareContract, RequiresEveryMitCommandInterface)
 {
   auto info = valid_info();
   info.joints.front().command_interfaces.pop_back();
-  EXPECT_TRUE(hardware_contract_violation(info));
+  EXPECT_NE(hardware_contract_violation(info), std::nullopt);
 }
 
 TEST(HardwareContract, RejectsUnknownOrRepeatedInterfaces)
 {
   auto unknown = valid_info();
   unknown.joints.front().command_interfaces.back().name = "torque";
-  EXPECT_TRUE(hardware_contract_violation(unknown));
+  EXPECT_NE(hardware_contract_violation(unknown), std::nullopt);
 
   auto repeated = valid_info();
   repeated.joints.front().state_interfaces.back().name = "position";
-  EXPECT_TRUE(hardware_contract_violation(repeated));
+  EXPECT_NE(hardware_contract_violation(repeated), std::nullopt);
 }
 
 hardware_interface::ComponentInfo imu_sensor()
@@ -140,7 +128,7 @@ TEST(HardwareContract, AcceptsAnImuSensor)
 {
   auto info = valid_info();
   info.sensors.push_back(imu_sensor());
-  EXPECT_EQ(hardware_contract_violation(info).value_or(""), "");
+  EXPECT_EQ(hardware_contract_violation(info), std::nullopt);
 }
 
 TEST(HardwareContract, RejectsAnImuMissingAnInterface)
@@ -148,7 +136,7 @@ TEST(HardwareContract, RejectsAnImuMissingAnInterface)
   auto info = valid_info();
   info.sensors.push_back(imu_sensor());
   info.sensors.front().state_interfaces.pop_back();
-  EXPECT_NE(hardware_contract_violation(info).value_or("").find("'imu'"), std::string::npos);
+  EXPECT_THAT(hardware_contract_violation(info), Optional(HasSubstr("'imu'")));
 }
 
 TEST(HardwareContract, RejectsAnImuInterfaceItDoesNotKnow)
@@ -156,7 +144,7 @@ TEST(HardwareContract, RejectsAnImuInterfaceItDoesNotKnow)
   auto info = valid_info();
   info.sensors.push_back(imu_sensor());
   info.sensors.front().state_interfaces.back().name = "linear_acceleration.w";
-  EXPECT_TRUE(hardware_contract_violation(info));
+  EXPECT_NE(hardware_contract_violation(info), std::nullopt);
 }
 
 TEST(HardwareContract, RejectsASecondSensor)
@@ -164,7 +152,7 @@ TEST(HardwareContract, RejectsASecondSensor)
   auto info = valid_info();
   info.sensors.push_back(imu_sensor());
   info.sensors.push_back(imu_sensor());
-  EXPECT_TRUE(hardware_contract_violation(info));
+  EXPECT_NE(hardware_contract_violation(info), std::nullopt);
 }
 
 }  // namespace

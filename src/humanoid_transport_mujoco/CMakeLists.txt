@@ -56,12 +56,6 @@ if(BUILD_TESTING)
   find_package(humanoid_test_support REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
-  # The tests load the MJCF humanoid_description installs, the model SIL simulates. They get its
-  # path at compile time, so no environment variable is involved and the tests never skip.
-  # humanoid_description_DIR is <prefix>/share/humanoid_description/cmake.
-  find_package(humanoid_description REQUIRED)
-  set(TEST_MJCF_PATH "${humanoid_description_DIR}/../robots/unitree_g1/mjcf/scene.xml")
-
   # The transport as SIL runs it, built once per robot generated with an MJCF: configure() reads
   # its parameters from rclcpp's global overrides, which a process sets once (test/sim_fixture.hpp).
   #   sim   the ADR-001 conformance suite, and what only the simulator shows
@@ -81,14 +75,15 @@ if(BUILD_TESTING)
     endforeach()
   endforeach()
 
-  # The simulator's pure parts, on synthetic in-memory models.
+  # The simulator's pure parts, on synthetic in-memory models; placement also stands every
+  # generated floating robot on the ground. The robots directory is a compile definition
+  # (humanoid_test_robots_dir), never the environment.
   foreach(name IN ITEMS disturbance imu placement)
     ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
     target_link_libraries(${PROJECT_NAME}_${name}_test
       ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
   endforeach()
-  target_compile_definitions(${PROJECT_NAME}_placement_test PRIVATE
-    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
+  humanoid_test_robots_dir(${PROJECT_NAME}_placement_test)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

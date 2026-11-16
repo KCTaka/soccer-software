@@ -181,19 +181,6 @@ TEST(JointWiringEnvelope, AcceptsAnEnvelopeInsideEveryWireRange)
   EXPECT_EQ(check_envelope(JointWiring{}, modest_envelope()), std::nullopt);
 }
 
-TEST(JointWiringEnvelope, AcceptsTheGeneratedModelsLargestLimits)
-{
-  // The shipped model's hip envelope: position -2.51..2.86 rad, 88 N*m, Kp 500, Kd 10.
-  JointEnvelope e;
-  e.position_min_rad = -2.5107;
-  e.position_max_rad = 2.8598;
-  e.velocity_max_rad_s = 20.0;
-  e.torque_peak_nm = 88.0;
-  e.stiffness_max_nm_rad = 500.0;
-  e.damping_max_nm_s_rad = 10.0;
-  EXPECT_EQ(check_envelope(JointWiring{}, e), std::nullopt);
-}
-
 TEST(JointWiringEnvelope, RejectsAPositionRangeBeyondTheHomeFrame)
 {
   JointEnvelope e = modest_envelope();
