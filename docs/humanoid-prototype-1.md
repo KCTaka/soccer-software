@@ -54,9 +54,8 @@ onto the foot, so the rod's horn pin becomes the closure, as the model and `Four
 - **Joint ranges** are provisional, because the export has no stops. They start from typical
   kid-size ranges and are clipped where the CAD meshes meet as each joint sweeps from the zero pose.
   Combined poses are not swept.
-- **Collision geometry** is one fitted box or cylinder per part that can meet another link. Around
-  the hip and shoulder, boxes over the brackets met the torso's at angles where the meshes are still
-  clear, so there only the motors carry one.
+- **Collision geometry** is the CAD's own shape, for getting up (see below). Each foot keeps one box,
+  because its sole is flat.
 - **direction_sign** is +1 everywhere and unverified. The **IMU** is a placeholder at the pelvis
   origin.
 
@@ -69,6 +68,52 @@ onto the foot, so the rod's horn pin becomes the closure, as the model and `Four
   forearm meets the hip at 1.32 rad from the T-pose. The home pose lowers the arms 1.2 rad.
 - The knee flexes to 2.09 rad before the ankle rod reaches the hip-yaw motor. The ankle's toes-down
   stop is 0.74 rad, where the rod reaches the shin. The leg prototype's stop was 0.77 rad.
+
+## Collision geometry, for getting up
+
+Getting up puts the torso, hips, thighs, shins and arms on the floor and against each other, so
+those 15 links collide as their own shape. MuJoCo collides any one mesh as its convex hull, and
+that hull fills a bracket's or a clevis's concavity. So the importer splits each link's mesh into
+convex pieces with [CoACD](https://github.com/SarahWeiii/CoACD), at most 16 per link with at most
+128 vertices each. The generator emits each piece as its own geom.
+
+Which shape matters depends on what the robot touches:
+
+- **The floor.** A plane touches a rigid link only on the link's convex hull, so for the floor one
+  hull per link would already be exact. Where the pieces bulge past the CAD they do so into
+  pockets, such as the gap between a motor and its frame, and a plane cannot reach a pocket.
+- **Its own limbs, the ball and uneven ground.** These can reach into a pocket, so here the pieces
+  matter. Examples are a forearm against a thigh, or a leg folding against the torso.
+
+Measured against the CAD's surface (`ingest.yaml` records the settings):
+
+| | Value |
+|---|---|
+| CAD surface outside every piece (95th percentile / worst) | 0 / ≤ 5.1 mm, every link |
+| Exposed piece surface beyond the CAD, 95th percentile (in pockets) | 3.7 mm (shoulder) to 20 mm (thigh); torso 8.8 mm |
+| First self-contact, arm lowered | 1.31 rad (CAD meshes: 1.32) |
+| First self-contact, hip rolled inward | 0.10 rad (CAD meshes: 0.10) |
+
+Two settings mattered:
+
+- **The vertex cap.** Capping a piece below 128 vertices shaves the forearm's tube: at 64 vertices,
+  8 mm of the CAD surface falls outside the pieces.
+- **The threshold.** CoACD scales a mesh to a unit cube, so its threshold of 0.03 allows a
+  concavity of 3% of the link's size. At 0.05 with 8 pieces the torso bulged 18.5 mm.
+
+The ankle rods and horns carry no geometry, as before: the linkage's bodies never collide with each
+other, and the rod's stops against the shin and hip are the joint ranges.
+
+When two links' pieces touch at the zero pose, the generator excludes that pair from colliding. The
+CAD is clear at the zero pose, so a pair that touches there is a hull filling a joint's clearance.
+None does at present.
+
+With 243 collidable geoms, MuJoCo still runs these checks at about 2.5× real time on one core of the
+dev container. Falls settle with about 1 mm of floor penetration. On impact the penetration peaks
+at 5–9 mm when falling from standing, and 22 mm when dropped flat from 0.15 m. That peak comes from
+the scene's default contact softness, not from the geometry: the earlier boxes peaked the same. A
+get-up policy that is meant to transfer to the real robot should identify the floor's contact
+parameters.
 
 ## SIL
 
