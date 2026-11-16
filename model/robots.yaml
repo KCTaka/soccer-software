@@ -11,7 +11,7 @@
 # of `check`. leg_prototype was imported from a Fusion 360 export with
 # `python3 -m model.generators.ingest_fusion` (see its ingest.yaml), which a CAD re-export re-runs;
 # it writes robot_model.yaml's CAD-owned fields and meshes/, and robot_model.yaml stays the source
-# of truth for everything the CAD does not own.
+# of truth for everything the CAD does not own. humanoid_prototype_1 was imported the same way.
 #
 # Paths are relative to the robot's directory. overlay: the contact geometry the MJCF takes instead
 # of the model's. meshes: the directory of the mesh files the model names. license: the terms the
@@ -52,5 +52,10 @@ robots:
     firmware_config: true
     firmware_setup: 1s_1m
     stm32_wiring: true
+  humanoid_prototype_1:
+    meshes: meshes
+    urdf: true
+    mjcf: true
+    firmware_config: false
 
 default_robot: unitree_g1

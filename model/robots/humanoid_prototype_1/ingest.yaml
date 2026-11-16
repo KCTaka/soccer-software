@@ -1,0 +1,158 @@
+# Config for importing the Fusion 360 export into robot_model.yaml and meshes/:
+#   python3 -m model.generators.ingest_fusion model/robots/humanoid_prototype_1/ingest.yaml
+# Re-export from Fusion (acdc4robot) into source/, re-run, then diff. Paths are relative to this
+# file's directory. Points below are in each export body's own frame, in metres, measured from its
+# meshes. source/Assembly_collision.xml and source/collision_pipeline_scripts/ are a separate,
+# earlier attempt at a simulation model, kept for reference; nothing here reads them.
+model_name: humanoid_prototype_1
+export: source/Assembly.xml
+model_out: robot_model.yaml
+meshes_out: meshes
+notes:
+  - "Masses and inertias are Fusion's, as exported: printed parts at 500 kg/m^3, bearings at 2701 kg/m^3"
+  - "(aluminium; real ones are steel), and each RobStride 'Sim' body at a catalogue mass (RS00 310.1 g,"
+  - "RS02 405.0 g, RS03 880.1 g, RS06 621.1 g) spread uniformly over its shell. PROVISIONAL until weighed."
+  - "Motors, by CAD part: hip pitch and knee RS03, hip roll RS06, hip yaw and shoulder pitch RS02, ankle"
+  - "(through the four-bar), shoulder roll and elbow RS00. Every actuator is PROVISIONAL (simulation"
+  - "only; RS03/RS06 firmware command ranges are unverified), so none is in model/motors.yaml."
+  - "Effort and velocity limits: peak/rated torque RS00 14/5, RS02 17/6, RS03 60/21, RS06 36/11 N m;"
+  - "velocity RS00 33 and RS02 44 rad/s (model/motors.yaml), RS03 20 and RS06 50 rad/s (195 and 480 rpm"
+  - "no-load, RobStride Product_Information README). The ankle's are the RS00's divided by the four-bar's"
+  - "largest ratio, 1.22 within +-40 deg (docs/leg-prototype.md: the same 45/40/120/120 mm mechanism)."
+  - "Armatures are ESTIMATES of reflected rotor inertia: the leg prototype's RS02 estimate (0.002 kg m^2"
+  - "at 7.75:1) scaled by rotor inertia ~ mass^(5/3) and by gear ratio squared (RS00 10:1, RS03/RS06 9:1)."
+  - "Joint ranges are PROVISIONAL: the export has no stops. Typical kid-size ranges, clipped where the CAD"
+  - "meshes meet as each joint sweeps from the zero pose (hip roll inward 0.10 rad: the hip-yaw bracket"
+  - "meets the hip-pitch drive; knee 2.09: rod on hip-yaw motor; ankle toes-down 0.74: rod on shin; arm"
+  - "lowered 1.32: forearm on hip). The ankle's toes-up stop and +-0.6981 software limits are the leg"
+  - "prototype's; every other software limit sits 0.02 rad inside its stop. Combined poses are not swept."
+  - "direction_sign is +1 everywhere, unverified: set each on hardware. The IMU is a placeholder at the"
+  - "pelvis frame origin (no IMU in the CAD)."
+
+# The CAD's toe direction and up direction: the robot's x and z (REP-103); y = z x x points left.
+# The robot faces -Y in the CAD: each foot reaches 100 mm ahead of its ankle in -Y and 60 mm behind.
+forward: [0.0, -1.0, 0.0]
+up: [0.0, 0.0, 1.0]
+
+# The trunk (torso and both hip-pitch motors) is the floating base, named pelvis as SIL's ground
+# truth frame expects. Its frame sits midway between the two hip-pitch axes, at hip height.
+root: Torso_1__Torso-Design-3_1
+root_frame_at_joint: [sim_joint_0022, sim_joint_0030]
+base: floating
+
+# Each link is a body that carries a joint, with every body the export welds to it.
+links:
+  Torso_1__Torso-Design-3_1: pelvis
+  Left-Hip-Roll_1__Hip-Roll-Block_1: left_hip_pitch_link
+  Left-Hip-Yaw_1__Hip-Yaw-Block_Old_1: left_hip_roll_link
+  Left-Knee_1__Body-RS03-Design-V3_1: left_hip_yaw_link
+  Left-Shin_1__Outer-Shin-Plate_1: left_knee_link
+  Left-Foot_1__Foot_1: left_foot_link
+  Left-Ankle-Horn_1__Ankle-Motor-Horn_1: left_ankle_horn_link
+  Left-Ankle-Rod_1__Ankle-Rod_1: left_ankle_rod_link
+  Left-Hip-RollMirror_1__Hip-Roll-BlockMirror_1: right_hip_pitch_link
+  Left-Hip-YawMirror_1__Hip-Yaw-Block_OldMirror_1: right_hip_roll_link
+  Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1: right_hip_yaw_link
+  Left-ShinMirror_1__Outer-Shin-PlateMirror_1: right_knee_link
+  Left-FootMirror_1__FootMirror_1: right_foot_link
+  Left-Ankle-HornMirror_1__Ankle-Motor-HornMirror_1: right_ankle_horn_link
+  Left-Ankle-RodMirror_1__Ankle-RodMirror_1: right_ankle_rod_link
+  Left-Shoulder-Roll_1__Shoulder_1: left_shoulder_pitch_link
+  Left-Forearm-Pitch_1__Arm-Attach_1: left_shoulder_roll_link
+  Left-Forearm_1__Wrist-Attach_1: left_elbow_link
+  Left-Shoulder-RollMirror_1__ShoulderMirror_1: right_shoulder_pitch_link
+  Left-Forearm-PitchMirror_1__Arm-AttachMirror_1: right_shoulder_roll_link
+  Left-ForearmMirror_1__Wrist-AttachMirror_1: right_elbow_link
+
+# Axes as the G1's: pitch about +y (positive swings the leg back, bends the knee, points the toes
+# down), roll about +x, yaw about +z, the same on both sides. The arms are in a T-pose at zero; each
+# elbow's axis is the CAD's, so that with the arm lowered positive flexes the forearm forward.
+joints:
+  sim_joint_0022: {name: left_hip_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0023: {name: left_hip_roll_joint, axis: [1.0, 0.0, 0.0]}
+  sim_joint_0024: {name: left_hip_yaw_joint, axis: [0.0, 0.0, 1.0]}
+  sim_joint_0025: {name: left_knee_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0026: {name: left_ankle_motor_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0027: {name: left_ankle_rod_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0028: {name: left_ankle_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0030: {name: right_hip_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0031: {name: right_hip_roll_joint, axis: [1.0, 0.0, 0.0]}
+  sim_joint_0032: {name: right_hip_yaw_joint, axis: [0.0, 0.0, 1.0]}
+  sim_joint_0033: {name: right_knee_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0034: {name: right_ankle_motor_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0035: {name: right_ankle_rod_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0036: {name: right_ankle_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0037: {name: left_shoulder_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0038: {name: left_shoulder_roll_joint, axis: [1.0, 0.0, 0.0]}
+  sim_joint_0039: {name: left_elbow_joint, axis: [0.0, 0.0, -1.0]}
+  sim_joint_0040: {name: right_shoulder_pitch_joint, axis: [0.0, 1.0, 0.0]}
+  sim_joint_0041: {name: right_shoulder_roll_joint, axis: [1.0, 0.0, 0.0]}
+  sim_joint_0042: {name: right_elbow_joint, axis: [0.0, 0.0, 1.0]}
+
+# Each ankle is the leg prototype's four-bar: the RS00 turns the horn (input), the rod (coupler)
+# drives the foot (output). This export hangs the rod on the horn and leaves out its bottom pin, so
+# the closure names the foot (output_body): the importer closes the loop there, moves the rod onto
+# the foot, and makes the rod's horn pin the closure. Rod: the part the leg prototype uses, bottom
+# hole at its origin's mid-plane. Foot: the 688 bearing's centre, on the rod's mid-plane.
+linkages:
+  - name: left_ankle_pitch_linkage
+    input_joint: sim_joint_0026
+    output_joint: sim_joint_0028
+    coupler_joint: sim_joint_0027
+    closure:
+      coupler_body: Left-Ankle-Rod_1__Ankle-Rod_1
+      coupler_point_m: [0.0025, 0.0, 0.0]
+      output_body: Left-Foot_1__Foot_1
+      output_point_m: [0.0091, -0.06, 0.026]
+  - name: right_ankle_pitch_linkage
+    input_joint: sim_joint_0034
+    output_joint: sim_joint_0036
+    coupler_joint: sim_joint_0035
+    closure:
+      coupler_body: Left-Ankle-RodMirror_1__Ankle-RodMirror_1
+      coupler_point_m: [0.0025, 0.0, 0.0]
+      output_body: Left-FootMirror_1__FootMirror_1
+      output_point_m: [0.0091, -0.06, -0.026]
+
+# Collision primitives, each fitted to named parts' meshes in the link frame (fit: box = their
+# bounding box; cylinder = along `axis`). One per part that can meet another link, as Menagerie's
+# humanoids have. Around the spherical hip and the shoulder only the motors carry one: boxes over
+# the brackets there meet the torso's at angles where the CAD meshes are still clear. The horns and
+# rods have none (the linkage's bodies never collide with each other). Keyed by link.
+collision:
+  Torso_1__Torso-Design-3_1:
+    - {shape: box, fit: Torso_1__Torso-Design-3_1}
+    - {shape: box, fit: [Left-Hip-Pitch_1__Hip-Pitch-Block_1, Left-Hip-Pitch_1__RS03---Sim_1]}
+    - {shape: box, fit: [Left-Hip-PitchMirror_1__Hip-Pitch-BlockMirror_1, Left-Hip-PitchMirror_1__RS03---SimMirror_1]}
+  Left-Hip-Roll_1__Hip-Roll-Block_1:
+    - {shape: cylinder, axis: x, fit: Left-Hip-Roll_1__RS06---Sim_1}
+  Left-Hip-Yaw_1__Hip-Yaw-Block_Old_1:
+    - {shape: cylinder, axis: z, fit: Left-Hip-Yaw_1__RS02---Sim_1}
+  Left-Knee_1__Body-RS03-Design-V3_1:
+    - {shape: box, fit: [Left-Knee_1__Body-RS03-Design-V3_1, Left-Knee_1__RS03---Sim_1]}
+  Left-Shin_1__Outer-Shin-Plate_1:
+    - {shape: box, fit: [Left-Shin_1__Outer-Shin-Plate_1, Left-Shin_1__Inner-Shin-Plate_1, Left-Shin_1__RS00---Sim_1]}
+  Left-Foot_1__Foot_1:
+    - {shape: box, fit: Left-Foot_1__Foot_1}
+  Left-Hip-RollMirror_1__Hip-Roll-BlockMirror_1:
+    - {shape: cylinder, axis: x, fit: Left-Hip-RollMirror_1__RS06---SimMirror_1}
+  Left-Hip-YawMirror_1__Hip-Yaw-Block_OldMirror_1:
+    - {shape: cylinder, axis: z, fit: Left-Hip-YawMirror_1__RS02---SimMirror_1}
+  Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1:
+    - {shape: box, fit: [Left-KneeMirror_1__Body-RS03-Design-V3Mirror_1, Left-KneeMirror_1__RS03---SimMirror_2]}
+  Left-ShinMirror_1__Outer-Shin-PlateMirror_1:
+    - {shape: box, fit: [Left-ShinMirror_1__Outer-Shin-PlateMirror_1, Left-ShinMirror_1__Inner-Shin-PlateMirror_1, Left-ShinMirror_1__RS00---SimMirror_1]}
+  Left-FootMirror_1__FootMirror_1:
+    - {shape: box, fit: Left-FootMirror_1__FootMirror_1}
+  Left-Shoulder-Roll_1__Shoulder_1:
+    - {shape: box, fit: [Left-Shoulder-Roll_1__Shoulder_1, Left-Shoulder-Roll_1__RS00---Sim_1]}
+  Left-Forearm-Pitch_1__Arm-Attach_1:
+    - {shape: box, fit: [Left-Forearm-Pitch_1__Forearm_1, Left-Forearm-Pitch_1__RS00---Sim_1]}
+  Left-Forearm_1__Wrist-Attach_1:
+    - {shape: box, fit: [Left-Forearm_1__Wrist-Attach_1, Left-Forearm_1__Arm_1]}
+  Left-Shoulder-RollMirror_1__ShoulderMirror_1:
+    - {shape: box, fit: [Left-Shoulder-RollMirror_1__ShoulderMirror_1, Left-Shoulder-RollMirror_1__RS00---SimMirror-1_2]}
+  Left-Forearm-PitchMirror_1__Arm-AttachMirror_1:
+    - {shape: box, fit: [Left-Forearm-PitchMirror_1__ForearmMirror_1, Left-Forearm-PitchMirror_1__RS00---SimMirror-1_1]}
+  Left-ForearmMirror_1__Wrist-AttachMirror_1:
+    - {shape: box, fit: [Left-ForearmMirror_1__Wrist-AttachMirror_1, Left-ForearmMirror_1__ArmMirror_1]}
