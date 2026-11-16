@@ -11,6 +11,8 @@
 // The robots directory reaches the test as the compile definition HUMANOID_TEST_ROBOTS_DIR, set by
 // humanoid_test_robots_dir(<target>) from this package's CMake: never through the environment. If
 // no robot is installed the suite has no instance, which gtest reports as a failure, not a skip.
+// A test that can only run one robot per process is built once per robot instead
+// (humanoid_generated_robots() in CMake, generated_robot() here).
 #ifndef HUMANOID_TEST_SUPPORT__GENERATED_ROBOTS_HPP_
 #define HUMANOID_TEST_SUPPORT__GENERATED_ROBOTS_HPP_
 
@@ -23,6 +25,7 @@
 #include <optional>
 #include <ostream>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <vector>
 
@@ -90,6 +93,18 @@ std::vector<GeneratedRobot> generated_robots_where(Predicate keep)
   auto robots = generated_robots();
   std::erase_if(robots, [&keep](const GeneratedRobot & robot) {return !keep(robot);});
   return robots;
+}
+
+/// The generated robot named `name`, if there is one. A test built once per robot names it with
+/// the compile definition HUMANOID_TEST_ROBOT (CMake's humanoid_generated_robots()).
+inline std::optional<GeneratedRobot> generated_robot(std::string_view name)
+{
+  for (auto & robot : generated_robots()) {
+    if (robot.name == name) {
+      return robot;
+    }
+  }
+  return std::nullopt;
 }
 
 /// INSTANTIATE_TEST_SUITE_P's name generator: each instance is named after its robot.

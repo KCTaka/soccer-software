@@ -12,6 +12,7 @@
 #include "humanoid_test_support/manifests.hpp"
 #include "humanoid_transport/actuator_transport.hpp"
 #include "humanoid_transport_stm32/stm32_serial_transport.hpp"
+#include "fake_rig.hpp"
 #include "parameters_fixture.hpp"
 
 namespace

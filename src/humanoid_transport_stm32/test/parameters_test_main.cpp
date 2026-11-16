@@ -12,6 +12,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "fake_master.hpp"
+#include "fake_rig.hpp"
 #include "parameters_fixture.hpp"
 
 humanoid::transport_stm32::testing::FakeMaster * g_fake_master = nullptr;
@@ -20,10 +21,8 @@ int main(int argc, char ** argv)
 {
   ::testing::InitGoogleTest(&argc, argv);
 
-  humanoid::transport_stm32::testing::FakeMaster::Config config;
-  config.chain_ids = {0, 1};
-  config.motors_per_chain = {2, 1};
-  humanoid::transport_stm32::testing::FakeMaster fake(config);
+  humanoid::transport_stm32::testing::FakeMaster fake(
+    humanoid::transport_stm32::testing::rig_master());
   fake.start();
   g_fake_master = &fake;
 

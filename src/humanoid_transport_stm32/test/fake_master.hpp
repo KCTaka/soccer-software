@@ -30,7 +30,6 @@
 #include <thread>
 #include <vector>
 
-#include "humanoid_transport/safety_manifest.hpp"
 #include "humanoid_transport_stm32/serial_port.hpp"
 #include "humanoid_transport_stm32/wire_protocol.hpp"
 
@@ -224,19 +223,6 @@ private:
   std::vector<std::uint8_t> injected_;
   std::vector<std::uint8_t> last_telemetry_frame_;
 };
-
-/// A joint envelope inside every wire range, for the joints a test wires to the fake master.
-inline transport::JointEnvelope wire_safe_envelope()
-{
-  transport::JointEnvelope e;
-  e.position_min_rad = -1.5;
-  e.position_max_rad = 1.5;
-  e.velocity_max_rad_s = 20.0;
-  e.torque_peak_nm = 30.0;
-  e.stiffness_max_nm_rad = 100.0;
-  e.damping_max_nm_s_rad = 5.0;
-  return e;
-}
 
 }  // namespace humanoid::transport_stm32::testing
 
