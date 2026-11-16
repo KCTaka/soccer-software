@@ -21,16 +21,17 @@ humanoid_mit_controller:
       - right_shoulder_roll_joint
       - right_elbow_joint
     # The stand's gains, one per joint in `joints` order [N*m/rad], [N*m*s/rad]. Held by PD alone,
-    # the robot is an inverted pendulum about its ankles: m*g*h is about 10.7 kg * 9.81 * 0.35 m =
-    # 37 N*m/rad, so the two ankles' 80 N*m/rad hold it with a factor of two. Ankle gains are the
-    # ankle's: HumanoidActuatorSystem scales them by the four-bar's ratio squared (1.27-1.49) for
-    # the RS00. In a MuJoCo-only test (no ROS) these hold the home pose within 1 deg of upright.
-    kp: [100.0, 100.0, 50.0, 100.0, 40.0,
-         100.0, 100.0, 50.0, 100.0, 40.0,
+    # the robot is an inverted pendulum about its ankles: m*g*h is about 13.9 kg * 9.81 * 0.35 m =
+    # 48 N*m/rad, so the two ankles' 120 N*m/rad hold it with a factor of 2.5 (at 40 each it
+    # settles 4 deg off upright). Ankle gains are the ankle's: HumanoidActuatorSystem scales them
+    # by the four-bar's ratio squared (1.27-1.49) for the RS00. In a MuJoCo-only test (no ROS)
+    # these hold the crouch and the home pose within 0.4 deg of upright for 15 s.
+    kp: [100.0, 100.0, 50.0, 100.0, 60.0,
+         100.0, 100.0, 50.0, 100.0, 60.0,
          20.0, 20.0, 10.0,
          20.0, 20.0, 10.0]
-    kd: [2.5, 2.5, 1.2, 2.5, 1.0,
-         2.5, 2.5, 1.2, 2.5, 1.0,
+    kd: [2.5, 2.5, 1.2, 2.5, 1.5,
+         2.5, 2.5, 1.2, 2.5, 1.5,
          0.5, 0.5, 0.3,
          0.5, 0.5, 0.3]
 

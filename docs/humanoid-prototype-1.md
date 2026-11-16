@@ -1,6 +1,6 @@
 # Humanoid prototype 1 (`humanoid_prototype_1`)
 
-The first whole-robot prototype: a 20-joint, 10.7 kg, 0.72 m biped on RobStride motors, imported
+The first whole-robot prototype: a 20-joint, 13.9 kg, 0.72 m biped on RobStride motors, imported
 from its Fusion 360 export. It is set up for simulation only. Its actuators are `PROVISIONAL`, so it
 has no firmware export, STM32 wiring or hardware launch yet.
 
@@ -42,9 +42,11 @@ onto the foot, so the rod's horn pin becomes the closure, as the model and `Four
 [`ingest.yaml`](../model/robots/humanoid_prototype_1/ingest.yaml) records each source in its
 `notes`. In short:
 
-- **Inertials** are Fusion's. Printed parts are at 500 kg/m³ and bearings at 2701 kg/m³ (aluminium;
-  the real ones are steel). Each motor is its catalogue mass spread over its CAD shell. All of these
-  are provisional until the parts are weighed.
+- **Inertials** are computed from each part's mesh as solid PLA at 1.24 g/cm³, with infill not
+  modelled. Every part is printed PLA except the 16 motors, which keep the CAD's catalogue mass
+  spread over their shells. The bearings are PLA here too, though real ones are steel. The CAD's
+  own 500 kg/m³ for printed parts would make the robot 10.7 kg, not 13.9. All of these are
+  provisional until the parts are weighed.
 - **Torque and speed** use RobStride's rated/peak torques and no-load speeds. The ankle's torque is
   the RS00's divided by the four-bar's largest ratio, 1.22.
 - **Armature** values are estimates. They scale the leg prototype's RS02 estimate by rotor
@@ -72,7 +74,7 @@ onto the foot, so the rod's horn pin becomes the closure, as the model and `Four
 
 `config/humanoid_prototype_1/` holds the stand config. The robot starts in a crouch (hip −0.4,
 knee 0.8, ankle −0.4) and stands to the home pose (−0.2, 0.4, −0.2) over 2.5 s. PD alone holds it.
-The inverted pendulum about the ankles needs m·g·h ≈ 37 N·m/rad, and the two ankles give 80.
+The inverted pendulum about the ankles needs m·g·h ≈ 48 N·m/rad, and the two ankles give 120.
 
 When SIL starts in a pose that bends a linkage's output, `MujocoActuatorTransport` closes the loop
 before the first step: it solves the MJCF's equality constraints with the named joints held. Before
