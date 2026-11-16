@@ -1,177 +1,109 @@
 // Copyright 2026 UTRA-RoboSoccer
+// drive_layout()'s refusals, each on a generated description with a linkage that one edit breaks.
+// That the generated descriptions themselves load is generated_description_test.cpp's.
 
-#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
-#include <cmath>
-#include <fstream>
-#include <sstream>
+#include <algorithm>
 #include <string>
 #include <variant>
-#include <vector>
 
-#include "hardware_interface/component_parser.hpp"
+#include "generated_description.hpp"
 #include "humanoid_actuator_system/drive_layout.hpp"
-#include "humanoid_actuator_system/hardware_contract.hpp"
-#include "humanoid_actuator_system/safety_manifest_parser.hpp"
-#include "humanoid_transport/batch_types.hpp"
-#include "humanoid_transport/safety_manifest.hpp"
-#include "yaml-cpp/yaml.h"
+#include "humanoid_test_support/matchers.hpp"
 
 namespace
 {
 
 using humanoid::actuator_system::drive_layout;
-using humanoid::actuator_system::DriveLayout;
-using humanoid::actuator_system::hardware_contract_violation;
-using humanoid::actuator_system::parse_safety_manifest;
-using humanoid::transport::JointCommand;
-using humanoid::transport::SafetyManifest;
+using humanoid::actuator_system::testing::generated_linkages;
+using humanoid::actuator_system::testing::parse_description;
+using humanoid::test_support::HoldsError;
+using humanoid::test_support::HoldsValue;
+using ::testing::HasSubstr;
 
-hardware_interface::HardwareInfo parse(const char * path)
+class DriveLayoutOfALinkage : public ::testing::Test
 {
-  std::ifstream file(path);
-  std::stringstream urdf;
-  urdf << file.rdbuf();
-  const auto components = hardware_interface::parse_control_resources_from_urdf(urdf.str());
-  EXPECT_EQ(components.size(), 1U);
-  return components.front();
-}
-
-std::string error_of(const hardware_interface::HardwareInfo & info)
-{
-  const auto layout = drive_layout(info);
-  const auto * error = std::get_if<std::string>(&layout);
-  return error ? *error : std::string{};
-}
-
-TEST(DriveLayout, ReadsTheGeneratedLegsLinkage)
-{
-  // The contract with model/generators/emit.py for a robot with a linkage.
-  const auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  ASSERT_EQ(hardware_contract_violation(info).value_or(""), "");
-  const auto result = drive_layout(info);
-  ASSERT_EQ(error_of(info), "");
-  const auto & layout = std::get<DriveLayout>(result);
-  EXPECT_EQ(layout.command_joints, std::vector<std::string>{"left_ankle_pitch_joint"});
-  EXPECT_EQ(
-    layout.passive_joints,
-    (std::vector<std::string>{"left_ankle_motor_joint", "left_ankle_rod_joint"}));
-  EXPECT_EQ(layout.transport_joints, std::vector<std::string>{"left_ankle_motor_joint"});
-  ASSERT_TRUE(layout.linkages.front());
-  EXPECT_EQ(layout.linkages.front()->input_state, 0U);
-  EXPECT_EQ(layout.linkages.front()->coupler_state, 1U);
-}
-
-TEST(DriveLayout, NamesTheSafetyManifestsEnvelopesByMotor)
-{
-  // The component parses the manifest with the motors' names, so the generated manifest must key
-  // its envelopes by the joint each motor turns.
-  const auto layout = std::get<DriveLayout>(drive_layout(parse(HUMANOID_TEST_LEG_URDF_PATH)));
-  const auto manifest = parse_safety_manifest(
-    YAML::LoadFile(HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH), layout.transport_joints);
-  const auto * error = std::get_if<std::string>(&manifest);
-  EXPECT_EQ(error ? *error : std::string{}, "");
-}
-
-TEST(DriveLayout, MapsEveryCommandTheJointsLimitsAllowIntoTheMotorsEnvelope)
-{
-  // The component checks the ankle's command against the ankle's limits, then the kernel checks
-  // the motor's against the motor's envelope. The envelope must hold the whole image of the
-  // ankle's limits as the component computes it, or a command the ankle allows, such as one at
-  // its limit, stops the robot.
-  const auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  const auto layout = std::get<DriveLayout>(drive_layout(info));
-  const auto manifest = parse_safety_manifest(
-    YAML::LoadFile(HUMANOID_TEST_LEG_SAFETY_MANIFEST_PATH), layout.transport_joints);
-  ASSERT_TRUE(std::holds_alternative<SafetyManifest>(manifest));
-  const auto & envelope = std::get<SafetyManifest>(manifest).envelopes.front();
-  const auto & limits = info.limits.at(layout.command_joints.front());
-  const auto & linkage = layout.linkages.front()->linkage;
-
-  std::vector<double> positions{limits.min_position, limits.max_position};
-  for (int k = 1; k < 80; ++k) {
-    positions.push_back(
-      limits.min_position + (limits.max_position - limits.min_position) * k / 80.0);
+protected:
+  void SetUp() override
+  {
+    const auto linkages = generated_linkages();
+    ASSERT_FALSE(linkages.empty()) << "no generated robot has a linkage to break";
+    const auto parsed = parse_description(linkages.front().robot.urdf());
+    ASSERT_TRUE(parsed);
+    info_ = *parsed;
+    ASSERT_THAT(drive_layout(info_), HoldsValue()) << "the unbroken description must load";
   }
-  for (const double q : positions) {
-    for (const double sign : {-1.0, 1.0}) {
-      const auto motor = linkage.to_input(
-        JointCommand{
-          .position_rad = q, .velocity_rad_s = sign * limits.max_velocity,
-          .effort_nm = sign * limits.max_effort});
-      ASSERT_TRUE(motor) << q;
-      EXPECT_GE(motor->position_rad, envelope.position_min_rad) << q;
-      EXPECT_LE(motor->position_rad, envelope.position_max_rad) << q;
-      EXPECT_LE(std::abs(motor->velocity_rad_s), envelope.velocity_max_rad_s) << q;
-      EXPECT_LE(std::abs(motor->effort_nm), envelope.torque_peak_nm) << q;
-    }
+
+  hardware_interface::TransmissionInfo & transmission() {return info_.transmissions.front();}
+
+  /// The transmission's joint with `role`.
+  std::string joint_with_role(const std::string & role)
+  {
+    const auto & joints = transmission().joints;
+    const auto it = std::ranges::find(joints, role, &hardware_interface::JointInfo::role);
+    return it == joints.end() ? std::string{} : it->name;
   }
+
+  hardware_interface::HardwareInfo info_;
+};
+
+TEST_F(DriveLayoutOfALinkage, RejectsAnotherTransmissionPlugin)
+{
+  transmission().type = "transmission_interface/SimpleTransmission";
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("not supported")));
 }
 
-TEST(DriveLayout, DrivesEveryJointDirectlyWithoutTransmissions)
+TEST_F(DriveLayoutOfALinkage, RequiresTheOutputRole)
 {
-  const auto info = parse(HUMANOID_TEST_ROBOT_URDF_PATH);
-  const auto layout = std::get<DriveLayout>(drive_layout(info));
-  EXPECT_TRUE(layout.passive_joints.empty());
-  EXPECT_EQ(layout.transport_joints, layout.command_joints);
-  EXPECT_EQ(layout.command_joints.size(), info.joints.size());
-  for (const auto & drive : layout.linkages) {
-    EXPECT_FALSE(drive);
-  }
+  transmission().joints.front().role = "coupler";
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("role 'output'")));
 }
 
-TEST(DriveLayout, RejectsAnotherTransmissionPlugin)
+TEST_F(DriveLayoutOfALinkage, RequiresTheInputRole)
 {
-  auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  info.transmissions.front().type = "transmission_interface/SimpleTransmission";
-  EXPECT_NE(error_of(info).find("not supported"), std::string::npos);
+  transmission().actuators.front().role = "output";
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("role 'input'")));
 }
 
-TEST(DriveLayout, RequiresTheRoles)
+TEST_F(DriveLayoutOfALinkage, RequiresEveryParameter)
 {
-  auto output = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  output.transmissions.front().joints.front().role = "coupler";
-  EXPECT_NE(error_of(output).find("role 'output'"), std::string::npos);
-
-  auto input = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  input.transmissions.front().actuators.front().role = "output";
-  EXPECT_NE(error_of(input).find("role 'input'"), std::string::npos);
+  transmission().parameters.erase("coupler_length_m");
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("'coupler_length_m'")));
 }
 
-TEST(DriveLayout, RequiresEveryParameterAndNoOther)
+TEST_F(DriveLayoutOfALinkage, AcceptsNoOtherParameter)
 {
-  auto missing = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  missing.transmissions.front().parameters.erase("coupler_length_m");
-  EXPECT_NE(error_of(missing).find("'coupler_length_m'"), std::string::npos);
-
-  auto unknown = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  unknown.transmissions.front().parameters["gear_ratio"] = "1.0";
-  EXPECT_NE(error_of(unknown).find("'gear_ratio'"), std::string::npos);
-
-  auto garbled = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  garbled.transmissions.front().parameters["ground_length_m"] = "0.12m";
-  EXPECT_NE(error_of(garbled).find("not a number"), std::string::npos);
+  transmission().parameters["gear_ratio"] = "1.0";
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("'gear_ratio'")));
 }
 
-TEST(DriveLayout, RequiresTheOutputsPositionLimits)
+TEST_F(DriveLayoutOfALinkage, RejectsAParameterThatIsNotANumber)
 {
-  auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  info.limits.erase("left_ankle_pitch_joint");
-  EXPECT_NE(error_of(info).find("position limits"), std::string::npos);
+  transmission().parameters["ground_length_m"] = "0.12m";
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("not a number")));
 }
 
-TEST(DriveLayout, RejectsAStateOnlyJointNoLinkageOwns)
+TEST_F(DriveLayoutOfALinkage, RequiresTheOutputsPositionLimits)
 {
-  auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  info.transmissions.clear();
-  EXPECT_NE(error_of(info).find("belongs to 0 transmissions"), std::string::npos);
+  const auto output = joint_with_role("output");
+  ASSERT_FALSE(output.empty());
+  info_.limits.erase(output);
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("position limits")));
 }
 
-TEST(DriveLayout, RejectsAnInputThatControllersCommand)
+TEST_F(DriveLayoutOfALinkage, RejectsAStateOnlyJointNoLinkageOwns)
 {
-  auto info = parse(HUMANOID_TEST_LEG_URDF_PATH);
-  info.transmissions.front().actuators.front().name = "left_ankle_pitch_joint";
-  EXPECT_NE(error_of(info).find("state-only"), std::string::npos);
+  info_.transmissions.clear();
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("belongs to 0 transmissions")));
+}
+
+TEST_F(DriveLayoutOfALinkage, RejectsAnInputThatControllersCommand)
+{
+  const auto output = joint_with_role("output");
+  ASSERT_FALSE(output.empty());
+  transmission().actuators.front().name = output;
+  EXPECT_THAT(drive_layout(info_), HoldsError(HasSubstr("state-only")));
 }
 
 }  // namespace

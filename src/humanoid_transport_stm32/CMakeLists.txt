@@ -78,6 +78,15 @@ if(BUILD_TESTING)
       ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)
   endforeach()
 
+  # The generated Stm32SerialTransport joints map of every robot that has one, against the robot's
+  # generated safety manifest (humanoid_test_robots_dir: a compile definition, never the
+  # environment).
+  find_package(yaml-cpp REQUIRED)
+  ament_add_gmock(${PROJECT_NAME}_generated_wiring_test test/generated_wiring_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_generated_wiring_test
+    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support yaml-cpp)
+  humanoid_test_robots_dir(${PROJECT_NAME}_generated_wiring_test)
+
   # The vendored wire code must match the pinned firmware release: FIRMWARE_PIN's
   # SCHEMA_HASH drives the test, so re-vendoring without bumping the pin (or the
   # reverse) fails the build. The golden fixtures prove header<->bytes agreement.

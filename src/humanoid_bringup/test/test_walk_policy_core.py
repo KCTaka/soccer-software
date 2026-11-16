@@ -1,22 +1,16 @@
 import math
 import os
-import sys
 
+from bringup_files import commanded_joints, CONFIG, load_yaml, PACKAGE, urdf
 import numpy as np
-import yaml
+import walk_policy_core as core
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-PACKAGE = os.path.dirname(HERE)
-sys.path.insert(0, os.path.join(PACKAGE, 'nodes'))
-
-import walk_policy_core as core  # noqa: E402
-
-POLICY_DIR = os.path.join(PACKAGE, 'policies', 'unitree_g1_walk')
+POLICY_ROBOT = 'unitree_g1'
+POLICY_DIR = os.path.join(PACKAGE, 'policies', f'{POLICY_ROBOT}_walk')
 
 
 def _policy_yaml():
-    with open(os.path.join(POLICY_DIR, 'policy.yaml')) as f:
-        return yaml.safe_load(f)
+    return load_yaml(POLICY_DIR, 'policy.yaml')
 
 
 def _rotation(q_xyzw):
@@ -105,17 +99,21 @@ def test_policy_gives_a_finite_action_that_depends_on_its_memory():
 
 
 def test_policy_file_is_consistent():
+    # The policy drives the leading joints of the robot it is named for, which the controller
+    # commands in the description's order.
     cfg = _policy_yaml()['walk_policy']['ros__parameters']
     gains = _policy_yaml()['humanoid_mit_controller']['ros__parameters']
     controlled = cfg['controlled_joints']
-    assert cfg['policy_joints'] == controlled[:12]
-    assert len(cfg['default_angles']) == 12
-    assert len(gains['kp']) == len(gains['kd']) == len(controlled) == 29
+    policy_joints = cfg['policy_joints']
+    assert policy_joints == controlled[:len(policy_joints)]
+    assert len(cfg['default_angles']) == len(policy_joints)
+    assert controlled == commanded_joints(urdf(POLICY_ROBOT))
+    assert len(gains['kp']) == len(gains['kd']) == len(controlled)
 
 
 def test_controlled_joints_are_the_controllers_joints_in_order():
-    with open(os.path.join(PACKAGE, 'config', 'hardware_sil.yaml')) as f:
-        controller = yaml.safe_load(f)['humanoid_mit_controller']['ros__parameters']
+    controller = load_yaml(CONFIG, 'hardware_sil.yaml')['humanoid_mit_controller'][
+        'ros__parameters']
     assert _policy_yaml()['walk_policy']['ros__parameters']['controlled_joints'] == \
         controller['joints']
 

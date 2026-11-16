@@ -1,14 +1,7 @@
 """Unit tests for the pure bench trajectory math (no ROS)."""
-import os
-import sys
-
+import bench_trajectories_core as core
 import numpy as np
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-PACKAGE = os.path.dirname(HERE)
-sys.path.insert(0, os.path.join(PACKAGE, 'nodes'))
-
-import bench_trajectories_core as core  # noqa: E402
+import pytest
 
 
 def _numeric_velocity(traj, t, dt=1e-6):
@@ -24,7 +17,7 @@ def test_sine_starts_and_ends_at_q0_with_zero_velocity():
     # Just inside the ends: still tiny (fade envelope -> 0).
     for t in (1e-3, s.duration() - 1e-3):
         pos, vel = s.point(t)
-        assert abs(pos) < 1e-3 and abs(vel) < 1e-2
+        assert abs(pos) < 1e-3 and abs(vel) < 1e-2, f't = {t}'
 
 
 def test_sine_velocity_is_the_derivative_of_position():
@@ -33,7 +26,7 @@ def test_sine_velocity_is_the_derivative_of_position():
     for t in np.linspace(0.05, s.duration() - 0.05, 400):
         if abs(t - s.fade) < 1e-2 or abs(t - (s.duration() - s.fade)) < 1e-2:
             continue
-        assert abs(s.point(t)[1] - _numeric_velocity(s, t)) < 1e-3
+        assert abs(s.point(t)[1] - _numeric_velocity(s, t)) < 1e-3, f't = {t}'
 
 
 def test_sine_reaches_its_amplitude_in_the_middle():
@@ -54,7 +47,7 @@ def test_trap_starts_and_ends_at_q0_with_zero_velocity():
 def test_trap_velocity_is_the_derivative_of_position():
     tr = core.Trap(step_rad=0.15, ramp_s=1.5, hold_s=1.0, cycles=2)
     for t in np.linspace(0.02, tr.duration() - 0.02, 800):
-        assert abs(tr.point(t)[1] - _numeric_velocity(tr, t)) < 1e-3
+        assert abs(tr.point(t)[1] - _numeric_velocity(tr, t)) < 1e-3, f't = {t}'
 
 
 def test_trap_is_continuous_in_position_and_velocity_at_segment_boundaries():
@@ -66,8 +59,8 @@ def test_trap_is_continuous_in_position_and_velocity_at_segment_boundaries():
         for b in offs:
             t = c * cycle + b
             before, after = tr.point(t - 1e-4), tr.point(t + 1e-4)
-            assert abs(before[0] - after[0]) < 1e-3   # position continuous
-            assert abs(before[1] - after[1]) < 1e-2   # velocity continuous (0 at boundaries)
+            assert abs(before[0] - after[0]) < 1e-3, f'position jumps at t = {t}'
+            assert abs(before[1] - after[1]) < 1e-2, f'velocity jumps at t = {t}'  # 0 there
 
 
 def test_trap_reaches_plus_and_minus_step():
@@ -89,8 +82,5 @@ def test_limit_violation_reports_the_overshoot():
 def test_make_trajectory_selects_the_mode():
     assert isinstance(core.make_trajectory('sine'), core.Sine)
     assert isinstance(core.make_trajectory('trap'), core.Trap)
-    try:
+    with pytest.raises(ValueError):
         core.make_trajectory('nope')
-        assert False, "expected ValueError"
-    except ValueError:
-        pass
