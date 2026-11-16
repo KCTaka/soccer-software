@@ -1,8 +1,10 @@
 # Imported from model/robots/humanoid_prototype_1/source/Assembly.xml by `python3 -m model.generators.ingest_fusion model/robots/humanoid_prototype_1/ingest.yaml`.
 # Re-importing rewrites frames, inertials, meshes, collision and closure pins, and keeps every other field.
-# Masses and inertias are Fusion's, as exported: printed parts at 500 kg/m^3, bearings at 2701 kg/m^3
-# (aluminium; real ones are steel), and each RobStride 'Sim' body at a catalogue mass (RS00 310.1 g,
-# RS02 405.0 g, RS03 880.1 g, RS06 621.1 g) spread uniformly over its shell. PROVISIONAL until weighed.
+# Masses and inertias: every part solid PLA (1.24 g/cm^3, infill not modelled) over its CAD geometry,
+# bearings included, except the 16 RobStride 'Sim' bodies, which keep the CAD's catalogue mass spread
+# uniformly over their shells (RS00 310.1 g, RS02 405.0 g, RS03 880.1 g, RS06 621.1 g; RobStride lists
+# RS02 380 g and RS03 900 g). The CAD's own 500 kg/m^3 for printed parts is not used. PROVISIONAL until
+# weighed: infill lowers the printed parts' mass, and real bearings are steel.
 # Motors, by CAD part: hip pitch and knee RS03, hip roll RS06, hip yaw and shoulder pitch RS02, ankle
 # (through the four-bar), shoulder roll and elbow RS00. Every actuator is PROVISIONAL (simulation
 # only; RS03/RS06 firmware command ranges are unverified), so none is in model/motors.yaml.
@@ -27,18 +29,18 @@ robot:
 links:
 - name: pelvis
   parent_joint: null
-  mass_kg: 3.2734687993050056
+  mass_kg: 4.245518150647792
   com_m:
-  - -0.0008645515
-  - 1.3526e-06
-  - 0.075304998
+  - -0.0023867277
+  - 2.5998e-06
+  - 0.0818752464
   inertia:
-    ixx_kg_m2: 0.04338195315666875
-    iyy_kg_m2: 0.03802566444703512
-    izz_kg_m2: 0.010004555134385555
-    ixy_kg_m2: -2.6187030889828888e-09
-    ixz_kg_m2: 0.0002054669276030738
-    iyz_kg_m2: -2.3822104019922616e-07
+    ixx_kg_m2: 0.05661719875562283
+    iyy_kg_m2: 0.05015889229114938
+    izz_kg_m2: 0.014264085446420164
+    ixy_kg_m2: -1.9744775397713627e-08
+    ixz_kg_m2: 0.0008938910997364758
+    iyz_kg_m2: -6.564719071283122e-07
   visual_mesh: pelvis
   collision:
     primitives:
@@ -87,18 +89,18 @@ links:
     mesh: null
 - name: left_hip_pitch_link
   parent_joint: left_hip_pitch_joint
-  mass_kg: 0.728902101242334
+  mass_kg: 0.8490266289700453
   com_m:
-  - 0.0009953971
-  - 0.0476978491
-  - 2.49736e-05
+  - 0.0019075936
+  - 0.0473537679
+  - 5.32428e-05
   inertia:
-    ixx_kg_m2: 0.0006200882348823046
-    iyy_kg_m2: 0.0004985832680829764
-    izz_kg_m2: 0.0005063034644490837
-    ixy_kg_m2: 7.193994538813078e-08
-    ixz_kg_m2: 1.0914356323477055e-07
-    iyz_kg_m2: 2.1723348646391183e-06
+    ixx_kg_m2: 0.0007915689102158524
+    iyy_kg_m2: 0.0006476802511384978
+    izz_kg_m2: 0.0006667196500734822
+    ixy_kg_m2: -3.109455019316687e-07
+    ixz_kg_m2: 3.143812815916995e-07
+    iyz_kg_m2: 5.367850355097224e-06
   visual_mesh: left_hip_pitch_link
   collision:
     primitives:
@@ -118,18 +120,18 @@ links:
     mesh: null
 - name: right_hip_pitch_link
   parent_joint: right_hip_pitch_joint
-  mass_kg: 0.7289021012423339
+  mass_kg: 0.8490266365700485
   com_m:
-  - 0.0009888815
-  - -0.0476970188
-  - 2.49736e-05
+  - 0.0018937217
+  - -0.0473529372
+  - 5.32462e-05
   inertia:
-    ixx_kg_m2: 0.0006200882348823005
-    iyy_kg_m2: 0.0004996722371860306
-    izz_kg_m2: 0.0005073924335521405
-    ixy_kg_m2: -7.337690129839096e-08
-    ixz_kg_m2: 1.0902495090306495e-07
-    iyz_kg_m2: -2.1723348646386503e-06
+    ixx_kg_m2: 0.000791568919579761
+    iyy_kg_m2: 0.000650402673831847
+    izz_kg_m2: 0.0006694420807938385
+    ixy_kg_m2: 3.0332629080223596e-07
+    ixz_kg_m2: 3.1378502555071357e-07
+    iyz_kg_m2: -5.367957067675162e-06
   visual_mesh: right_hip_pitch_link
   collision:
     primitives:
@@ -149,18 +151,18 @@ links:
     mesh: null
 - name: left_shoulder_pitch_link
   parent_joint: left_shoulder_pitch_joint
-  mass_kg: 0.3329214420109188
+  mass_kg: 0.36668326017240155
   com_m:
-  - -0.0002581374
-  - 0.0392450607
-  - 1.7e-09
+  - -0.0008365549
+  - 0.0383001375
+  - -1.5e-09
   inertia:
-    ixx_kg_m2: 0.00014510314980460272
-    iyy_kg_m2: 0.00015235837719774508
-    izz_kg_m2: 0.00016047574472301048
-    ixy_kg_m2: 6.700050860104221e-08
-    ixz_kg_m2: 1.0242423295793315e-15
-    iyz_kg_m2: 1.6700993356845701e-15
+    ixx_kg_m2: 0.0001737065169445246
+    iyy_kg_m2: 0.00018375973637661848
+    izz_kg_m2: 0.00020329543471936563
+    ixy_kg_m2: 5.266540288358028e-07
+    ixz_kg_m2: -3.652817803076949e-11
+    iyz_kg_m2: 1.82158280013447e-12
   visual_mesh: left_shoulder_pitch_link
   collision:
     primitives:
@@ -181,18 +183,18 @@ links:
     mesh: null
 - name: right_shoulder_pitch_link
   parent_joint: right_shoulder_pitch_joint
-  mass_kg: 0.3329214420109188
+  mass_kg: 0.3666832791481007
   com_m:
-  - -0.0002581374
-  - -0.0392442304
-  - 1.7e-09
+  - -0.0008365566
+  - -0.0382993073
+  - -1.0e-09
   inertia:
-    ixx_kg_m2: 0.00014510314980460413
-    iyy_kg_m2: 0.0001523583771977718
-    izz_kg_m2: 0.00016047574472300834
-    ixy_kg_m2: -6.700050860099425e-08
-    ixz_kg_m2: 1.0242377011214193e-15
-    iyz_kg_m2: -1.669735621962719e-15
+    ixx_kg_m2: 0.0001737065200026305
+    iyy_kg_m2: 0.00018375975732557186
+    izz_kg_m2: 0.00020329545597390223
+    ixy_kg_m2: -5.266555144233762e-07
+    ixz_kg_m2: -3.2570848243103906e-11
+    iyz_kg_m2: -1.5564566714106724e-12
   visual_mesh: right_shoulder_pitch_link
   collision:
     primitives:
@@ -213,18 +215,18 @@ links:
     mesh: null
 - name: left_hip_roll_link
   parent_joint: left_hip_roll_joint
-  mass_kg: 0.5690370908952254
+  mass_kg: 0.7528411454334613
   com_m:
-  - -0.0421662737
-  - -2.22534e-05
-  - -0.0769323834
+  - -0.0414365234
+  - -4.15214e-05
+  - -0.0728711744
   inertia:
-    ixx_kg_m2: 0.0005681343126033454
-    iyy_kg_m2: 0.0006554236478075819
-    izz_kg_m2: 0.0004924974762068773
-    ixy_kg_m2: -4.730728633895506e-08
-    ixz_kg_m2: -1.7652425952815774e-05
-    iyz_kg_m2: 2.943158454199414e-07
+    ixx_kg_m2: 0.0010097385627775067
+    iyy_kg_m2: 0.0012254229948314163
+    izz_kg_m2: 0.0007784867693711406
+    ixy_kg_m2: -1.3791118715214195e-07
+    ixz_kg_m2: -3.901166785937528e-05
+    iyz_kg_m2: 5.936635207138376e-07
   visual_mesh: left_hip_roll_link
   collision:
     primitives:
@@ -244,18 +246,18 @@ links:
     mesh: null
 - name: right_hip_roll_link
   parent_joint: right_hip_roll_joint
-  mass_kg: 0.5690370908952255
+  mass_kg: 0.7528417738629833
   com_m:
-  - -0.0421662737
-  - 2.30838e-05
-  - -0.0769323834
+  - -0.0414365254
+  - 4.23695e-05
+  - -0.0728711577
   inertia:
-    ixx_kg_m2: 0.0005681343126038445
-    iyy_kg_m2: 0.0006554236478061034
-    izz_kg_m2: 0.0004924974762058762
-    ixy_kg_m2: 4.7307286339905884e-08
-    ixz_kg_m2: -1.7652425952815964e-05
-    iyz_kg_m2: -2.943158453835018e-07
+    ixx_kg_m2: 0.0010097392245973474
+    iyy_kg_m2: 0.0012254237022065943
+    izz_kg_m2: 0.0007784876027087423
+    ixy_kg_m2: 1.379508645620621e-07
+    ixz_kg_m2: -3.901161916477452e-05
+    iyz_kg_m2: -5.938924460164857e-07
   visual_mesh: right_hip_roll_link
   collision:
     primitives:
@@ -275,18 +277,18 @@ links:
     mesh: null
 - name: left_shoulder_roll_link
   parent_joint: left_shoulder_roll_joint
-  mass_kg: 0.3931040223925566
+  mass_kg: 0.5158558438282327
   com_m:
-  - 0.029496499
-  - 0.1126040819
-  - 0.0016278586
+  - 0.0297161517
+  - 0.1015895641
+  - 0.0006702085
   inertia:
-    ixx_kg_m2: 0.0006096693730614675
-    iyy_kg_m2: 0.0002120144693271465
-    izz_kg_m2: 0.0006297013478493673
-    ixy_kg_m2: 1.0928660599713462e-05
-    ixz_kg_m2: 1.5797747401048953e-07
-    iyz_kg_m2: -7.932547746019461e-06
+    ixx_kg_m2: 0.0011831165319507943
+    iyy_kg_m2: 0.00033071028685561284
+    izz_kg_m2: 0.0012420208731549341
+    ixy_kg_m2: 2.4448541836944138e-05
+    ixz_kg_m2: 1.6134900958344564e-07
+    iyz_kg_m2: -8.097705298351414e-06
   visual_mesh: left_shoulder_roll_link
   collision:
     primitives:
@@ -307,18 +309,18 @@ links:
     mesh: null
 - name: right_shoulder_roll_link
   parent_joint: right_shoulder_roll_joint
-  mass_kg: 0.39310193946037886
+  mass_kg: 0.5158557669943938
   com_m:
-  - 0.0294965002
-  - -0.1126033863
-  - 0.0016277302
+  - 0.0297161552
+  - -0.1015887351
+  - 0.0006702103
   inertia:
-    ixx_kg_m2: 0.0006096668939882831
-    iyy_kg_m2: 0.00021201258383666833
-    izz_kg_m2: 0.0006296990370120052
-    ixy_kg_m2: -1.0928674268697497e-05
-    ixz_kg_m2: 1.5797427234006027e-07
-    iyz_kg_m2: 7.933832662160034e-06
+    ixx_kg_m2: 0.0011831164697845063
+    iyy_kg_m2: 0.00033071021987832714
+    izz_kg_m2: 0.0012420208141277
+    ixy_kg_m2: -2.4448505802271754e-05
+    ixz_kg_m2: 1.6130459582123205e-07
+    iyz_kg_m2: 8.097684720267062e-06
   visual_mesh: right_shoulder_roll_link
   collision:
     primitives:
@@ -339,18 +341,18 @@ links:
     mesh: null
 - name: left_hip_yaw_link
   parent_joint: left_hip_yaw_joint
-  mass_kg: 1.0083571411332837
+  mass_kg: 1.1573575241113383
   com_m:
-  - -9.677e-07
-  - -0.0052334212
-  - -0.0581411178
+  - -2.1985e-06
+  - -0.0047517853
+  - -0.0578158586
   inertia:
-    ixx_kg_m2: 0.0008817615287416318
-    iyy_kg_m2: 0.0011682349015968289
-    izz_kg_m2: 0.0008689277202133598
-    ixy_kg_m2: 1.6582401612886688e-08
-    ixz_kg_m2: 7.094638308457893e-09
-    iyz_kg_m2: -7.833283947843805e-07
+    ixx_kg_m2: 0.0011235653343981584
+    iyy_kg_m2: 0.0014784122254177688
+    izz_kg_m2: 0.0010918351940278914
+    ixy_kg_m2: 4.048335800243165e-08
+    ixz_kg_m2: 1.5819902499825365e-08
+    iyz_kg_m2: -1.6056473016316533e-06
   visual_mesh: left_hip_yaw_link
   collision:
     primitives:
@@ -371,18 +373,18 @@ links:
     mesh: null
 - name: right_hip_yaw_link
   parent_joint: right_hip_yaw_joint
-  mass_kg: 1.0083567103035034
+  mass_kg: 1.1573577330150184
   com_m:
-  - -9.654e-07
-  - 0.0052444345
-  - -0.0581411381
+  - -2.1941e-06
+  - 0.0047520751
+  - -0.0578158598
   inertia:
-    ixx_kg_m2: 0.0008809639436952953
-    iyy_kg_m2: 0.001168233913487768
-    izz_kg_m2: 0.0008681310899256075
-    ixy_kg_m2: -1.6587306934370865e-08
-    ixz_kg_m2: 6.987097410385909e-09
-    iyz_kg_m2: 7.861543219975741e-07
+    ixx_kg_m2: 0.001123613211809246
+    iyy_kg_m2: 0.0014784128838735105
+    izz_kg_m2: 0.0010918836120558163
+    ixy_kg_m2: -4.043228211464737e-08
+    ixz_kg_m2: 1.5973407464052328e-08
+    iyz_kg_m2: 1.6052453632951006e-06
   visual_mesh: right_hip_yaw_link
   collision:
     primitives:
@@ -403,18 +405,18 @@ links:
     mesh: null
 - name: left_elbow_link
   parent_joint: left_elbow_joint
-  mass_kg: 0.17460070296786648
+  mass_kg: 0.43216864869841426
   com_m:
-  - -1.7338e-06
-  - 0.1149129169
-  - 0.0317500017
+  - -1.8634e-06
+  - 0.1148532021
+  - 0.0317499987
   inertia:
-    ixx_kg_m2: 0.0009050246494655179
-    iyy_kg_m2: 7.847090217217233e-05
-    izz_kg_m2: 0.0008795708792954365
-    ixy_kg_m2: -1.6737353469556086e-08
-    ixz_kg_m2: -4.654985976315685e-20
-    iyz_kg_m2: -3.081623530768443e-19
+    ixx_kg_m2: 0.0022392200854152843
+    iyy_kg_m2: 0.00019411827289722946
+    izz_kg_m2: 0.0021761140203718846
+    ixy_kg_m2: -4.537418744507349e-08
+    ixz_kg_m2: -5.034043532059505e-11
+    iyz_kg_m2: -1.0872186934184521e-10
   visual_mesh: left_elbow_link
   collision:
     primitives:
@@ -435,18 +437,18 @@ links:
     mesh: null
 - name: right_elbow_link
   parent_joint: right_elbow_joint
-  mass_kg: 0.17460070296786648
+  mass_kg: 0.4321686486871919
   com_m:
-  - -1.7338e-06
-  - -0.1149120866
-  - 0.0317500017
+  - -1.8634e-06
+  - -0.1148523718
+  - 0.0317500047
   inertia:
-    ixx_kg_m2: 0.0009050246494655487
-    iyy_kg_m2: 7.847090217215396e-05
-    izz_kg_m2: 0.0008795708792954705
-    ixy_kg_m2: 1.6737353466851566e-08
-    ixz_kg_m2: 3.2734064611386185e-20
-    iyz_kg_m2: -1.0909771540261406e-17
+    ixx_kg_m2: 0.0022392200853229307
+    iyy_kg_m2: 0.00019411827287472687
+    izz_kg_m2: 0.002176114020293786
+    ixy_kg_m2: 4.537419338912469e-08
+    ixz_kg_m2: 5.033621096421572e-11
+    iyz_kg_m2: -1.1333070375549347e-10
   visual_mesh: right_elbow_link
   collision:
     primitives:
@@ -467,18 +469,18 @@ links:
     mesh: null
 - name: left_knee_link
   parent_joint: left_knee_joint
-  mass_kg: 0.4484185628581298
+  mass_kg: 0.6531720518253721
   com_m:
-  - 0.0003364452
-  - -0.030735649
-  - -0.0963407754
+  - 0.0005727173
+  - -0.0342714679
+  - -0.1043126241
   inertia:
-    ixx_kg_m2: 0.0008826298369308808
-    iyy_kg_m2: 0.0007335210248877091
-    izz_kg_m2: 0.0003246456224087572
-    ixy_kg_m2: 5.223736565761283e-06
-    ixz_kg_m2: -1.6282013743511536e-06
-    iyz_kg_m2: -4.6641834382196246e-05
+    ixx_kg_m2: 0.0018749448147360463
+    iyy_kg_m2: 0.001533060831908911
+    izz_kg_m2: 0.0005914697706476096
+    ixy_kg_m2: 1.1629214590419481e-05
+    ixz_kg_m2: -7.019507274222116e-06
+    iyz_kg_m2: -7.109406884155645e-05
   visual_mesh: left_knee_link
   collision:
     primitives:
@@ -499,18 +501,18 @@ links:
     mesh: null
 - name: right_knee_link
   parent_joint: right_knee_joint
-  mass_kg: 0.44841856285814397
+  mass_kg: 0.6531720518228422
   com_m:
-  - 0.0003364452
-  - 0.0307364829
-  - -0.0963407754
+  - 0.0005727173
+  - 0.0342722965
+  - -0.1043126241
   inertia:
-    ixx_kg_m2: 0.0008826298662255855
-    iyy_kg_m2: 0.0007335210248877569
-    izz_kg_m2: 0.000324645651703415
-    ixy_kg_m2: -5.223736033729976e-06
-    ixz_kg_m2: -1.6282013743514361e-06
-    iyz_kg_m2: 4.6641938881735435e-05
+    ixx_kg_m2: 0.0018749448013301397
+    iyy_kg_m2: 0.0015330608318823954
+    izz_kg_m2: 0.0005914697572681884
+    ixy_kg_m2: -1.1629241188985953e-05
+    ixz_kg_m2: -7.019507275553003e-06
+    iyz_kg_m2: 7.109400736718456e-05
   visual_mesh: right_knee_link
   collision:
     primitives:
@@ -531,36 +533,36 @@ links:
     mesh: null
 - name: left_ankle_horn_link
   parent_joint: left_ankle_motor_joint
-  mass_kg: 0.007026344502569118
+  mass_kg: 0.013307918982757355
   com_m:
-  - -0.0275236545
-  - 0.0001712954
-  - -6.38067e-05
+  - -0.0221181367
+  - -0.0006730649
+  - -5.12893e-05
   inertia:
-    ixx_kg_m2: 4.5296761352289687e-07
-    iyy_kg_m2: 3.3278509450445228e-06
-    izz_kg_m2: 3.0716594864389472e-06
-    ixy_kg_m2: 3.0340974032174006e-07
-    ixz_kg_m2: -6.06409215146793e-09
-    iyz_kg_m2: 7.026007060551655e-10
+    ixx_kg_m2: 9.918809557862048e-07
+    iyy_kg_m2: 6.4393986803518075e-06
+    izz_kg_m2: 5.8378734352115345e-06
+    ixy_kg_m2: 4.952895481554358e-07
+    ixz_kg_m2: -1.1221842827438114e-08
+    iyz_kg_m2: 1.1469334960323976e-09
   visual_mesh: left_ankle_horn_link
   collision:
     primitives: []
     mesh: null
 - name: left_foot_link
   parent_joint: left_ankle_pitch_joint
-  mass_kg: 0.04348669182660272
+  mass_kg: 0.09550398233040837
   com_m:
-  - 0.0080358481
-  - -0.0005136644
-  - -0.0164054925
+  - 0.0107958231
+  - -0.0001877618
+  - -0.0185290634
   inertia:
-    ixx_kg_m2: 1.4655279953490653e-05
-    iyy_kg_m2: 8.34066862184692e-05
-    izz_kg_m2: 8.89238638487656e-05
-    ixy_kg_m2: -1.1095706338045763e-06
-    ixz_kg_m2: 6.531871327998897e-06
-    iyz_kg_m2: 3.9967268857179646e-07
+    ixx_kg_m2: 3.070822055323858e-05
+    iyy_kg_m2: 0.00019182172200373518
+    izz_kg_m2: 0.00020788097746872726
+    ixy_kg_m2: -1.0019093058603488e-06
+    ixz_kg_m2: 1.1302731954218618e-05
+    iyz_kg_m2: 4.1490823299475925e-07
   visual_mesh: left_foot_link
   collision:
     primitives:
@@ -581,18 +583,18 @@ links:
     mesh: null
 - name: right_foot_link
   parent_joint: right_ankle_pitch_joint
-  mass_kg: 0.043486691515019486
+  mass_kg: 0.09550398233036235
   com_m:
-  - 0.008035848
-  - 0.0005144948
-  - -0.0164054925
+  - 0.0107958231
+  - 0.0001885922
+  - -0.0185290634
   inertia:
-    ixx_kg_m2: 1.4655279920554487e-05
-    iyy_kg_m2: 8.340668614518647e-05
-    izz_kg_m2: 8.892386379991276e-05
-    ixy_kg_m2: 1.1095706318889624e-06
-    ixz_kg_m2: 6.531871292232989e-06
-    iyz_kg_m2: -3.9967268703489075e-07
+    ixx_kg_m2: 3.0708220553214904e-05
+    iyy_kg_m2: 0.00019182172200365232
+    izz_kg_m2: 0.00020788097746863638
+    ixy_kg_m2: 1.0019093058319721e-06
+    ixz_kg_m2: 1.130273195419688e-05
+    iyz_kg_m2: -4.1490823298368736e-07
   visual_mesh: right_foot_link
   collision:
     primitives:
@@ -613,54 +615,54 @@ links:
     mesh: null
 - name: right_ankle_horn_link
   parent_joint: right_ankle_motor_joint
-  mass_kg: 0.007026344502569118
+  mass_kg: 0.013307918982734349
   com_m:
-  - -0.0275236545
-  - -0.000138333
-  - -6.38067e-05
+  - -0.0221181367
+  - 0.0007159367
+  - -5.12893e-05
   inertia:
-    ixx_kg_m2: 4.4914630312467034e-07
-    iyy_kg_m2: 3.3278509450445105e-06
-    izz_kg_m2: 3.067838176040697e-06
-    ixy_kg_m2: -2.994641164821627e-07
-    ixz_kg_m2: -6.064092151759521e-09
-    iyz_kg_m2: -6.934638930069565e-10
+    ixx_kg_m2: 9.814618418327653e-07
+    iyy_kg_m2: 6.439398680333997e-06
+    izz_kg_m2: 5.827454321241836e-06
+    ixy_kg_m2: -4.824875584083924e-07
+    ixz_kg_m2: -1.1221842830211092e-08
+    iyz_kg_m2: -1.1172881620458419e-09
   visual_mesh: right_ankle_horn_link
   collision:
     primitives: []
     mesh: null
 - name: left_ankle_rod_link
   parent_joint: left_ankle_rod_joint
-  mass_kg: 0.0038672449867306028
+  mass_kg: 0.009590323634738092
   com_m:
-  - -0.0084287082
+  - -0.0084255124
   - 0.0
-  - 0.0597006559
+  - 0.0597007891
   inertia:
-    ixx_kg_m2: 5.667553240404748e-06
-    iyy_kg_m2: 5.797152254560697e-06
-    izz_kg_m2: 1.457125349339941e-07
-    ixy_kg_m2: 2.086008672655382e-22
-    ixz_kg_m2: 2.306721213047468e-07
-    iyz_kg_m2: -5.61595794831252e-21
+    ixx_kg_m2: 1.405100481625612e-05
+    iyy_kg_m2: 1.4371811337364556e-05
+    izz_kg_m2: 3.607662029198403e-07
+    ixy_kg_m2: 4.378391388436299e-22
+    ixz_kg_m2: 5.719028832131403e-07
+    iyz_kg_m2: -1.1383080137957512e-20
   visual_mesh: left_ankle_rod_link
   collision:
     primitives: []
     mesh: null
 - name: right_ankle_rod_link
   parent_joint: right_ankle_rod_joint
-  mass_kg: 0.0038672449867306028
+  mass_kg: 0.009590323634738092
   com_m:
-  - -0.0084287082
+  - -0.0084255124
   - 0.0
-  - 0.0597006559
+  - 0.0597007891
   inertia:
-    ixx_kg_m2: 5.667553240404757e-06
-    iyy_kg_m2: 5.7971522545606934e-06
-    izz_kg_m2: 1.457125349339943e-07
-    ixy_kg_m2: 3.573336157252816e-22
-    ixz_kg_m2: 2.3067212130475057e-07
-    iyz_kg_m2: -1.402255893622459e-20
+    ixx_kg_m2: 1.4051004816256121e-05
+    iyy_kg_m2: 1.4371811337364553e-05
+    izz_kg_m2: 3.607662029198405e-07
+    ixy_kg_m2: 1.054411043258262e-21
+    ixz_kg_m2: 5.719028832131465e-07
+    iyz_kg_m2: -3.687711539684288e-20
   visual_mesh: right_ankle_rod_link
   collision:
     primitives: []

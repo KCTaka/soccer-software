@@ -2,16 +2,17 @@
 #   python3 -m model.generators.ingest_fusion model/robots/humanoid_prototype_1/ingest.yaml
 # Re-export from Fusion (acdc4robot) into source/, re-run, then diff. Paths are relative to this
 # file's directory. Points below are in each export body's own frame, in metres, measured from its
-# meshes. source/Assembly_collision.xml and source/collision_pipeline_scripts/ are a separate,
-# earlier attempt at a simulation model, kept for reference; nothing here reads them.
+# meshes.
 model_name: humanoid_prototype_1
 export: source/Assembly.xml
 model_out: robot_model.yaml
 meshes_out: meshes
 notes:
-  - "Masses and inertias are Fusion's, as exported: printed parts at 500 kg/m^3, bearings at 2701 kg/m^3"
-  - "(aluminium; real ones are steel), and each RobStride 'Sim' body at a catalogue mass (RS00 310.1 g,"
-  - "RS02 405.0 g, RS03 880.1 g, RS06 621.1 g) spread uniformly over its shell. PROVISIONAL until weighed."
+  - "Masses and inertias: every part solid PLA (1.24 g/cm^3, infill not modelled) over its CAD geometry,"
+  - "bearings included, except the 16 RobStride 'Sim' bodies, which keep the CAD's catalogue mass spread"
+  - "uniformly over their shells (RS00 310.1 g, RS02 405.0 g, RS03 880.1 g, RS06 621.1 g; RobStride lists"
+  - "RS02 380 g and RS03 900 g). The CAD's own 500 kg/m^3 for printed parts is not used. PROVISIONAL until"
+  - "weighed: infill lowers the printed parts' mass, and real bearings are steel."
   - "Motors, by CAD part: hip pitch and knee RS03, hip roll RS06, hip yaw and shoulder pitch RS02, ankle"
   - "(through the four-bar), shoulder roll and elbow RS00. Every actuator is PROVISIONAL (simulation"
   - "only; RS03/RS06 firmware command ranges are unverified), so none is in model/motors.yaml."
@@ -39,6 +40,27 @@ up: [0.0, 0.0, 1.0]
 root: Torso_1__Torso-Design-3_1
 root_frame_at_joint: [sim_joint_0022, sim_joint_0030]
 base: floating
+
+# Inertials from each part's mesh at this density, not Fusion's: every part is printed PLA but the
+# motors, whose bodies keep the export's catalogue mass.
+density_kg_m3: 1240.0
+cad_inertial_parts:
+  - Torso_1__RS02---Sim_1
+  - Torso_1__RS02---Sim_2
+  - Left-Hip-Pitch_1__RS03---Sim_1
+  - Left-Hip-PitchMirror_1__RS03---SimMirror_1
+  - Left-Hip-Roll_1__RS06---Sim_1
+  - Left-Hip-RollMirror_1__RS06---SimMirror_1
+  - Left-Hip-Yaw_1__RS02---Sim_1
+  - Left-Hip-YawMirror_1__RS02---SimMirror_1
+  - Left-Knee_1__RS03---Sim_1
+  - Left-KneeMirror_1__RS03---SimMirror_2
+  - Left-Shin_1__RS00---Sim_1
+  - Left-ShinMirror_1__RS00---SimMirror_1
+  - Left-Shoulder-Roll_1__RS00---Sim_1
+  - Left-Shoulder-RollMirror_1__RS00---SimMirror-1_2
+  - Left-Forearm-Pitch_1__RS00---Sim_1
+  - Left-Forearm-PitchMirror_1__RS00---SimMirror-1_1
 
 # Each link is a body that carries a joint, with every body the export welds to it.
 links:

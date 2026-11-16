@@ -23,8 +23,9 @@ was left, with every closed loop cut open. The import, in order:
     y left, z up), so every joint origin has rpy 0. The root's frame sits on `root_frame_at_joint`.
  5. Writes each mesh in metres in its link frame, and transforms inertials, collision primitives
     and closure points into the link frames. With `density_kg_m3` set, each part's inertial is
-    computed from its mesh at that density, and a purchased part's placeholder shell takes the
-    part's catalogue mass (see mass_properties); without it, the inertials are Fusion's.
+    computed from its mesh at that density, a purchased part's placeholder shell takes the
+    part's catalogue mass (see mass_properties), and the parts `cad_inertial_parts` names keep
+    Fusion's; without it, the inertials are Fusion's.
 """
 import argparse
 import os
@@ -300,6 +301,12 @@ def ingest(config_path):
     if purchased and density is None:
         raise ValueError("purchased_parts replace a placeholder's mass, which needs the other "
                          "shells' density: set density_kg_m3")
+    # Parts whose inertial stays the CAD's when density_kg_m3 sets the rest: bought parts the
+    # export already gives their catalogue mass, each its own body.
+    cad_inertial = set(cfg.get("cad_inertial_parts", []))
+    unknown = sorted(cad_inertial - {m.body(b).name for b in range(1, m.nbody)})
+    if unknown:
+        raise ValueError(f"cad_inertial_parts names bodies the export lacks: {unknown}")
     os.makedirs(cfg["meshes_out"], exist_ok=True)
     links = []
     for b in order:
@@ -309,7 +316,7 @@ def ingest(config_path):
             pname = m.body(pb).name
             r_wb, p_wb = d.xmat[pb].reshape(3, 3), d.xpos[pb]
             tri = read_stl(mesh_files[geom_mesh[pb]]) * scale_of[geom_mesh[pb]]   # body frame, m
-            if density is None:
+            if density is None or pname in cad_inertial:
                 # Fusion's inertial, compiled by MuJoCo, in the body frame.
                 mass = float(m.body_mass[pb])
                 com_b = m.body_ipos[pb].copy()
