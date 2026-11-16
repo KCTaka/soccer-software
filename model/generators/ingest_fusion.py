@@ -143,6 +143,36 @@ def primitive_in_link(shape, dims, r_lb):
 def rnd(xs, decimals=POSITION_DECIMALS):
     return [round(float(x), decimals) + 0.0 for x in xs]   # + 0.0 turns -0.0 into 0.0
 
+def fitted_primitive(prim, verts):
+    """(centre, rpy, dimensions) of a primitive fitted to `verts` (n, 3), a part's mesh in link
+    axes: a box is its axis-aligned bounding box; a cylinder, along link axis `axis`, has that box's
+    length and the larger of its two other half-extents as radius. `pad_m` grows every
+    dimension (negative shrinks it)."""
+    lo, hi = verts.min(0), verts.max(0)
+    centre, half = (lo + hi) / 2, (hi - lo) / 2
+    pad = float(prim.get("pad_m", 0.0))
+    if prim["shape"] == "box":
+        return centre, [0.0, 0.0, 0.0], list(half + pad)
+    if prim["shape"] == "cylinder":
+        k = "xyz".index(prim["axis"])
+        radius = max(half[i] for i in range(3) if i != k) + pad
+        rpy = {0: [0.0, np.pi / 2, 0.0], 1: [-np.pi / 2, 0.0, 0.0], 2: [0.0, 0.0, 0.0]}[k]
+        return centre, rpy, [radius, half[k] + pad]
+    raise ValueError(f"cannot fit a {prim['shape']}: only box and cylinder")
+
+def combine_inertials(parts):
+    """Mass, COM and inertia about the COM of rigidly joined parts, each (mass, com, inertia about
+    its own COM), all in one frame. One part is returned as it is, bit for bit."""
+    if len(parts) == 1:
+        return parts[0]
+    mass = sum(p[0] for p in parts)
+    com = sum(p[0] * p[1] for p in parts) / mass
+    inertia = np.zeros((3, 3))
+    for mi, ci, ii in parts:
+        r = ci - com
+        inertia += ii + mi * (r @ r * np.eye(3) - np.outer(r, r))
+    return mass, com, inertia
+
 def ingest(config_path):
     import mujoco  # the importer compiles the export with MuJoCo
     with open(config_path) as f:
@@ -153,21 +183,36 @@ def ingest(config_path):
     m = mujoco.MjModel.from_xml_path(cfg["export"])
     d = mujoco.MjData(m)
 
-    # --- 2. Close each linkage at the export pose's output angle. ---
     def body(name):
         return m.body(name).id
     def qadr(joint):
         return m.joint(joint).qposadr[0]
+    # Bodies the export nests without a joint are welded: one link, named by the cluster's root
+    # (the body that carries the joint, or the export's root).
+    jointed = {m.jnt_bodyid[j] for j in range(m.njnt)}
+    def cluster(b):
+        while b not in jointed and m.body_parentid[b] != 0:
+            b = m.body_parentid[b]
+        return b
+    members = {}
+    for b in range(1, m.nbody):
+        members.setdefault(cluster(b), []).append(b)
+
+    # --- 2. Close each linkage at the export pose's output angle. ---
+    # The export cuts the loop at the closure pin: between the coupler and the input's link (the
+    # coupler hangs on the output, as the model has it), or between the coupler and the output's
+    # link (it hangs on the input; step 3 moves it onto the output).
     for lk in cfg["linkages"]:
         cl = lk["closure"]
-        def residual(x, lk=lk, cl=cl):
+        other = "input" if "input_body" in cl else "output"
+        def residual(x, lk=lk, cl=cl, other=other):
             d.qpos[qadr(lk["input_joint"])], d.qpos[qadr(lk["coupler_joint"])] = x
             mujoco.mj_kinematics(m, d)
             def world(body_name, point):
                 b = body(body_name)
                 return d.xpos[b] + d.xmat[b].reshape(3, 3) @ np.asarray(point, dtype=float)
             return world(cl["coupler_body"], cl["coupler_point_m"]) - \
-                world(cl["input_body"], cl["input_point_m"])
+                world(cl[f"{other}_body"], cl[f"{other}_point_m"])
         solutions = []
         for start in np.linspace(-np.pi, np.pi, 13):
             r = least_squares(residual, [0.0, start], xtol=1e-15, ftol=1e-15, gtol=1e-15)
@@ -182,11 +227,30 @@ def ingest(config_path):
               f"{lk['coupler_joint']} = {best[1]:+.6f} rad from the export pose")
     mujoco.mj_kinematics(m, d)
 
+    def world_point(body_name, point):
+        b = body(body_name)
+        return d.xpos[b] + d.xmat[b].reshape(3, 3) @ np.asarray(point, dtype=float)
+    def anchor(jname):
+        return d.xanchor[m.joint(jname).id].copy()
+
     # --- 3. Re-root at `root`. ---
-    edges = {}   # body pair -> export joint name
+    edges = {}   # link (cluster) pair -> export joint name
     for j in range(m.njnt):
         child = m.jnt_bodyid[j]
-        edges[frozenset((m.body_parentid[child], child))] = m.joint(j).name
+        edges[frozenset((cluster(m.body_parentid[child]), child))] = m.joint(j).name
+    # A coupler that hangs on the input moves onto the output: its joint becomes the closure pin's
+    # coupler-output pin, and the pin it had on the input becomes the closure.
+    anchor_at, closure_at = {}, {}
+    for lk in cfg["linkages"]:
+        cl = lk["closure"]
+        if "output_body" not in cl:
+            continue
+        cpl = m.joint(lk["coupler_joint"]).id
+        coupler = m.jnt_bodyid[cpl]
+        del edges[frozenset((cluster(m.body_parentid[coupler]), coupler))]
+        edges[frozenset((cluster(body(cl["output_body"])), coupler))] = lk["coupler_joint"]
+        anchor_at[lk["coupler_joint"]] = world_point(cl["coupler_body"], cl["coupler_point_m"])
+        closure_at[lk["name"]] = anchor(lk["coupler_joint"])
     links_cfg, joints_cfg = cfg["links"], cfg["joints"]
     root = body(cfg["root"])
     parent_of, order, frontier = {root: None}, [root], [root]
@@ -200,21 +264,25 @@ def ingest(config_path):
                     order.append(other)
                     frontier.append(other)
     names = {body(n): links_cfg[n] for n in links_cfg}
-    if set(names) != set(order):
-        raise ValueError("config `links` must name every body of the export exactly once")
+    if set(names) != set(order) or set(order) != set(members):
+        raise ValueError("config `links` must name every link of the export exactly once: each "
+                         "body that carries a joint, and the export's root")
 
     # --- 4. Link frames: robot axes, origin on the parent joint's axis. ---
     forward, up = np.asarray(cfg["forward"], float), np.asarray(cfg["up"], float)
     r_rc = np.array([forward, np.cross(up, forward), up])   # rows: robot x, y, z in CAD axes
     if not np.allclose(r_rc @ r_rc.T, np.eye(3), atol=1e-12):
         raise ValueError("`forward` and `up` must be orthogonal unit vectors")
-    def anchor(jname):
-        return d.xanchor[m.joint(jname).id].copy()
-    origin = {root: anchor(cfg["root_frame_at_joint"])}
+    def joint_anchor(jname):
+        return anchor_at[jname].copy() if jname in anchor_at else anchor(jname)
+    # The root's frame sits on one joint's anchor, or midway between several (both hips').
+    at = cfg["root_frame_at_joint"]
+    origin = {root: np.mean([joint_anchor(j) for j in ([at] if isinstance(at, str) else at)],
+                            axis=0)}
     for b in order[1:]:
-        origin[b] = anchor(parent_of[b][1])
-    def to_link(b, world_point):
-        return r_rc @ (np.asarray(world_point) - origin[b])
+        origin[b] = joint_anchor(parent_of[b][1])
+    def to_link(b, world_point_):
+        return r_rc @ (np.asarray(world_point_) - origin[b])
 
     # --- 5. Links: inertial, mesh, collision. ---
     mesh_files = {}
@@ -235,33 +303,44 @@ def ingest(config_path):
     os.makedirs(cfg["meshes_out"], exist_ok=True)
     links = []
     for b in order:
-        bname, lname = m.body(b).name, names[b]
-        r_wb, p_wb = d.xmat[b].reshape(3, 3), d.xpos[b]
-        tri = read_stl(mesh_files[geom_mesh[b]]) * scale_of[geom_mesh[b]]   # body frame, m
-
-        if density is None:
-            # Fusion's inertial, compiled by MuJoCo, in the body frame.
-            mass = float(m.body_mass[b])
-            com_b = m.body_ipos[b].copy()
-            r_ib = np.zeros(9)
-            mujoco.mju_quat2Mat(r_ib, m.body_iquat[b])
-            r_ib = r_ib.reshape(3, 3)
-            inertia_b = r_ib @ np.diag(m.body_inertia[b]) @ r_ib.T
-        else:
-            mass, com_b, inertia_b = mass_properties(tri, density, purchased.get(bname, []))
+        lname = names[b]
+        parts, tris, verts_of = [], [], {}
+        for pb in members[b]:
+            pname = m.body(pb).name
+            r_wb, p_wb = d.xmat[pb].reshape(3, 3), d.xpos[pb]
+            tri = read_stl(mesh_files[geom_mesh[pb]]) * scale_of[geom_mesh[pb]]   # body frame, m
+            if density is None:
+                # Fusion's inertial, compiled by MuJoCo, in the body frame.
+                mass = float(m.body_mass[pb])
+                com_b = m.body_ipos[pb].copy()
+                r_ib = np.zeros(9)
+                mujoco.mju_quat2Mat(r_ib, m.body_iquat[pb])
+                r_ib = r_ib.reshape(3, 3)
+                inertia_b = r_ib @ np.diag(m.body_inertia[pb]) @ r_ib.T
+            else:
+                mass, com_b, inertia_b = mass_properties(tri, density, purchased.get(pname, []))
+            r_lb = r_rc @ r_wb                                   # body axes in link axes
+            parts.append((mass, to_link(b, p_wb + r_wb @ com_b), r_lb @ inertia_b @ r_lb.T))
+            verts = ((tri.reshape(-1, 3) @ r_wb.T + p_wb) - origin[b]) @ r_rc.T
+            verts_of[pname] = verts
+            tris.append(verts.reshape(-1, 3, 3))
+        mass, com, inertia = combine_inertials(parts)
         print(f"{lname}: {mass:.4f} kg")
-        r_lb = r_rc @ r_wb                                   # body axes in link axes
-        com = to_link(b, p_wb + r_wb @ com_b)
-        inertia = r_lb @ inertia_b @ r_lb.T
-
-        verts = tri.reshape(-1, 3) @ r_wb.T + p_wb
-        write_stl(os.path.join(cfg["meshes_out"], f"{lname}.stl"),
-                  ((verts - origin[b]) @ r_rc.T).reshape(-1, 3, 3))
+        write_stl(os.path.join(cfg["meshes_out"], f"{lname}.stl"), np.concatenate(tris))
 
         prims = []
-        for prim in cfg["collision"].get(bname, []):
-            centre = to_link(b, p_wb + r_wb @ np.asarray(prim["centre_m"], float))
-            rpy, dims = primitive_in_link(prim["shape"], prim["dimensions_m"], r_lb)
+        for prim in cfg["collision"].get(m.body(b).name, []):
+            if "fit" in prim:
+                fit = [prim["fit"]] if isinstance(prim["fit"], str) else prim["fit"]
+                if not set(fit) <= set(verts_of):
+                    raise ValueError(f"{lname}: fit names parts not in the link: "
+                                     f"{sorted(set(fit) - set(verts_of))}")
+                centre, rpy, dims = fitted_primitive(prim, np.vstack([verts_of[p] for p in fit]))
+            else:
+                pb = body(prim.get("body", m.body(b).name))
+                r_wb, p_wb = d.xmat[pb].reshape(3, 3), d.xpos[pb]
+                centre = to_link(b, p_wb + r_wb @ np.asarray(prim["centre_m"], float))
+                rpy, dims = primitive_in_link(prim["shape"], prim["dimensions_m"], r_rc @ r_wb)
             prims.append({"shape": prim["shape"],
                           "frame": {"xyz_m": rnd(centre), "rpy_rad": rnd(rpy, DIRECTION_DECIMALS)},
                           "dimensions_m": rnd(dims)})
@@ -298,16 +377,21 @@ def ingest(config_path):
     linkages = []
     for lk in cfg["linkages"]:
         cl = lk["closure"]
-        def closure_point(body_name, point):
-            b = body(body_name)
-            return rnd(to_link(b, d.xpos[b] + d.xmat[b].reshape(3, 3) @ np.asarray(point, float)))
+        if lk["name"] in closure_at:      # the coupler's old pin on the input
+            pin = closure_at[lk["name"]]
+            coupler_point = rnd(to_link(body(cl["coupler_body"]), pin))
+            input_point = rnd(to_link(m.jnt_bodyid[m.joint(lk["input_joint"]).id], pin))
+        else:
+            coupler_point = rnd(to_link(body(cl["coupler_body"]),
+                                        world_point(cl["coupler_body"], cl["coupler_point_m"])))
+            input_point = rnd(to_link(body(cl["input_body"]),
+                                      world_point(cl["input_body"], cl["input_point_m"])))
         linkages.append({
             "name": lk["name"], "type": "planar_four_bar",
             "input_joint": joints_cfg[lk["input_joint"]]["name"],
             "output_joint": joints_cfg[lk["output_joint"]]["name"],
             "coupler_joint": joints_cfg[lk["coupler_joint"]]["name"],
-            "closure": {"coupler_point_m": closure_point(cl["coupler_body"], cl["coupler_point_m"]),
-                        "input_point_m": closure_point(cl["input_body"], cl["input_point_m"])}})
+            "closure": {"coupler_point_m": coupler_point, "input_point_m": input_point}})
 
     # --- Keep what the CAD does not own. ---
     old = {}
