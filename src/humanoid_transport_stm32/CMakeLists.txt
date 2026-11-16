@@ -114,7 +114,8 @@ if(BUILD_TESTING)
   #   fake_master  the master logic it emulates by hand: the version-gate enable refusal and the
   #                robot_state reporting priority
   #   master_link, link_probe, transport  the host side over the pseudo-terminal
-  foreach(name IN ITEMS fw_boundary fake_master master_link link_probe transport)
+  #   conformance  the ADR-001 suite every ActuatorTransport passes (humanoid_test_support)
+  foreach(name IN ITEMS fw_boundary fake_master master_link link_probe transport conformance)
     ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
     target_link_libraries(${PROJECT_NAME}_${name}_test ${PROJECT_NAME}_fake_master)
   endforeach()

@@ -1,198 +1,43 @@
-// Copyright 2026 Your Organization Name
+// Copyright 2026 UTRA-RoboSoccer
+// The ADR-001 transport conformance suite against MujocoActuatorTransport, over every joint this
+// binary's robot's generated MJCF actuates; CMake builds the binary once per robot SIL can
+// simulate. A simulator transport is not exempt from the suite (ADR-007).
 
-#include <mujoco/mujoco.h>
-#include <gtest/gtest.h>
-
-#include <cmath>
-#include <cstring>
 #include <memory>
-#include <string>
-#include <vector>
 
-#include "humanoid_transport_mujoco/mujoco_actuator_transport.hpp"
-class ConformanceTest : public ::testing::Test
+#include "humanoid_test_support/transport_conformance.hpp"
+#include "sim_fixture.hpp"
+
+namespace
 {
-protected:
-  void SetUp() override
+
+using humanoid::test_support::ConformanceHarness;
+using humanoid::test_support::TransportConformance;
+using humanoid::test_support::TransportName;
+using humanoid::test_support::TransportUnderTest;
+using humanoid::transport_mujoco::testing::SimulatedRobot;
+using humanoid::transport_mujoco::testing::this_robot;
+
+class SimulatorHarness : public ConformanceHarness
+{
+public:
+  humanoid::transport::ActuatorTransport & transport() override {return sim_.transport;}
+
+  bool configure() override {return sim_.transport.configure(sim_.manifest, sim_.safety);}
+
+  const humanoid::transport::JointManifest & joint_manifest() const override
   {
-    std::vector<std::string> joint_names = {
-      "left_hip_pitch_joint", "left_hip_roll_joint", "left_hip_yaw_joint",
-      "left_knee_joint", "left_ankle_pitch_joint", "left_ankle_roll_joint",
-      "right_hip_pitch_joint", "right_hip_roll_joint", "right_hip_yaw_joint",
-      "right_knee_joint", "right_ankle_pitch_joint", "right_ankle_roll_joint",
-      "waist_yaw_joint", "waist_roll_joint", "waist_pitch_joint",
-      "left_shoulder_pitch_joint", "left_shoulder_roll_joint", "left_shoulder_yaw_joint",
-      "left_elbow_joint", "left_wrist_roll_joint", "left_wrist_pitch_joint", "left_wrist_yaw_joint",
-      "right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint",
-      "right_elbow_joint", "right_wrist_roll_joint", "right_wrist_pitch_joint",
-      "right_wrist_yaw_joint"
-    };
-
-    manifest.joint_count = static_cast<std::uint8_t>(joint_names.size());
-    for (size_t i = 0; i < joint_names.size(); ++i) {
-      std::strncpy(manifest.joints[i].name.data(), joint_names[i].c_str(),
-        humanoid::transport::kMaxNameLength - 1);
-      manifest.joints[i].name[humanoid::transport::kMaxNameLength - 1] = '\0';
-    }
-    safety.joint_count = manifest.joint_count;
-
-    transport = std::make_unique<humanoid::transport_mujoco::MujocoActuatorTransport>();
+    return sim_.manifest;
   }
 
-  humanoid::transport::JointManifest manifest{};
-  humanoid::transport::SafetyManifest safety{};
-  std::unique_ptr<humanoid::transport::ActuatorTransport> transport;
+private:
+  SimulatedRobot sim_;
 };
 
-TEST_F(ConformanceTest, C1_ConfigureAcceptsValidManifests)
-{
-  EXPECT_TRUE(transport->configure(manifest, safety));
-}
+std::unique_ptr<ConformanceHarness> make_harness() {return std::make_unique<SimulatorHarness>();}
 
-TEST_F(ConformanceTest, C2_ActivateSucceedsAfterConfigure)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  EXPECT_TRUE(transport->activate());
-}
+INSTANTIATE_TEST_SUITE_P(
+  Mujoco, TransportConformance,
+  ::testing::Values(TransportUnderTest{this_robot().name, make_harness}), TransportName{});
 
-TEST_F(ConformanceTest, C3_ExchangeReturnsWithinDeadline)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  ASSERT_TRUE(transport->activate());
-
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = manifest.joint_count;
-  cmd.sequence = 1;
-
-  auto start = std::chrono::steady_clock::now();
-  auto res = transport->exchange(cmd, fb, start + std::chrono::milliseconds(100));
-  EXPECT_TRUE(res.ok());
-}
-
-TEST_F(ConformanceTest, C4_SequenceNumbersAdvanceAndEcho)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  ASSERT_TRUE(transport->activate());
-
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = manifest.joint_count;
-  cmd.sequence = 42;
-
-  transport->exchange(cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
-  EXPECT_EQ(fb.sequence, 42U);
-}
-
-TEST_F(ConformanceTest, C6_CommandBatchApplied_SignFlipTest)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  ASSERT_TRUE(transport->activate());
-
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = manifest.joint_count;
-  cmd.sequence = 1;
-
-  // command a positive torque on the first joint
-  cmd.joints[0].effort_nm = 10.0;
-  cmd.joints[0].stiffness_nm_rad = 0.0;
-  cmd.joints[0].damping_nm_s_rad = 0.0;
-
-  transport->exchange(cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
-  double initial_pos = fb.joints[0].position_rad;
-
-  // step a few times
-  for (int i = 0; i < 10; ++i) {
-    transport->exchange(cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
-  }
-
-  EXPECT_GT(fb.joints[0].position_rad, initial_pos);
-}
-
-TEST_F(ConformanceTest, C7_HealthReportsActiveOnlyWhileActive)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  EXPECT_FALSE(transport->health_snapshot().active);
-
-  ASSERT_TRUE(transport->activate());
-  EXPECT_TRUE(transport->health_snapshot().active);
-
-  transport->deactivate();
-  EXPECT_FALSE(transport->health_snapshot().active);
-}
-
-TEST_F(ConformanceTest, C8_ExchangeWhileInactiveFailsWithNotActive)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = manifest.joint_count;
-  const auto res = transport->exchange(
-    cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
-  EXPECT_EQ(res.error, humanoid::transport::TransportError::kNotActive);
-}
-
-TEST_F(ConformanceTest, C9_ImuReportsAnUprightUnitAttitudeOnTheFirstCycle)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  EXPECT_TRUE(transport->capabilities().provides_imu);
-  ASSERT_TRUE(transport->activate());
-
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = manifest.joint_count;
-  cmd.sequence = 1;
-  ASSERT_TRUE(
-    transport->exchange(
-      cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100)).ok());
-
-  const auto & imu = fb.imu;
-  ASSERT_TRUE(imu.valid);
-  const double norm = std::sqrt(
-    imu.orientation_x * imu.orientation_x + imu.orientation_y * imu.orientation_y +
-    imu.orientation_z * imu.orientation_z + imu.orientation_w * imu.orientation_w);
-  EXPECT_NEAR(norm, 1.0, 1e-9);
-  // The robot starts upright at qpos0, and one 5 ms cycle cannot tip it far.
-  EXPECT_GT(std::abs(imu.orientation_w), 0.99);
-}
-
-// One exchange of `effort_nm` on the first joint, every gain zero. Returns the reported effort.
-static double reported_effort(
-  humanoid::transport::ActuatorTransport & transport, std::uint8_t n,
-  double effort_nm)
-{
-  humanoid::transport::CommandBatch cmd{};
-  humanoid::transport::FeedbackBatch fb{};
-  cmd.joint_count = n;
-  cmd.sequence = 1;
-  cmd.joints[0].effort_nm = effort_nm;
-  EXPECT_TRUE(
-    transport.exchange(
-      cmd, fb, std::chrono::steady_clock::now() + std::chrono::milliseconds(100)).ok());
-  return fb.joints[0].effort_nm;
-}
-
-TEST_F(ConformanceTest, C10_EffortFeedbackIsTheTorqueTheActuatorApplied)
-{
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  ASSERT_TRUE(transport->activate());
-  EXPECT_DOUBLE_EQ(reported_effort(*transport, manifest.joint_count, 10.0), 10.0);
-}
-
-TEST_F(ConformanceTest, C11_TorqueSaturatesAtTheActuatorForceRange)
-{
-  // The limit is the model's, read from the same file the transport loads.
-  char error[1024] = {};
-  mjModel * model = mj_loadXML(HUMANOID_TEST_MJCF_PATH, nullptr, error, sizeof(error));
-  ASSERT_NE(model, nullptr) << error;
-  const int actuator = mj_name2id(model, mjOBJ_ACTUATOR, manifest.joints[0].name.data());
-  ASSERT_GE(actuator, 0);
-  const double upper = model->actuator_forcerange[2 * actuator + 1];
-  mj_deleteModel(model);
-
-  ASSERT_TRUE(transport->configure(manifest, safety));
-  ASSERT_TRUE(transport->activate());
-  EXPECT_DOUBLE_EQ(reported_effort(*transport, manifest.joint_count, 10.0 * upper), upper);
-}
+}  // namespace

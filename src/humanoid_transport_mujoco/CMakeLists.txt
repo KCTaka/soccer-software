@@ -62,28 +62,24 @@ if(BUILD_TESTING)
   find_package(humanoid_description REQUIRED)
   set(TEST_MJCF_PATH "${humanoid_description_DIR}/../robots/unitree_g1/mjcf/scene.xml")
 
-  # Custom main: configure() creates an rclcpp::Node (mujoco_sim), which
-  # requires rclcpp::init(). The main also hands the transport its mjcf_path
-  # parameter, exactly as ros2_control_node does from its parameter file.
-  ament_add_gmock(${PROJECT_NAME}_conformance_test
-    test/conformance_test.cpp
-    test/conformance_test_main.cpp
-    SKIP_LINKING_MAIN_LIBRARIES)
-  target_link_libraries(${PROJECT_NAME}_conformance_test
-    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support rclcpp::rclcpp)
-  target_compile_definitions(${PROJECT_NAME}_conformance_test PRIVATE
-    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}")
-
-  # The same main, with the transport configured to hold the robot until it is commanded.
-  ament_add_gmock(${PROJECT_NAME}_hold_test
-    test/hold_test.cpp
-    test/conformance_test_main.cpp
-    SKIP_LINKING_MAIN_LIBRARIES)
-  target_link_libraries(${PROJECT_NAME}_hold_test
-    ${PROJECT_NAME} humanoid_test_support::humanoid_test_support rclcpp::rclcpp)
-  target_compile_definitions(${PROJECT_NAME}_hold_test PRIVATE
-    HUMANOID_TEST_MJCF_PATH="${TEST_MJCF_PATH}"
-    HUMANOID_TEST_HOLD_UNTIL_COMMANDED)
+  # The transport as SIL runs it, built once per robot generated with an MJCF: configure() reads
+  # its parameters from rclcpp's global overrides, which a process sets once (test/sim_fixture.hpp).
+  #   sim   the ADR-001 conformance suite, and what only the simulator shows
+  #   hold  the SIL start state, with hold_until_commanded and an initial pose
+  humanoid_generated_robots(simulated_robots WITH mjcf/scene.xml)
+  foreach(robot IN LISTS simulated_robots)
+    ament_add_gmock(${PROJECT_NAME}_sim_${robot}_test
+      test/conformance_test.cpp test/transport_test.cpp test/sim_test_main.cpp
+      SKIP_LINKING_MAIN_LIBRARIES)
+    ament_add_gmock(${PROJECT_NAME}_hold_${robot}_test test/hold_test.cpp
+      SKIP_LINKING_MAIN_LIBRARIES)
+    foreach(target IN ITEMS ${PROJECT_NAME}_sim_${robot}_test ${PROJECT_NAME}_hold_${robot}_test)
+      target_link_libraries(${target}
+        ${PROJECT_NAME} humanoid_test_support::humanoid_test_support rclcpp::rclcpp)
+      humanoid_test_robots_dir(${target})
+      target_compile_definitions(${target} PRIVATE HUMANOID_TEST_ROBOT="${robot}")
+    endforeach()
+  endforeach()
 
   # The simulator's pure parts, on synthetic in-memory models.
   foreach(name IN ITEMS disturbance imu placement)

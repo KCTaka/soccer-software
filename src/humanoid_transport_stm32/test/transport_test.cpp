@@ -1,18 +1,15 @@
 // Copyright 2026 UTRA-RoboSoccer
-// Stm32SerialTransport against a fake master: the ActuatorTransport conformance checks that the
-// MuJoCo transport also passes, and the fault handling that only a physical transport has.
+// Stm32SerialTransport against a fake master: what only this transport can show, its wire units,
+// its arming and release, and the fault handling only a physical transport has. The behaviour every
+// transport shares is the conformance suite's (conformance_test.cpp).
 //
 // A fake master on a pseudo-terminal tests the lifecycle and the parser. It is not timing
 // evidence and not the H1 emulator of ADR-007: see test/fake_master.hpp.
 
 #include <gmock/gmock.h>
 
-#include <cstdlib>
-#include <new>
-
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -21,29 +18,8 @@
 #include <vector>
 
 #include "fake_master.hpp"
-#include "humanoid_test_support/manifests.hpp"
+#include "fake_rig.hpp"
 #include "humanoid_transport_stm32/stm32_serial_transport.hpp"
-
-// --- Allocation counting, for the real-time claim -----------------------------------------------
-// Counts allocations made by the calling thread only, so the fake master's and the reader thread's
-// own allocations do not pollute the measurement of the thread that calls exchange().
-namespace
-{
-thread_local std::size_t g_thread_allocations = 0;
-}  // namespace
-
-// noinline: inlined into a caller, GCC pairs the malloc/free inside these with the caller's
-// new/delete and reports -Wmismatched-new-delete on what is a matched pair.
-[[gnu::noinline]] void * operator new(std::size_t size)
-{
-  ++g_thread_allocations;
-  if (void * p = std::malloc(size)) {
-    return p;
-  }
-  throw std::bad_alloc{};
-}
-[[gnu::noinline]] void operator delete(void * p) noexcept {std::free(p);}
-[[gnu::noinline]] void operator delete(void * p, std::size_t) noexcept {std::free(p);}
 
 namespace
 {
@@ -56,44 +32,25 @@ using humanoid::transport::SafetyManifest;
 using humanoid::transport::TransportError;
 using humanoid::transport_stm32::Stm32SerialTransport;
 using humanoid::transport_stm32::testing::FakeMaster;
+using humanoid::transport_stm32::testing::rig_master;
 namespace wire = humanoid::transport_stm32::wire;
 
 using ::testing::Each;
 
-// Three joints on two slaves. Joint 1 is mirrored and offset, so any missed sign or offset shows.
-constexpr std::uint8_t kJoints = 3;
+constexpr std::uint8_t kJoints = humanoid::transport_stm32::testing::kRigJoints;
 
 class TransportTest : public ::testing::Test
 {
 protected:
   void SetUp() override
   {
-    start_fake(default_fake_config());
-
-    params.serial_device = fake->device();
-    params.handshake_timeout = 500ms;
-    params.discovery_timeout = 500ms;
-    params.arming_timeout = 1500ms;
-    params.release_timeout = 500ms;
-    params.fault_grace = 150ms;
-    params.wiring = {
-      {.chain = 0, .motor = 0},
-      {.chain = 0, .motor = 1, .direction_sign = -1, .zero_offset_rad = 0.5},
-      {.chain = 1, .motor = 0}};
+    start_fake(rig_master());
   }
 
   void TearDown() override
   {
     transport.reset();
     fake.reset();
-  }
-
-  static FakeMaster::Config default_fake_config()
-  {
-    FakeMaster::Config config;
-    config.chain_ids = {0, 1};
-    config.motors_per_chain = {2, 1};
-    return config;
   }
 
   void start_fake(const FakeMaster::Config & config)
@@ -168,86 +125,13 @@ protected:
 
   std::unique_ptr<FakeMaster> fake;
   std::unique_ptr<Stm32SerialTransport> transport;
-  Stm32SerialTransport::Parameters params;
-  JointManifest manifest = humanoid::test_support::joint_manifest({"hip", "knee", "ankle"});
-  SafetyManifest safety = humanoid::test_support::safety_manifest(
-    kJoints, humanoid::transport_stm32::testing::wire_safe_envelope());
+  Stm32SerialTransport::Parameters params = humanoid::transport_stm32::testing::rig_parameters("");
+  JointManifest manifest = humanoid::transport_stm32::testing::rig_manifest();
+  SafetyManifest safety = humanoid::transport_stm32::testing::rig_safety();
   CommandBatch command{};
   FeedbackBatch feedback{};
   humanoid::transport::CycleSequence sequence{0};
 };
-
-// ---------------------------------------------------------------------------
-// Conformance: the checks the MuJoCo transport also passes
-// ---------------------------------------------------------------------------
-
-TEST_F(TransportTest, C1_ConfigureAcceptsValidManifests)
-{
-  EXPECT_TRUE(configure());
-}
-
-TEST_F(TransportTest, C2_ActivateSucceedsAfterConfigure)
-{
-  ASSERT_TRUE(configure());
-  EXPECT_TRUE(transport->activate());
-}
-
-TEST_F(TransportTest, C3_ExchangeReturnsWithinTheDeadline)
-{
-  bring_up();
-  const auto start = std::chrono::steady_clock::now();
-  const auto deadline = start + 100ms;
-  command.sequence = 1;
-  command.joint_count = kJoints;
-  const auto result = transport->exchange(command, feedback, deadline);
-  EXPECT_TRUE(result.ok());
-  EXPECT_LE(std::chrono::steady_clock::now(), deadline + 10ms);
-}
-
-TEST_F(TransportTest, C4_SequenceNumbersAdvanceAndEcho)
-{
-  bring_up();
-  for (const std::uint64_t seq : {42U, 43U, 44U, 1000U}) {
-    command.sequence = seq;
-    command.joint_count = kJoints;
-    ASSERT_TRUE(transport->exchange(
-        command, feedback, std::chrono::steady_clock::now() + 100ms).ok());
-    EXPECT_EQ(feedback.sequence, seq);
-  }
-}
-
-TEST_F(TransportTest, C6_ACommandedTorqueMovesTheJointTheRightWay)
-{
-  bring_up();
-  command.joints[0].effort_nm = 5.0;
-  ASSERT_TRUE(exchange_many(5).ok());
-  EXPECT_GT(feedback.joints[0].effort_nm, 4.9);
-
-  // Joint 1 is mirrored: a positive joint torque is negative on the wire, and the feedback must
-  // come back in joint terms, positive again.
-  command.joints[1].effort_nm = 5.0;
-  ASSERT_TRUE(exchange_many(5).ok());
-  EXPECT_NEAR(feedback.joints[1].effort_nm, 5.0, 0.02);
-  const auto wire_command = fake->last_command();
-  ASSERT_TRUE(wire_command.has_value());
-  EXPECT_LT(wire_command->chains[0].motors[1].tau_ff, 0);
-}
-
-TEST_F(TransportTest, C7_HealthReportsActiveOnlyWhileActive)
-{
-  ASSERT_TRUE(configure());
-  EXPECT_FALSE(transport->health_snapshot().active);
-  ASSERT_TRUE(transport->activate());
-  EXPECT_TRUE(transport->health_snapshot().active);
-  transport->deactivate();
-  EXPECT_FALSE(transport->health_snapshot().active);
-}
-
-TEST_F(TransportTest, C8_ExchangeWhileInactiveFailsWithNotActive)
-{
-  ASSERT_TRUE(configure());
-  EXPECT_EQ(exchange().error, TransportError::kNotActive);
-}
 
 TEST_F(TransportTest, CapabilitiesDescribeAPhysicalTransport)
 {
@@ -308,17 +192,13 @@ TEST_F(TransportTest, FeedbackComesBackInJointUnits)
   EXPECT_EQ(feedback.joint_count, kJoints);
 }
 
-TEST_F(TransportTest, EveryJointIsFreshAndTheBatchCoversTheManifest)
+TEST_F(TransportTest, TheAvailabilityMaskCoversEveryArmedJoint)
 {
   bring_up();
-  const auto result = exchange_many(3);
-  ASSERT_TRUE(result.ok());
-  EXPECT_EQ(result.joints_reported, kJoints);
+  ASSERT_TRUE(exchange_many(3).ok());
   for (std::uint8_t i = 0; i < kJoints; ++i) {
-    EXPECT_TRUE(feedback.joints[i].fresh) << "joint " << static_cast<int>(i);
-    EXPECT_TRUE(feedback.availability_mask.test(i));
+    EXPECT_TRUE(feedback.availability_mask.test(i)) << "joint " << +i;
   }
-  EXPECT_GT(result.round_trip, std::chrono::nanoseconds::zero());
 }
 
 TEST_F(TransportTest, CommandSequenceNumbersOnTheWireAreDistinctAndNeverZero)
@@ -339,13 +219,6 @@ TEST_F(TransportTest, CommandSequenceNumbersOnTheWireAreDistinctAndNeverZero)
 // Configure
 // ---------------------------------------------------------------------------
 
-TEST_F(TransportTest, ConfigureCanBeRepeated)
-{
-  ASSERT_TRUE(configure());
-  ASSERT_TRUE(configure());
-  EXPECT_TRUE(transport->activate());
-}
-
 TEST_F(TransportTest, ConfigureFailsWhenTheDeviceCannotBeOpened)
 {
   params.serial_device = "/dev/definitely-not-a-serial-port";
@@ -354,7 +227,7 @@ TEST_F(TransportTest, ConfigureFailsWhenTheDeviceCannotBeOpened)
 
 TEST_F(TransportTest, ConfigureFailsWhenTheMasterNeverAnswers)
 {
-  FakeMaster idle(default_fake_config());  // never started: a silent device
+  FakeMaster idle(rig_master());  // never started: a silent device
   params.serial_device = idle.device();
   params.handshake_timeout = 150ms;
   EXPECT_FALSE(configure());
@@ -362,7 +235,7 @@ TEST_F(TransportTest, ConfigureFailsWhenTheMasterNeverAnswers)
 
 TEST_F(TransportTest, ConfigureFailsAgainstAMasterOnAnotherProtocolVersion)
 {
-  auto config = default_fake_config();
+  auto config = rig_master();
   config.status_version = 7;
   start_fake(config);
   params.handshake_timeout = 300ms;
@@ -371,7 +244,7 @@ TEST_F(TransportTest, ConfigureFailsAgainstAMasterOnAnotherProtocolVersion)
 
 TEST_F(TransportTest, ConfigureFailsWhenPollAndTelemetryRatesDiffer)
 {
-  auto config = default_fake_config();
+  auto config = rig_master();
   config.poll_hz = 200;
   config.telemetry_hz = 100;
   start_fake(config);
@@ -380,7 +253,7 @@ TEST_F(TransportTest, ConfigureFailsWhenPollAndTelemetryRatesDiffer)
 
 TEST_F(TransportTest, TheReportedCycleIsTheMastersNotAConstantHere)
 {
-  auto config = default_fake_config();
+  auto config = rig_master();
   config.poll_hz = 400;
   config.telemetry_hz = 400;
   start_fake(config);
@@ -397,7 +270,7 @@ TEST_F(TransportTest, ConfigureFailsWhenAWiredChainIsNotReporting)
 
 TEST_F(TransportTest, ConfigureFailsWhenTheMasterReportsADifferentSchemaHash)
 {
-  auto config = default_fake_config();
+  auto config = rig_master();
   config.schema_hash = wire::kSchemaHash ^ 0x1u;  // same proto version, different wire layout
   start_fake(config);
   EXPECT_FALSE(configure());
@@ -530,7 +403,7 @@ TEST_F(TransportTest, MonitorModeConnectsWithoutArmingAndSendsOnlyDisable)
 
 TEST_F(TransportTest, ActivationSurvivesASlaveGoingSilentWhileItArms)
 {
-  auto config = default_fake_config();
+  auto config = rig_master();
   config.arming_silence_cycles = 8;  // the firmware's ~40 ms blocking arm handshake
   start_fake(config);
   bring_up();
@@ -945,63 +818,9 @@ TEST_F(TransportTest, ATupleTheWireCannotCarryFailsTheCycleAndNeverSilentlySucce
   EXPECT_EQ(fake->state(0, 1), wire::DriveState::DRV_ENABLED);
 }
 
-TEST_F(TransportTest, ANonFiniteCommandFailsTheCycle)
-{
-  // v10: a non-finite field makes the whole command unrepresentable, so the cycle fails and is
-  // counted bad. In the integrated system the actuator layer catches a non-finite command from a
-  // claimed controller first (protective) and never passes it to the transport; this is the
-  // transport's own backstop, reached by bypassing that layer.
-  bring_up();
-  ASSERT_TRUE(exchange_many(3).ok());
-  const auto last_good = feedback.sequence;
-
-  command.joints[2].position_rad = std::numeric_limits<double>::quiet_NaN();
-  command.sequence = last_good + 1;
-  command.joint_count = kJoints;
-  EXPECT_EQ(
-    transport->exchange(command, feedback, std::chrono::steady_clock::now() + 100ms).error,
-    TransportError::kManifestMismatch);
-  EXPECT_EQ(feedback.sequence, last_good);
-}
-
-TEST_F(TransportTest, ABatchOfTheWrongSizeIsRejected)
-{
-  bring_up();
-  command.sequence = 1;
-  command.joint_count = kJoints + 1;
-  EXPECT_EQ(
-    transport->exchange(command, feedback, std::chrono::steady_clock::now() + 100ms).error,
-    TransportError::kManifestMismatch);
-}
-
 // ---------------------------------------------------------------------------
 // Real-time properties
 // ---------------------------------------------------------------------------
-
-TEST(AllocationCounter, SeesAnAllocationOnItsOwnThread)
-{
-  // The control for the test below: a counter that counted nothing would pass it vacuously.
-  const std::size_t before = g_thread_allocations;
-  auto * allocated = new std::vector<int>(100);
-  EXPECT_GT(g_thread_allocations, before);
-  delete allocated;
-}
-
-TEST_F(TransportTest, ExchangeAllocatesNothingOnTheCallingThread)
-{
-  bring_up();
-  ASSERT_TRUE(exchange_many(5).ok());  // warm up
-
-  const std::size_t before = g_thread_allocations;
-  for (int i = 0; i < 50; ++i) {
-    command.sequence = ++sequence;
-    command.joint_count = kJoints;
-    const auto result =
-      transport->exchange(command, feedback, std::chrono::steady_clock::now() + 100ms);
-    ASSERT_TRUE(result.ok());
-  }
-  EXPECT_EQ(g_thread_allocations - before, 0U);
-}
 
 TEST_F(TransportTest, ExchangeIsPacedByTheMastersCycleNotByTheHost)
 {
