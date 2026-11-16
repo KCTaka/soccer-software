@@ -1,20 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 project(humanoid_mit_controller VERSION 0.1.0 LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wsuggest-override -Werror)
-endif()
-
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   hardware_interface
   humanoid_transport
+  pluginlib
   rclcpp
   rclcpp_lifecycle
   realtime_tools
@@ -22,6 +13,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 )
 
 find_package(ament_cmake REQUIRED)
+find_package(humanoid_cmake REQUIRED)
+humanoid_set_compiler_options()
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
@@ -38,9 +31,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   controller_interface::controller_interface
   hardware_interface::hardware_interface
   humanoid_transport::humanoid_transport
+  pluginlib::pluginlib
   rclcpp::rclcpp
   rclcpp_lifecycle::rclcpp_lifecycle
-  realtime_tools::realtime_tools)
+  realtime_tools::realtime_tools
+  sensor_msgs::sensor_msgs)
 
 pluginlib_export_plugin_description_file(
   controller_interface humanoid_mit_controller_plugin.xml)
@@ -58,7 +53,7 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_gains_test test/gains_test.cpp)
-  target_include_directories(${PROJECT_NAME}_gains_test PRIVATE include)
+  target_link_libraries(${PROJECT_NAME}_gains_test ${PROJECT_NAME})
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

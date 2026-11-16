@@ -1,20 +1,18 @@
 cmake_minimum_required(VERSION 3.22)
 project(humanoid_transport_stm32 VERSION 0.1.0 LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wsuggest-override -Werror)
-endif()
+set(THIS_PACKAGE_INCLUDE_DEPENDS
+  humanoid_transport
+  pluginlib
+  rclcpp
+)
 
 find_package(ament_cmake REQUIRED)
-find_package(humanoid_transport REQUIRED)
-find_package(pluginlib REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(humanoid_cmake REQUIRED)
+humanoid_set_compiler_options()
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
 
 add_library(${PROJECT_NAME} SHARED
   src/joint_policy.cpp
@@ -141,5 +139,5 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(humanoid_transport pluginlib rclcpp)
+ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()

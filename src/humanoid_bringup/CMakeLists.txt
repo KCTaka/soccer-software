@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(humanoid_bringup VERSION 0.1.0 LANGUAGES CXX)
+project(humanoid_bringup VERSION 0.1.0 LANGUAGES NONE)
 
 find_package(ament_cmake REQUIRED)
 
@@ -23,10 +23,8 @@ install(PROGRAMS nodes/bench_trajectories.py
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(walk_policy_core_test test/test_walk_policy_core.py)
-  ament_add_pytest_test(bench_trajectories_core_test test/test_bench_trajectories_core.py)
-  ament_add_pytest_test(sil_stand_config_test test/test_sil_stand_config.py)
-  ament_add_pytest_test(leg_config_test test/test_leg_config.py)
+  # One pytest run over test/, which collects every test_*.py and reports each test case.
+  ament_add_pytest_test(${PROJECT_NAME}_pytest test)
 endif()
 
 ament_package()
