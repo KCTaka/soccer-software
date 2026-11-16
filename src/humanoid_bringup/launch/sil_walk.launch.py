@@ -107,6 +107,8 @@ def generate_launch_description():
             parameters=[
                 {'robot_description': robot_description},
                 PathJoinSubstitution([share, 'config', 'hardware_sil.yaml']),
+                # The controller's joints and the push body; policy_params brings the gains.
+                PathJoinSubstitution([share, 'config', 'unitree_g1', 'sil_stand.yaml']),
                 policy_params,
                 sim_params,
             ],

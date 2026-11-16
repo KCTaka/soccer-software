@@ -23,6 +23,12 @@ def configured_robots():
                   if os.path.isfile(os.path.join(CONFIG, robot, 'controllers.yaml')))
 
 
+def sil_robots():
+    """Every robot the SIL stand runs: those with a config/<robot>/sil_stand.yaml."""
+    return sorted(robot for robot in os.listdir(CONFIG)
+                  if os.path.isfile(os.path.join(CONFIG, robot, 'sil_stand.yaml')))
+
+
 def controller(robot):
     """The humanoid_mit_controller parameters of `robot`'s controllers.yaml."""
     return load_yaml(CONFIG, robot, 'controllers.yaml')['humanoid_mit_controller'][

@@ -1,8 +1,20 @@
+"""SIL stand: a floating-base humanoid held upright in MuJoCo by humanoid_mit_controller.
+
+Arguments:
+  robot  unitree_g1 (default): the robot to stand. Its generated description is
+         humanoid_description/robots/<robot>. It needs config/<robot>/sil_stand.yaml (the
+         controller's joints and gains, the body the push hits) and
+         config/<robot>/stand_keyframes.yaml (the stand trajectory, whose first pose the
+         simulation starts in). config/hardware_sil.yaml holds what does not depend on the robot.
+  mjcf_path  MJCF model; defaults to the robot's generated mjcf/scene.xml.
+  push_force_n, push_start_time_s  SIL push; a force of 0 disables it.
+  rviz, foxglove  the viewers.
+"""
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
@@ -11,18 +23,24 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 import yaml
 
-def generate_launch_description():
-    keyframes_path = os.path.join(
-        get_package_share_directory('humanoid_bringup'), 'config', 'stand_keyframes.yaml')
-    with open(keyframes_path) as f:
-        keyframes = yaml.safe_load(f)
-    robot_dir = PathJoinSubstitution(
-        [FindPackageShare('humanoid_description'), 'robots', 'unitree_g1'])
 
+def _require(path):
+    if not os.path.isfile(path):
+        raise RuntimeError(f'sil_stand needs {path}, which does not exist')
+    return path
+
+
+def generate_launch_description():
     launch_args = [
         DeclareLaunchArgument(
+            'robot', default_value='unitree_g1',
+            description='Robot to stand: a directory of humanoid_description/robots and of '
+                        'humanoid_bringup/config with a sil_stand.yaml and stand_keyframes.yaml'),
+        DeclareLaunchArgument(
             'mjcf_path',
-            default_value=PathJoinSubstitution([robot_dir, 'mjcf', 'scene.xml']),
+            default_value=PathJoinSubstitution([
+                FindPackageShare('humanoid_description'), 'robots',
+                LaunchConfiguration('robot'), 'mjcf', 'scene.xml']),
             description='MJCF model loaded by MujocoActuatorTransport'),
         DeclareLaunchArgument(
             'push_force_n', default_value='0.0',
@@ -38,6 +56,21 @@ def generate_launch_description():
             description='Start foxglove_bridge on ws://<host>:8765 for a remote Foxglove viewer; '
                         'needs no display or GPU on this host'),
     ]
+    return LaunchDescription(launch_args + [OpaqueFunction(function=_stand)])
+
+
+def _stand(context):
+    # The keyframes are read here, so the robot must be known: hence an OpaqueFunction.
+    robot = LaunchConfiguration('robot').perform(context)
+    config_dir = os.path.join(
+        get_package_share_directory('humanoid_bringup'), 'config', robot)
+    sil_stand_path = _require(os.path.join(config_dir, 'sil_stand.yaml'))
+    keyframes_path = _require(os.path.join(config_dir, 'stand_keyframes.yaml'))
+    with open(keyframes_path) as f:
+        keyframes = yaml.safe_load(f)
+    robot_dir = PathJoinSubstitution(
+        [FindPackageShare('humanoid_description'), 'robots', robot])
+
     # Consumed by the mujoco_sim node that the transport creates inside
     # ros2_control_node. value_type=float keeps "50" from arriving as an int.
     sim_params = {
@@ -75,7 +108,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    return LaunchDescription(launch_args + [
+    return [
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -111,6 +144,7 @@ def generate_launch_description():
                     FindPackageShare('humanoid_bringup'),
                     'config', 'hardware_sil.yaml'
                 ]),
+                sil_stand_path,
                 sim_params,
             ],
             output='screen',
@@ -138,4 +172,4 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(LaunchConfiguration('foxglove')),
         ),
-    ])
+    ]
