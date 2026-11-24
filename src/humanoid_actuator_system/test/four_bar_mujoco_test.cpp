@@ -43,7 +43,7 @@ protected:
     model_ = humanoid::test_support::load_model(*GetParam().robot.mjcf_scene());
     ASSERT_NE(model_, nullptr);
     data_ = humanoid::test_support::make_data(*model_);
-    // model/generators/emit.py names the closure's sites after the linkage.
+    // model/generators/mjcf.py names the closure's sites after the linkage.
     coupler_pin_ = site(l_->transmission.name + "_coupler_pin");
     input_pin_ = site(l_->transmission.name + "_input_pin");
   }

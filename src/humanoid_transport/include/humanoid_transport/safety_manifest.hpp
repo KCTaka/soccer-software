@@ -1,6 +1,6 @@
 // Copyright 2026 Humanoid Robotics Team
 // The ADR-002 command envelope, as data. Hand-written: the key names below are the contract with
-// the manifest that model/generators/emit.py writes, and humanoid_actuator_system's
+// the manifest that model/generators/configs.py writes, and humanoid_actuator_system's
 // safety_manifest_parser_test reads the generated file to hold both sides to it.
 #ifndef HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_
 #define HUMANOID_TRANSPORT__SAFETY_MANIFEST_HPP_

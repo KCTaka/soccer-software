@@ -1,6 +1,6 @@
 // Copyright 2026 UTRA-RoboSoccer
 // How each joint a controller commands reaches its motor, read from the <ros2_control> block that
-// model/generators/emit.py writes.
+// model/generators/urdf.py writes.
 //
 // Controllers and their state interfaces work in joint space: the kinematic tree's joints. The
 // transport and the SafetyKernel work in motor space: one entry per motor, named by the joint the

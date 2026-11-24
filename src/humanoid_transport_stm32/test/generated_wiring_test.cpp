@@ -1,5 +1,5 @@
 // Copyright 2026 UTRA-RoboSoccer
-// The contract with model/generators/emit.py, once per robot it generates a Stm32SerialTransport
+// The contract with model/generators/configs.py, once per robot it generates a Stm32SerialTransport
 // joints map for: the generated wiring is one this transport accepts, for exactly the joints of
 // the robot's generated safety manifest, and the wire carries every joint's envelope once mapped
 // through its sign and offset. These read the files humanoid_description installs, the ones a
@@ -54,7 +54,7 @@ class GeneratedWiring : public ::testing::TestWithParam<GeneratedRobot>
 protected:
   void SetUp() override
   {
-    // The parameters of the transport's node, "stm32_serial", as emit.py writes them.
+    // The parameters of the transport's node, "stm32_serial", as configs.py writes them.
     const auto map = YAML::LoadFile(*GetParam().stm32_wiring())["stm32_serial"]["ros__parameters"]
       ["joints"];
     ASSERT_TRUE(map.IsMap()) << "no stm32_serial joints map";

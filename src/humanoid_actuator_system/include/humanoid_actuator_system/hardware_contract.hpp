@@ -1,5 +1,5 @@
 // Copyright 2026 UTRA-RoboSoccer
-// What HumanoidActuatorSystem requires of the <ros2_control> block that model/generators/emit.py
+// What HumanoidActuatorSystem requires of the <ros2_control> block that model/generators/urdf.py
 // writes into the robot description.
 //
 // Only facts about the robot belong there. Choices that differ between SIL and hardware, such as
