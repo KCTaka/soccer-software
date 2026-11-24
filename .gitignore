@@ -3,6 +3,5 @@ install
 log
 
 .claude
-.local
 .vscode/BROWSE.VC.DB*
 *__pycache__

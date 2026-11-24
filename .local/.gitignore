@@ -1,0 +1,3 @@
+# Local, untracked files: everything in .local/ except this file is ignored.
+*
+!.gitignore
