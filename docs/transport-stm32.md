@@ -14,193 +14,168 @@ The master, not the Jetson, schedules the 200 Hz cycle (ADR-001-03).
 
 | | |
 |---|---|
-| Firmware branch | `akp/single_motor_rework` (not yet merged to firmware `main`) |
-| Commit | `218126a` (`protocol.h` is unchanged since `e30d756`) |
-| `PROTO_VERSION` | 8 |
-| Source of truth | `firmware/common/include/protocol.h` |
+| Firmware tag | `fw-1.1.0` (commit `8daea59`) |
+| `PROTO_VERSION` | 10 |
+| Schema hash | `0xE25161C4` |
+| Source of truth | the firmware's `firmware/common/protocol.yaml` |
 
-`218126a` matters beyond the wire layout. `0555751` makes the master stamp each slave's own
-`chain_id` in telemetry. Before it, every slave reported chain 0, so this transport could not tell
-two chains apart. The master on the robot reported chains 0 and 1 on 2026-10-03, so it carries that
-fix. Nothing on the wire says which commit a master runs.
+`generated/FIRMWARE_PIN` records the pin. `generated/vendor.sh <soccer-firmware checkout>` copies
+that tag's generated C++ header, golden frames, `protocol.yaml`, and the firmware's drive and
+host-watchdog state machines into `generated/`. Never edit them by hand. `wire_pin_test` fails when
+the header's schema hash differs from the pin or the golden frames do not round-trip, and
+`configure()` refuses a master on another protocol version or schema hash.
 
-`wire_protocol.hpp` mirrors that header byte for byte. The golden frames under
-`test/golden/` are built by compiling the firmware's own header (`generate_golden.cpp`), so a layout
-mistake fails a test. The master drops frames of another version and so does this transport, and
-`configure()` says which version a mismatched master speaks. When the firmware changes a struct it
-bumps `PROTO_VERSION`; bump `kProtocolVersion` and regenerate the golden frames in the same change.
-
-The research docs describe an earlier firmware (2026-09-02): no per-cycle sequence echo, no tuple
-beyond position and velocity, no host-death watchdog. All three changed. Where they disagree with
-the firmware at the commit above, the firmware wins.
+To move to a new release, update `FIRMWARE_PIN`, check that tag out, run `vendor.sh`, and port the
+transport to what changed.
 
 ## Configuration
 
 Parameters live on the transport's own node, `stm32_serial`, and are read once at configure
-(read-only). Put them next to the hardware component's parameters:
+(read-only). Defaults shown:
 
 ```yaml
 stm32_serial:
   ros__parameters:
-    serial_device: /dev/robosoccer-master      # tools/udev/99-robosoccer-master.rules in soccer-firmware
+    serial_device: /dev/robosoccer-master  # required
+    monitor_only: false        # true: connect and stream telemetry, never arm
     handshake_timeout_s: 2.0
+    discovery_timeout_s: 3.0
     arming_timeout_s: 3.0
     release_timeout_s: 1.0
     fault_grace_s: 0.5
     joints:
       left_knee_joint:
-        chain: 0                # firmware chain id = slave STM32
-        motor: 1                # index within that slave's CAN chain
-        direction_sign: -1      # joint = sign * (wire - zero_offset_rad)
-        zero_offset_rad: 0.5    # wire angle at the joint's zero pose
+        chain: 0               # slave STM32
+        motor: 1               # index within that slave's CAN chain
+        direction_sign: -1     # joint = sign * (wire - zero_offset_rad)
+        zero_offset_rad: 0.5   # wire angle at the joint's zero pose
 ```
 
-and select it: `transport_plugin: humanoid_transport_stm32/Stm32SerialTransport`.
+Select it with `transport_plugin: humanoid_transport_stm32/Stm32SerialTransport`.
 
-`chain`, `motor`, `direction_sign` and `zero_offset_rad` have **no default** on purpose. A value that
-merely looks plausible goes unnoticed until the joint runs the wrong way. The mapping is a parameter
-because the telemetry carries no CAN id, so nothing on the wire can say which joint a motor is. The
-`joints` block is generated from the robot model as `robots/<robot>/config/stm32_wiring.yaml` in
-`humanoid_description` (chain = index of the actuator's `bus_segment`, motor = its `slot`); never
-write it by hand.
+The `joints` block is generated from the robot model as `robots/<robot>/config/stm32_wiring.yaml`
+in `humanoid_description` (chain = index of the actuator's `bus_segment`, motor = its `slot`); never
+write it by hand. Its fields have no default: the telemetry carries no CAN id, and a plausible guess
+goes unnoticed until a joint runs the wrong way. Velocity and torque take the sign only; stiffness
+and damping are never negated.
 
-Angle convention: `joint = direction_sign * (wire - zero_offset_rad)`. Velocity and torque take the
-sign only. Stiffness and damping are magnitudes and are never negated.
+`configure()` fails unless:
 
-## How one cycle works
+- every `SafetyManifest` envelope fits the wire once mapped: position within ±π, velocity and torque
+  within ±327.67, Kp up to 6553.5, Kd up to 655.35;
+- the master answers within `handshake_timeout_s` on the pinned version and schema hash, and sends
+  one telemetry frame per poll cycle;
+- within `discovery_timeout_s`, every wired chain is `ALIVE` with at least the wired number of
+  motors, every wired motor has left `BOOT`/`DISCOVERING` and is not `ABSENT`, and no slave fails
+  the version gate (`PROTO_MISMATCH`).
 
-`exchange()` writes one command for the whole robot, then waits (on an eventfd, bounded by the
-caller's deadline) for the master's next telemetry frame. That phase-locks the Jetson loop to the
-master's cycle. Two free-running 200 Hz clocks would beat: some exchanges would see no new frame and
-the next would see two, and the master would classify commands as late or duplicate.
+## Activation, running, deactivation
 
-A frame that does not arrive by the deadline is `kTimeout`. `humanoid_actuator_system` counts it as
-a bad cycle, and three in a row are command loss (ADR-002).
-
-`feedback` is untouched on every error, so its sequence stays behind the command's and a failed
-exchange can never be mistaken for a current sample.
-
-The firmware echoes `cmd_seq` as `last_applied_seq`, with a measured median of ~24 ms from command
-to echo. That is several cycles, so `exchange()` cannot wait for its own command's echo.
-`feedback.sequence = command.sequence` therefore means "the freshest telemetry the master produced
-for this cycle", not "this command was applied". `last_applied_seq` is not consumed: nothing would
-read it (AGENTS.md: no counter without a reader). A command-path liveness check is a follow-up.
-
-## What the transport asks of each motor
-
-| Phase | Request | Why |
+| Phase | Request per motor | Done when |
 |---|---|---|
-| `activate()`, step 1 | IDLE with fault reset, until every motor reports IDLE with fresh feedback | Activation is the operator's acknowledgement (ADR-002). The reset clears a motor latched by the last session and a master latched in `HOST_LOST`. The slave polls an IDLE motor every tick but never polls a FAULT one, so fresh feedback in IDLE is what proves its reported position is current again. |
-| `activate()`, step 2 | HOLD **without** fault reset, until every motor reports HOLD with fresh feedback | HOLD from IDLE arms at the captured position, which step 1 made current, so arming does not step. Fresh feedback is required because a motor with no drive behind it reports HOLD for the slave's 100 ms CAN-timeout grace. |
-| running | MIT with the full tuple, **never HOLD** | A motor that dropped to IDLE or FAULT stays there until the next activation. Auto-rearm is prohibited. |
-| isolated joint | IDLE | `request_joint_disable()` and `request_all_disable()` latch until the next activation. |
-| tuple the wire cannot carry | DAMPED on the slave's configured gains, and `kManifestMismatch` | Never clamped. `feedback` is left stale, so the caller counts the cycle as bad. |
-| `deactivate()` | IDLE, until the master confirms it | |
+| `activate()`: clear | `RESET` | every motor `DISABLED` with fresh feedback; one still `FAULT` after `fault_grace_s` fails activation |
+| `activate()`: capture | none | the first fresh frame with every motor `DISABLED`; its positions become the hold targets |
+| `activate()`: arm | `ENABLE` with a valid tuple holding the captured position at the slave's configured gains (`USE_CONFIG_GAINS`) | every motor `ENABLED` with fresh feedback; any `FAULT` fails activation |
+| running | `ENABLE` with the live tuple | |
+| isolated joint | `DISABLE` until the next activation | |
+| `deactivate()` | `STOP` (ramp), then `DISABLE` for any motor not `DISABLED` within `release_timeout_s` | every motor `DISABLED` |
+| failed activation | `DISABLE` | |
+| `monitor_only` | `DISABLE` every cycle; nothing arms | |
 
-Why two steps. In the slave firmware (`motor_runtime.c`), HOLD with a fault reset on a FAULT motor
-arms it in the same request, at the position the slave last heard. The slave stopped polling the
-motor when it faulted, so that position is stale. For a motor the slave never discovered it is 0.
-The same request also skips the slave's discovery and wound-shaft checks, which it applies only to
-a motor that is already IDLE. If the leg moved while faulted, or a drive was powered after its slave
-booted, that request steps the joint. No request this transport sends combines HOLD with a fault
-reset, and a test pins that.
+`arming_timeout_s` bounds the three activation steps together. Why in this order:
 
-`configure()` also rejects any `SafetyManifest` envelope the wire cannot carry (position outside
-the home-frame range of ±π after mapping, velocity or torque over ±327.67, Kp over 6553.5, Kd over
-655.35).
+- `RESET` clears what the last session left latched, in a motor or in the master's `HOST_LOST`.
+  Activation is the operator's acknowledgement (ADR-002). `ENABLE` is accepted only from
+  `DISABLED`, and `RESET` never enables.
+- The slave polls a `DISABLED` motor every cycle, so fresh feedback there means its position is
+  current.
+- `ENABLED` is limp until the first valid tuple, so the hold tuple goes with the first `ENABLE`. It
+  holds the joint where it is, so arming does not step, and it is captured once, so a sagging joint
+  cannot drag it.
 
-## Failures it detects
+Nothing re-arms a motor that drops out while running: recovery is `deactivate()` then `activate()`.
+
+## One cycle
+
+`exchange()` sends one command for the whole robot, then waits (on an eventfd, bounded by the
+caller's deadline) for the master's next telemetry frame. That phase-locks the Jetson loop to the
+master's cycle; two free-running 200 Hz clocks would beat, and the master would see late or
+duplicate commands. `feedback.sequence = command.sequence` means "the freshest telemetry for this
+cycle", not "this command was applied"; the firmware's `last_applied_seq` echo is not read.
 
 | Condition | Result |
 |---|---|
 | No telemetry by the deadline | `kTimeout` |
-| Master reset (cycle counter or clock ran backwards) | `kHardwareFault` and no further commands, until the next activation. A reset STM32 boots disarmed. |
-| Master reports `HOST_LOST` (its dead-man tripped) | `kHardwareFault`. Recovery is re-activation. |
-| Port failed or unplugged | `kHardwareFault`, waiters woken at once |
-| A chain stops answering | Its joints are not fresh and not available; the others carry on. All chains gone: `kIncompleteBatch`. |
-| Chain reports fewer motors than the wiring | `kManifestMismatch` |
-| Drive silent for longer than `feedback_max_age_us` | That joint is not fresh |
-| Motor faulted | `fault_bits` and the availability mask say so; it is not rearmed. The slave stops polling it, so its sample also goes stale |
-| Drive not answering at activation | `activate()` times out in step 1, naming the joint and its feedback age |
-| Motor its slave did not discover at boot | Reported as FAULT, cause NONE, feedback age 255 ms. Step 1 clears it to IDLE, and the slave then rejects HOLD. `activate()` times out saying to reset that slave with the drive powered, because the slave never rediscovers a motor |
-| Corrupt, lost, or duplicated frames | Dropped and counted in `HealthSnapshot` |
+| Port failed or unplugged | `kHardwareFault` |
+| Master reset (cycle counter or clock ran backwards) | `kHardwareFault` until the next activation; a reset STM32 boots disarmed |
+| `robot_state` is `HOST_LOST` or `PROTO_MISMATCH` | `kHardwareFault` |
+| A commanded joint is `FAULT` or `ABSENT`, or not reported | `kHardwareFault`: the cycle fails rather than run some joints |
+| A chain reports fewer motors than the wiring | `kManifestMismatch` |
+| A tuple the wire cannot carry | sent saturated, and `kManifestMismatch`; unreachable behind the SafetyKernel |
+| A drive silent for longer than `feedback_max_age_us` | that joint's feedback is not fresh |
+| Corrupt, foreign-version or duplicated frames | dropped, counted in `HealthSnapshot` |
 
-`JointFeedback::fault_bits`: bits 0-5 the drive's fault bits (undervoltage, driver, overheat,
-encoder, stall, uncalibrated); bit 6 the motor's firmware state is FAULT; bits 8-15 the latched
-`FaultCause`.
+On any error `feedback` is left untouched, so its sequence stays behind the command's.
+`humanoid_actuator_system` counts the cycle as bad, and three in a row are command loss (ADR-002).
 
-Nothing here keeps a stalled real-time loop alive and nothing may: no thread sends commands on the
-loop's behalf. The firmware's host-death watchdog (damped after 12 master cycles without a fresh
-command while any motor is armed, then idle) depends on that.
+`JointFeedback::fault_bits`: bits 0-5 the drive's fault bits, bit 6 set while the motor is `FAULT`,
+bits 8-15 its latched `DriveFault` cause.
 
-## Evidence, and what it is not
+No thread sends commands on the real-time loop's behalf, and none may: the master's host-death
+watchdog relies on it. While any motor is armed, `HOST_LOST_CYCLES` (5 master cycles, 25 ms)
+without a fresh command makes the master force `STOP` on every motor, latched until a `RESET`.
 
-`colcon test` runs the codec against firmware-built golden frames, the pure joint rules, the serial
-link, and the whole transport against `FakeMaster`, a pseudo-terminal stand-in for the master that
-reproduces the firmware's mode state machine, mailbox, and dead-man. A test confirms `exchange()`
-allocates nothing on the calling thread.
+## Evidence
+
+`colcon test` runs the codec against the firmware's golden frames, the joint policy, the serial
+link, the ADR-001 conformance suite (which checks that `exchange()` allocates nothing), and the
+whole transport against `FakeMaster`: a pseudo-terminal master running the firmware's own drive
+state machine and host watchdog, with simulated drives and fault injection.
 
 This is **not hardware-in-the-loop evidence**. ADR-007 rejects a host-side loopback as the H1
-emulator: it leaves the USB stack, `cdc_acm`, and real timing untested. SIL timing is never timing
-evidence (ADR-007-05).
+emulator, and SIL timing is never timing evidence (ADR-007-05).
 
 ## First contact with hardware
 
-`stm32_link_probe` is read-only. It sends nothing, so it is safe against a powered robot in any
-state. The master ignores the DTR change that opening the port causes (`CDC_SET_CONTROL_LINE_STATE`
-is a no-op in `usbd_cdc_if.c`):
+Install soccer-firmware's `tools/udev/99-robosoccer-master.rules` on the host: it creates
+`/dev/robosoccer-master` and keeps ModemManager off the port.
+
+`stm32_link_probe` sends nothing, and the master ignores the DTR change that opening the port
+causes, so it is safe against a powered robot in any state:
 
 ```bash
 ros2 run humanoid_transport_stm32 stm32_link_probe /dev/robosoccer-master
 ```
 
-It reports the master's version and rates, the telemetry rate over about a second on the master's
-own clock, link error counters, and every motor's state, cause, drive faults, telemetry flags,
-report age and measured values (in wire units). The rate is not measured on the host: frames queued
-before the port opened arrive in a burst, and the first frame after opening can be minutes old,
-left in the device's USB buffer by the previous reader.
-
-In the dev container the master is `/host-dev/robosoccer-master` (see [bench.md](bench.md)).
+It prints the master's protocol version, schema hash, uptime and rates; the telemetry rate over
+about a second of the master's own clock; link error counts; and for every chain and motor the
+link, drive state, fault cause, flags, feedback age, and position, velocity and torque in wire
+units. In the dev container the master is `/host-dev/robosoccer-master` (see
+[bench.md](bench.md)).
 
 ## Not verified, and known gaps
 
-Needs the real master and a model whose joint names match the attached motors:
+1. No bench run on `fw-1.1.0` is recorded. The bench runs of 2026-10 were on protocol v8.
+2. The gap between `activate()` returning and the first `exchange()` must stay under the master's
+   host-death limit of 25 ms, or activation ends in `HOST_LOST`. The last arming request can
+   precede the return by up to one 20 ms frame wait, and on the 2026-10 bench `controller_manager`'s
+   first cycle took 5 to 11 ms.
+3. The master's `cmd_on_time` / `cmd_late` / `cmd_missing` / `cmd_duplicate` counters are not read,
+   so pacing under load is unmeasured.
+4. Identity (ADR-002): `configure()` checks the schema hash and each chain's motor count. That
+   catches firmware built for another wiring, not a swapped motor model: the master does not report
+   motor models, and the firmware holds no digest of its config.
+5. A drive's gain span is narrower than the wire's and depends on its model (RS00/RS02: Kp 0..500,
+   Kd 0..5). The SafetyKernel refuses gains above the caps in `model/motors.yaml`, so those caps
+   must match the drives.
 
-1. Command to telemetry over USB CDC works on a bench of ten free drives: activation, arming, and
-   10 000 cycles without a failed exchange. The firmware notes that the first commands after a fresh
-   connect may not land for ~1 s; activation never needed that long on the bench.
-2. The gap between `activate()` returning and the first `write()` must stay under the master's
-   60 ms host-death limit under `controller_manager`. If it does not, activation is followed by
-   `HOST_LOST`. One bench startup in 23 failed with three bad cycles about 25 ms after activation,
-   which fits that: the last arming request can precede
-   `activate()`'s return by up to 20 ms, and that start's first `controller_manager` cycle took
-   10 ms. It is not confirmed. The component's error log now names the transport error, which
-   would read "hardware fault" for `HOST_LOST`.
-3. Pacing under load. On the idle Jetson `ExchangeStats` showed about one isolated deadline miss
-   per 10 000 exchanges, nothing else running; the first
-   `controller_manager` cycle sometimes overran (5 to 11 ms). The master's `cmd_on_time` /
-   `cmd_late` / `cmd_missing` / `cmd_duplicate` counters are still unread, so a diagnostics reader
-   is the missing piece for timing work.
-4. The drive's own span is narrower than the wire's and depends on the model (RS00/RS02: Kp
-   0..500, Kd 0..5; RS03/RS06: Kp 0..5000, Kd 0..100; the `robot_legs` configuration mixes them).
-   The slave clamps to it silently. The master cannot report a motor's model, so this transport
-   cannot check it, and the SafetyKernel does not check stiffness or damping against the
-   envelope. The robot's `SafetyManifest` must keep stiffness and damping inside the drives'
-   spans, and something must enforce it.
-5. The identity interlock of ADR-002. No digest exists in the firmware, and the master's motor
-   count is compile-time with no in-band check. `configure()` verifies chain and motor counts
-   against the wiring, which catches a mismatched build but not a swapped motor model.
+Firmware limits at `fw-1.1.0`:
 
-Firmware gaps that bound what this transport can promise, checked against `218126a`: neither MCU
-enables a hardware watchdog (`HAL_IWDG_MODULE_ENABLED` and `HAL_WWDG_MODULE_ENABLED` are commented
-out in both `stm32f4xx_hal_conf.h`), and a slave whose SPI exchanges stop holds for 50 ms, damps
-for 300 ms, then idles, where ADR-002 wants a safe command within 20 ms. From the firmware's own
-documentation: arming blocks a slave for ~40 ms per motor, CAN transmit is one-shot (about 0.2%
-enable loss), and `max_tau` trips are scalar.
-
-Also in `motor_runtime.c`, and the reason activation takes two steps. A slave discovers its motors
-only at boot and never again. It sends nothing to a FAULT motor, so that motor's reported position
-goes stale. HOLD with a fault reset on a FAULT motor arms it at that stale position, without the
-discovery and wound checks. This transport avoids that request, but other hosts (the firmware's own
-`host/` tools) may not. The fix belongs in the firmware: apply both checks to any HOLD that arms,
-and capture the position after the drive's enable reply.
+- Neither MCU enables a hardware watchdog.
+- A slave that stops getting commands holds its last tuple (velocity and torque zeroed) for 50 ms,
+  then damps for 300 ms and ends in `FAULT` (`MASTER_LOST`). ADR-002 wants a safe command within
+  20 ms.
+- CAN transmit is one-shot. An enable is re-sent every cycle until the drive confirms it or it
+  fails as `ENABLE_FAILED`, but the frame that finally disables a drive is sent once, unconfirmed.
+- The `max_tau` torque trip fires on a single sample.
+- The udev rule names any ST virtual COM port (`0483:5740`) `robosoccer-master`, so attach only one.
