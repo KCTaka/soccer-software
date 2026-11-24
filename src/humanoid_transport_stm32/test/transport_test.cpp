@@ -439,7 +439,7 @@ TEST_F(TransportTest, ActivationFailsWhenAChainStopsAnsweringAndLeavesNothingArm
   EXPECT_FALSE(transport->health_snapshot().active);
 
   // Nothing is left armed, including the motor on the chain that stopped answering: the release
-  // keeps asking for IDLE even though it can never see the answer.
+  // keeps asking for DISABLE even though it can never see the answer.
   EXPECT_TRUE(eventually([&] {return every_motor_is(wire::DriveState::DRV_DISABLED);}));
 }
 
@@ -791,7 +791,7 @@ TEST_F(TransportTest, ATupleTheWireCannotCarryFailsTheCycleAndNeverSilentlySucce
 {
   // v10: an out-of-range tuple is sent clamped (encode saturates) and the cycle is FAILED
   // (kManifestMismatch) so the caller counts it bad and a SafetyKernel that lets it through trips
-  // protective. There is no DAMPED request any more. In the integrated system the safety kernel's
+  // protective. In the integrated system the safety kernel's
   // projection keeps every command inside the manifest envelope (which configure proved the wire
   // can carry), so this transport check is a defensive backstop reached only by a test that
   // bypasses the kernel, as here.

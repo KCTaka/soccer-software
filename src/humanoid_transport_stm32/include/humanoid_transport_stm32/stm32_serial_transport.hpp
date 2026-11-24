@@ -12,9 +12,9 @@
 // cycle and never RESET: a motor that dropped to DISABLED or FAULT stays there until the next
 // activation, because auto-rearm is prohibited. (In monitor_only mode it never arms at all:
 // activate() only connects, and every cycle sends DISABLE.) The firmware owns the independent
-// protections: the host-death watchdog (the master damps and then idles the motors if no fresh
-// command arrives for HOST_LOST_CYCLES while any motor is armed), the slave's soft limits, and the
-// drive's own protection. Nothing here keeps a stalled real-time loop alive, and nothing may: no
+// protections: the host-death watchdog (the master forces STOP if no fresh command arrives for
+// HOST_LOST_CYCLES while any motor is armed), the slave's soft limits, and the drive's own
+// protection. Nothing here keeps a stalled real-time loop alive, and nothing may: no
 // background thread sends commands.
 //
 // Real-time. exchange() is the only real-time entry point besides the two disable requests. It
@@ -23,7 +23,7 @@
 // Parameters (node "stm32_serial", all read once at configure, all read-only):
 //   serial_device          the master's USB CDC device, e.g. /dev/robosoccer-master (required)
 //   monitor_only           read-only: activate() connects and streams telemetry but never arms,
-//                          and every exchange() sends IDLE for all motors (default false)
+//                          and every exchange() sends DISABLE for all motors (default false)
 //   handshake_timeout_s    how long configure() waits for the master to answer
 //   discovery_timeout_s    how long configure() waits for every wired joint to finish boot
 //                          discovery (leave BOOT/DISCOVERING) and report a healthy link
@@ -66,7 +66,7 @@ public:
   {
     std::string serial_device;
     /// Read-only mode: activate() connects and streams telemetry but never runs the arming
-    /// sequence, and every exchange() sends IDLE for all motors. Nothing ever arms.
+    /// sequence, and every exchange() sends DISABLE for all motors. Nothing ever arms.
     bool monitor_only{false};
     std::chrono::milliseconds handshake_timeout{2000};
     /// How long configure() waits for every wired joint to leave BOOT/DISCOVERING and report a
@@ -117,10 +117,10 @@ public:
     const transport::CommandBatch & command, transport::FeedbackBatch & feedback,
     transport::MonotonicStamp deadline) noexcept override;
 
-  /// Asks for IDLE on one joint from the next exchange on, until the next activation.
+  /// Asks for DISABLE on one joint from the next exchange on, until the next activation.
   [[nodiscard]] bool request_joint_disable(transport::JointIndex joint) noexcept override;
 
-  /// Asks for IDLE on every joint from the next exchange on, until the next activation.
+  /// Asks for DISABLE on every joint from the next exchange on, until the next activation.
   [[nodiscard]] bool request_all_disable() noexcept override;
 
   [[nodiscard]] transport::HealthSnapshot health_snapshot() const noexcept override;
