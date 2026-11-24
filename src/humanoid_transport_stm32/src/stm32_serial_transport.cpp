@@ -84,7 +84,7 @@ bool Stm32SerialTransport::activate()
 
   if (parameters_.monitor_only) {
     // Read-only: do not run the arming sequence. The link is already streaming telemetry; mark
-    // active so exchange() runs, where every cycle sends IDLE. No motor is ever armed.
+    // active so exchange() runs, where every cycle sends DISABLE. No motor is ever armed.
     availability_.reset();
     availability_epoch_.store(0);
     active_.store(true, std::memory_order_release);
@@ -175,7 +175,7 @@ transport::ExchangeResult Stm32SerialTransport::exchange(
   for (std::uint8_t j = 0; j < joint_count_; ++j) {
     const JointWiring & wiring = layout_.joints[j];
     if (parameters_.monitor_only) {
-      // Read-only: ask every motor for IDLE, never HOLD or MIT. The tuple is never encoded or sent.
+      // Read-only: ask every motor for DISABLE, never ENABLE. The tuple is never encoded or sent.
       slot_of(wire_command, wiring) = plain_request(plan_request(Phase::kReleasing, false, true));
       continue;
     }
@@ -347,7 +347,7 @@ std::optional<Stm32SerialTransport::Parameters> Stm32SerialTransport::declare_pa
     parameters.monitor_only = node->declare_parameter<bool>(
       "monitor_only", false,
         describe("Read-only: activate() connects and streams but never arms; every cycle sends "
-                 "IDLE for all motors"));
+                 "DISABLE for all motors"));
     const Parameters defaults;
     parameters.handshake_timeout = to_milliseconds(node->declare_parameter<double>(
       "handshake_timeout_s",
@@ -359,10 +359,11 @@ std::optional<Stm32SerialTransport::Parameters> Stm32SerialTransport::declare_pa
                "report a healthy link, s")));
     parameters.arming_timeout = to_milliseconds(node->declare_parameter<double>(
       "arming_timeout_s", std::chrono::duration<double>(defaults.arming_timeout).count(),
-      describe("How long activate waits for every motor to clear to IDLE, then report HOLD, s")));
+      describe("How long activate waits for every motor to clear to DISABLED, then report "
+               "ENABLED, s")));
     parameters.release_timeout = to_milliseconds(node->declare_parameter<double>(
       "release_timeout_s", std::chrono::duration<double>(defaults.release_timeout).count(),
-      describe("How long deactivate waits for every motor to report IDLE, s")));
+      describe("How long deactivate waits for every motor to report DISABLED, s")));
     parameters.fault_grace = to_milliseconds(node->declare_parameter<double>(
       "fault_grace_s", std::chrono::duration<double>(defaults.fault_grace).count(),
       describe("How long a motor may stay faulted after its fault reset is sent, s")));
@@ -607,8 +608,8 @@ bool Stm32SerialTransport::frame_health(const TelemetryFrame & frame, std::strin
     }
     if (state == wire::DriveState::DRV_ABSENT) {
       why = std::format(
-        "joint '{}' maps to a motor its slave did not discover at boot (ABSENT); with the drive "
-        "powered, reset that slave", joint_name(j));
+        "joint '{}' maps to a motor whose drive is not answering on CAN (ABSENT). Is it powered, "
+        "and on the bus?", joint_name(j));
       return false;
     }
   }
@@ -755,18 +756,8 @@ std::string Stm32SerialTransport::explain_waiting(
     "{} (last seen {}, cause {}, feedback age {} ms)", head,
       wire::drive_state_name(motor->drive_state),
     wire::drive_fault_name(motor->drive_fault), motor->fb_age_ms);
-  // The slave rejects HOLD on an IDLE motor only when it did not discover that motor at boot. It
-  // never rediscovers one, so a drive powered after its slave can only be armed after a slave
-  // reset.
-  const bool hold_rejected = phase == Phase::kArming &&
-    motor->drive_state == static_cast<std::uint8_t>(wire::DriveState::DRV_DISABLED) &&
-    (motor->flags & wire::kTeleFlagRequestRejected) != 0;
   if (!reports_within(*motor, feedback_max_age_)) {
     text += ": its drive is not answering on CAN. Is it powered, and on the bus?";
-  } else if (hold_rejected) {
-    text += std::format(
-      ": slave {} rejected HOLD because it did not discover this motor when it booted. With the "
-      "drive powered, reset that slave", wiring.chain);
   }
   return text;
 }

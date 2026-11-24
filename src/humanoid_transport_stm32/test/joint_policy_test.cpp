@@ -71,7 +71,7 @@ TEST_P(PlanRequest, FollowsThePhaseTable)
 {
   const auto & c = GetParam();
   // Representability never changes the request: the caller fails a cycle whose tuple the wire
-  // cannot carry, and there is no DAMPED request any more.
+  // cannot carry.
   for (const bool representable : {true, false}) {
     SCOPED_TRACE(representable ? "representable tuple" : "unrepresentable tuple");
     const auto r = plan_request(c.phase, c.isolated, representable);
@@ -178,7 +178,7 @@ TEST(ReadJoint, AFaultedMotorIsFreshButNotCommandable)
 
 TEST(FindMotor, MatchesAChainByIdNotByPositionInTheFrame)
 {
-  // The master omits a dead slave's chain, so chain 1 can be the first chain in the frame.
+  // Chain 1 first in the frame: the match is by id, not position.
   const auto t = telemetry_of({{1, {motor_in(DriveState::DRV_DISABLED),
           motor_in(DriveState::DRV_ENABLED)}}});
   EXPECT_FALSE(find_motor(t, 0, 0).has_value());

@@ -120,8 +120,7 @@ struct JointReading
   const wire::TeleMotor & motor, std::chrono::microseconds max_age) noexcept;
 
 /// The telemetry for (chain, motor), or nothing if the master did not report that chain or the
-/// chain reports fewer motors. Chains are matched by id, not position: the master omits a dead
-/// slave's chain, so position in the frame does not identify it.
+/// chain reports fewer motors. Chains are matched by id, not by position in the frame.
 [[nodiscard]] std::optional<wire::TeleMotor> find_motor(
   const wire::RobotTelemetry & telemetry, std::uint8_t chain, std::uint8_t motor) noexcept;
 
@@ -148,24 +147,19 @@ struct ArmingVerdict
   std::uint8_t joint{0};
 };
 
-/// The kClearing step. kReached once every joint reports IDLE with feedback no older than
-/// `max_age`. Fresh feedback is what proves the slave is polling the motor again. Until then the
-/// position HOLD would capture is the one the motor had when it faulted, or zero for a motor that
-/// has never answered. kFailed for a joint still FAULT after `fault_grace`: the fault reset lands
-/// a few cycles after it is sent, so a fault that outlives the grace means the requests are not
-/// landing. Everything else is kWaiting, and the activation timeout bounds a drive that never
-/// answers.
+/// The kClearing step. kReached once every joint reports DISABLED with feedback no older than
+/// `max_age`: the slave does not poll a FAULT motor, so only fresh feedback makes the position the
+/// hold captures current. kFailed for a joint still FAULT after `fault_grace`, since RESET lands a
+/// few cycles after it is sent. Everything else is kWaiting until the activation timeout.
 [[nodiscard]] ArmingVerdict judge_clearing(
   const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
   std::chrono::microseconds max_age, std::chrono::nanoseconds elapsed,
   std::chrono::nanoseconds fault_grace) noexcept;
 
-/// The kArming step, which starts only once clearing reached IDLE everywhere. kReached once every
-/// joint reports HOLD with feedback no older than `max_age`. A motor with no drive behind it
-/// reports HOLD for the slave's 100 ms CAN-timeout grace before it faults, so HOLD alone proves
-/// nothing. kFailed for any FAULT, which from IDLE can only be this arming's own: a wound shaft,
-/// or a drive that did not answer the enable. A slave that rejects HOLD leaves the motor IDLE, and
-/// that is kWaiting until the timeout.
+/// The kArming step, which starts only once clearing reached DISABLED everywhere. kReached once
+/// every joint reports ENABLED with feedback no older than `max_age`. kFailed for any FAULT, which
+/// from DISABLED can only be this arming's own: a wound shaft, or an enable the drive never
+/// confirmed. Everything else is kWaiting until the activation timeout.
 [[nodiscard]] ArmingVerdict judge_arming(
   const wire::RobotTelemetry & telemetry, const WiringLayout & layout,
   std::chrono::microseconds max_age) noexcept;
