@@ -1,5 +1,5 @@
 // Copyright 2026 UTRA-RoboSoccer
-// Reads the ADR-002 safety manifest that model/generators/emit.py writes.
+// Reads the ADR-002 safety manifest that model/generators/configs.py writes.
 //
 // Strict by design: every key is required, no other key is accepted, and the schema version must
 // be the one this build reads. A misspelled key would otherwise leave a limit at its zero default,

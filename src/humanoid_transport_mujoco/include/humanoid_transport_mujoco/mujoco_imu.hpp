@@ -2,7 +2,7 @@
 // The robot's IMU in a loaded MuJoCo model, found by sensor type.
 //
 // The generated MJCF carries one framequat, one gyro and one accelerometer on the IMU site
-// (model/generators/emit.py). They are found by type, never by a conventional name: the structure
+// (model/generators/mjcf.py). They are found by type, never by a conventional name: the structure
 // says what they are, and a model that carries two of a type is ambiguous, not "the first one".
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_IMU_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_IMU_HPP_

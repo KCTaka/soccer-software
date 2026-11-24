@@ -1,8 +1,10 @@
-"""Shared helpers: MJCF attribute parsing and rotation conversions.
+"""Shared helpers: MJCF attribute parsing, rotation conversions, and the number formatting and
+mesh lookup the URDF and MJCF emitters share.
 
 Quaternions are (w, x, y, z), MuJoCo's order; scipy 1.11 (Ubuntu 24.04) takes and returns
 (x, y, z, w). Euler angles are URDF rpy: extrinsic x, then y, then z (scipy's lowercase "xyz").
 """
+import os
 import warnings
 
 import numpy as np
@@ -51,3 +53,23 @@ def matrix_to_rpy(m):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Gimbal lock detected", UserWarning)
         return Rotation.from_matrix(m).as_euler("xyz").tolist()
+
+def fmt(xs):
+    return " ".join(f"{x:.10g}" for x in xs)
+
+def mesh_file(mesh, disk_assets):
+    """The file in the assets directory (listing `disk_assets`) holding mesh `mesh`.
+    Deterministic: scan a sorted list, and prefer an exact match over a prefix one (os.listdir
+    order must never decide "pelvis" -> pelvis.STL vs pelvis_contour_link.STL)."""
+    names = sorted(disk_assets)
+    found = next((f for f in names if f == mesh or os.path.splitext(f)[0] == mesh), None)
+    if found is None:  # suffixes like torso_link_rev_1_0.STL
+        found = next((f for f in names if os.path.splitext(f)[0].startswith(mesh)), None)
+    if found is None:  # nothing on disk matched
+        found = mesh if "." in mesh else f"{mesh}.STL"
+    return found
+
+def collision_meshes(link):
+    """The link's collision meshes as a list: none, its one mesh, or its convex pieces."""
+    mesh = link["collision"]["mesh"]
+    return [] if mesh is None else [mesh] if isinstance(mesh, str) else list(mesh)

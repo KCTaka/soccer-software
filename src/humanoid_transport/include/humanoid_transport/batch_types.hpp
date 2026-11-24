@@ -107,7 +107,7 @@ struct ImuSample
 static_assert(std::is_trivially_copyable_v<ImuSample>);
 
 /// The state interfaces an IMU exports, in storage order. The names are the ones
-/// imu_sensor_broadcaster reads, and model/generators/emit.py (IMU_INTERFACES) declares the same.
+/// imu_sensor_broadcaster reads, and model/generators/urdf.py (IMU_INTERFACES) declares the same.
 inline constexpr std::array<NamedField<ImuSample>, 10> kImuStateFields{{
   {"orientation.x", &ImuSample::orientation_x},
   {"orientation.y", &ImuSample::orientation_y},
