@@ -1,23 +1,11 @@
 // Copyright 2026 UTRA-RoboSoccer
-// Diagnostic-only RViz2 view of SIL ground truth (ADR-001).
+// Diagnostic-only TF view of SIL ground truth, sim_world -> ground_truth/pelvis (ADR-001).
 //
-// The real-time side only ever calls publish(), a plain copy into a lock-free
-// buffer. All ROS/TF work runs on a private non-real-time thread that is not
-// part of the controller_manager read()/update()/write() path.
-//
-// Frames: sim_world -> ground_truth/pelvis. Both ends are deliberately
-// outside the production TF tree:
-//   - sim_world (the simulator floor) is not odom or map: this is exact,
-//     noise-free ground truth, not an estimator output (Topic 6 D1).
-//   - The child is NOT the URDF root "pelvis". tf2 permits one parent per
-//     frame, and the Tier 0 estimator owns odom -> pelvis (REP-105). Were
-//     the simulator to also parent "pelvis", the two would fight in the
-//     tree, and every production consumer resolving odom -> pelvis in SIL
-//     would see the simulator's truth or a flip-flop between the two.
-//     That breaks ADR-007-01: SIL would no longer exercise the production
-//     data path it claims to test.
-// A second robot_state_publisher with frame_prefix "ground_truth/" hangs
-// the link tree off ground_truth/pelvis for RViz (see sil_stand.launch.py).
+// exchange() only copies a frame into a lock-free buffer; all ROS work runs on this class's thread.
+// Both frames stay outside the production TF tree (ADR-007-01): sim_world is exact truth, not odom
+// or map, and the child is not "pelvis", which the estimator parents (odom -> pelvis, REP-105).
+// sil_stand.launch.py hangs the link tree off ground_truth/pelvis with a second
+// robot_state_publisher.
 #ifndef HUMANOID_TRANSPORT_MUJOCO__GROUND_TRUTH_PUBLISHER_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__GROUND_TRUTH_PUBLISHER_HPP_
 
