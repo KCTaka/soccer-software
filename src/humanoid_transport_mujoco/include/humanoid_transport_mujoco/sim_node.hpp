@@ -1,16 +1,7 @@
 // Copyright 2026 UTRA-RoboSoccer
-// The SIL-only ROS node of MujocoActuatorTransport, together with the
-// executor that services it.
-//
-// A node that is never spun still publishes (TF) and still reads parameter
-// overrides at declare time, but its parameter services never answer, so
-// `ros2 param get /mujoco_sim ...` hangs. This class owns a single-threaded
-// executor and its thread, so the node is serviced for its whole lifetime.
-//
-// Why not add the node to controller_manager's executor, which ros2_control
-// hands to hardware components in HardwareComponentInterfaceParams: the node
-// belongs to the transport, and reaching it from there would put an rclcpp
-// type into ActuatorTransport, a seam that must not depend on ROS.
+// The SIL-only ROS node of MujocoActuatorTransport and the executor that services it: a node that
+// is never spun reads its parameters but never answers `ros2 param get`. It has its own executor
+// because controller_manager's would put an rclcpp type into the ROS-free ActuatorTransport seam.
 #ifndef HUMANOID_TRANSPORT_MUJOCO__SIM_NODE_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__SIM_NODE_HPP_
 

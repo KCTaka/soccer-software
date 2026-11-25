@@ -1,13 +1,7 @@
 // Copyright 2026 UTRA-RoboSoccer
-// SIL-only external disturbance: a scheduled force pulse on one body.
-//
-// This is simulator scenario control, not transport fault injection. A
-// FaultInjectingTransport (ADR-007-08) decorates any ActuatorTransport and can
-// only corrupt, drop, delay, or replay command/feedback batches; it cannot
-// push a body, and on hardware there is no body to push. ADR-007 lists "fall
-// or impact: applied external wrench" under simulator-side injection, which is
-// what this class is. MujocoActuatorTransport owns it only because physics is
-// stepped inside exchange(), and only that thread may touch mjData.
+// SIL-only scenario control: a scheduled force pulse on one body. Simulator-side injection, not
+// transport fault injection, which only touches batches (ADR-007-08). The transport owns it only
+// because exchange() owns mjData.
 #ifndef HUMANOID_TRANSPORT_MUJOCO__MUJOCO_DISTURBANCE_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__MUJOCO_DISTURBANCE_HPP_
 
