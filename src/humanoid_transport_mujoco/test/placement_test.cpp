@@ -7,6 +7,7 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "humanoid_test_support/generated_robots.hpp"
@@ -25,6 +26,7 @@ using humanoid::transport_mujoco::close_equality_constraints;
 using humanoid::transport_mujoco::free_joint_qpos_adr;
 using humanoid::transport_mujoco::ground_plane_z;
 using humanoid::transport_mujoco::lowest_collision_z;
+using humanoid::transport_mujoco::standing_root_z;
 
 // Placement at qpos0: the height lift that puts the tree on the ground.
 struct Placement
@@ -113,6 +115,18 @@ TEST(Placement, LongerLegStartsHigherByTheSameAmount)
   ASSERT_TRUE(short_leg && long_leg);
   EXPECT_NEAR(
     (long_leg->ground - long_leg->lowest) - (short_leg->ground - short_leg->lowest), 0.1, 1e-9);
+}
+
+TEST(Placement, StandingRootHeightRestsTheLowestGeomOnTheGround)
+{
+  const auto model = load_model_xml(robot("<geom type='box' size='0.1 0.1 0.1' pos='0 0 -0.3'/>"));
+  ASSERT_NE(model, nullptr);
+  const auto data = make_data(*model);
+  const int base = mj_name2id(model.get(), mjtObj::mjOBJ_BODY, "base");
+  // The box's bottom is 0.3 + 0.1 m below the root, which starts at the origin.
+  EXPECT_THAT(
+    standing_root_z(*model, *data, base, 0),
+    ::testing::VariantWith<double>(::testing::DoubleNear(0.4, 1e-12)));
 }
 
 TEST(Placement, NoGroundPlaneIsReported)

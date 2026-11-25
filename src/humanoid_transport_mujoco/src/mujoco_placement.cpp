@@ -11,6 +11,7 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace humanoid::transport_mujoco
@@ -73,6 +74,21 @@ std::optional<double> lowest_collision_z(
     lowest = lowest ? std::min(*lowest, bottom) : bottom;
   }
   return lowest;
+}
+
+std::variant<double, std::string> standing_root_z(
+  const mjModel_ & model, mjData_ & data, int root_body, int root_qpos_adr)
+{
+  mj_kinematics(&model, &data);
+  const auto ground = ground_plane_z(model, data);
+  if (!ground) {
+    return std::string{"floating-base robot but no horizontal ground plane in the model"};
+  }
+  const auto lowest = lowest_collision_z(model, data, root_body);
+  if (!lowest) {
+    return std::string{"floating-base robot has no collidable geometry to stand on"};
+  }
+  return data.qpos[root_qpos_adr + 2] + (*ground - *lowest);
 }
 
 std::optional<std::string> close_equality_constraints(
