@@ -39,7 +39,8 @@ The real-time path is `read()`, controller `update()`, `write()`, `SafetyKernel`
   or unbounded wait. Logging belongs on a non-real-time thread; see
   `GroundTruthPublisher::run()`.
 - Resolve everything by name at configure time and store indices. `exchange()` never searches
-  the model; see `MujocoActuatorTransport::map_joints()`.
+  the model; see `map_joint_drives()` in
+  [mujoco_joints.hpp](../../src/humanoid_transport_mujoco/include/humanoid_transport_mujoco/mujoco_joints.hpp).
 - Hand data between a real-time and a non-real-time thread only through a lock-free buffer:
   [`LatestValueBuffer`](../../src/humanoid_transport/include/humanoid_transport/latest_value_buffer.hpp).
   Its frame types must be trivially copyable; add a `static_assert`, as
