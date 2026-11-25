@@ -4,7 +4,7 @@ FROM ubuntu@sha256:224a1869083a311ef3f13648a154ba79832fbef6364d31493642ca03082da
 ARG COLCON_COMMON_EXTENSIONS_VERSION=0.3.0
 ARG ROSDEP_VERSION=0.27.0
 ARG VCSTOOL_VERSION=0.3.0
-ARG MUJOCO_VERSION=3.4.0
+ARG MUJOCO_VERSION=4.0.1
 ARG ONNXRUNTIME_VERSION=1.30.0
 # Convex decomposition for model/generators/ingest_fusion (collision hulls), a CAD-import tool.
 ARG COACD_VERSION=1.0.14
@@ -80,11 +80,11 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
       "colcon-common-extensions==${COLCON_COMMON_EXTENSIONS_VERSION}" \
       "rosdep==${ROSDEP_VERSION}" \
       "vcstool==${VCSTOOL_VERSION}" \
-      "mujoco==${MUJOCO_VERSION}" \
+      "mujoco-core==${MUJOCO_VERSION}" \
       "onnxruntime==${ONNXRUNTIME_VERSION}" \
       "coacd==${COACD_VERSION}"
 
-RUN echo '/opt/mujoco-3.4.0/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig
+RUN echo '/opt/mujoco/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig
 
 WORKDIR /ws
 COPY tools/pin_audit.py /usr/local/bin/pin_audit.py
