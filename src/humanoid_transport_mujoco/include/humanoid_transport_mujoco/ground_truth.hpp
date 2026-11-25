@@ -8,6 +8,8 @@
 #ifndef HUMANOID_TRANSPORT_MUJOCO__GROUND_TRUTH_HPP_
 #define HUMANOID_TRANSPORT_MUJOCO__GROUND_TRUTH_HPP_
 
+#include <array>
+
 #include "humanoid_transport/batch_types.hpp"
 #include "humanoid_transport/latest_value_buffer.hpp"
 
@@ -29,8 +31,8 @@ struct GroundTruthFrame
   transport::MonotonicStamp captured{};
   // Simulation time after the step, seconds.
   double sim_time_s{0.0};
-  double position[3]{0.0, 0.0, 0.0};        // sim_world frame, metres
-  double orientation_wxyz[4]{1.0, 0.0, 0.0, 0.0};
+  std::array<double, 3> position{0.0, 0.0, 0.0};  // sim_world frame, metres
+  std::array<double, 4> orientation_wxyz{1.0, 0.0, 0.0, 0.0};
 };
 
 // Lock-free, allocation-free, fixed three-slot SPSC hand-off. Producer is the
