@@ -24,6 +24,7 @@ add_library(${PROJECT_NAME} SHARED
   src/ground_truth_publisher.cpp
   src/mujoco_disturbance.cpp
   src/mujoco_imu.cpp
+  src/mujoco_joints.cpp
   src/mujoco_placement.cpp
   src/sim_node.cpp
 )
@@ -78,7 +79,7 @@ if(BUILD_TESTING)
   # The simulator's pure parts, on synthetic in-memory models; placement also stands every
   # generated floating robot on the ground. The robots directory is a compile definition
   # (humanoid_test_robots_dir), never the environment.
-  foreach(name IN ITEMS disturbance imu placement)
+  foreach(name IN ITEMS disturbance imu joints placement)
     ament_add_gmock(${PROJECT_NAME}_${name}_test test/${name}_test.cpp)
     target_link_libraries(${PROJECT_NAME}_${name}_test
       ${PROJECT_NAME} humanoid_test_support::humanoid_test_support)

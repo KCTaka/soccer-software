@@ -17,6 +17,7 @@
 
 #include <optional>
 #include <string>
+#include <variant>
 
 struct mjModel_;
 struct mjData_;
@@ -41,6 +42,12 @@ namespace humanoid::transport_mujoco
 /// tree has no collidable geom.
 [[nodiscard]] std::optional<double> lowest_collision_z(
   const mjModel_ & model, const mjData_ & data, int root_body) noexcept;
+
+/// The root height that rests the tree rooted at `root_body` on the model's highest ground plane,
+/// for the joint angles in `data.qpos`; `root_qpos_adr` is the root's free joint. Runs
+/// mj_kinematics on `data`.
+[[nodiscard]] std::variant<double, std::string> standing_root_z(
+  const mjModel_ & model, mjData_ & data, int root_body, int root_qpos_adr);
 
 /// Closes the model's equality constraints (a linkage's closure pin) at the pose in `data.qpos`
 /// by moving every hinge and slide joint except those whose DOF address is in `held_dofs`: the
