@@ -12,7 +12,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(mujoco
   REQUIRED_VARS mujoco_LIBRARY mujoco_INCLUDE_DIR
   REASON_FAILURE_MESSAGE
-  "Install MuJoCo 3.4.0 to /opt/mujoco-3.4.0, add it to CMAKE_PREFIX_PATH, and run: echo '/opt/mujoco-3.4.0/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig")
+  "Install the MuJoCo release docker/builder.Dockerfile pins as /opt/mujoco, add it to CMAKE_PREFIX_PATH, and run: echo '/opt/mujoco/lib' > /etc/ld.so.conf.d/mujoco.conf && ldconfig")
 
 if(mujoco_FOUND AND NOT TARGET mujoco::mujoco)
   add_library(mujoco::mujoco UNKNOWN IMPORTED)
