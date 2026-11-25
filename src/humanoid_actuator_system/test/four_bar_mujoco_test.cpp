@@ -114,7 +114,7 @@ TEST_P(FourBarAgainstMujoco, CarriesTheMotorsTorqueByItsRatio)
     for (int step = 0; step < 4000; ++step) {
       const double q = data_->qpos[qpos(output)];
       spring_torque = -kSpring * (q - setpoint) - 2.0 * data_->qvel[dof(output)];
-      mju_zero(data_->qfrc_applied, model_->nv);
+      mju_zero(data_->qfrc_applied, static_cast<int>(model_->nv));
       data_->qfrc_applied[dof(l_->input_joint())] = kMotorTorque * std::min(1.0, step / 500.0);
       data_->qfrc_applied[dof(output)] = spring_torque;
       mj_step(model_.get(), data_.get());

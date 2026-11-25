@@ -95,7 +95,7 @@ std::optional<std::string> close_equality_constraints(
       movable.push_back(dof);
     }
   }
-  const int nv = model.nv;
+  const auto nv = static_cast<int>(model.nv);  // MuJoCo's mju_* functions take int sizes
   const auto cols = static_cast<int>(movable.size());
   std::vector<mjtNum> jac_full;
   std::vector<mjtNum> jac;
